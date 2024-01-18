@@ -294,6 +294,7 @@ def main():
     parser.add_argument('--only-inference', type=bool, default=False,
                         help='skip training and only inference')
 
+
     args = parser.parse_args()
     args.schedule = [int(s) for s in args.schedule.split(',')]
     args.cuda = not args.no_cuda and torch.cuda.is_available()

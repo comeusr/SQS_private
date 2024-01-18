@@ -2,8 +2,8 @@
 
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR10/train/ --val-dir /home/wang4538/DGMS-master/CIFAR10/val/ -d cifar10 --num-classes 10"
 GENERAL="--lr 2e-5 --batch-size 128 --epochs 350 --workers 4 --base-size 32 --crop-size 32 --nesterov"
-INFO="--checkname resnet182bit --lr-scheduler one-cycle"
-MODEL="--network resnet18 --mask --K 4 --weight-decay 5e-4 --empirical True"
+INFO="--checkname resnet322bit --lr-scheduler one-cycle"
+MODEL="--network resnet32 --mask --K 4 --weight-decay 5e-4 --empirical True"
 PARAMS="--tau 0.01"
 RESUME="--show-info"
 GPU="--gpu-ids 0"
