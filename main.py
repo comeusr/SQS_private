@@ -283,7 +283,7 @@ def main():
                         help='put the path to resuming file if needed')
     parser.add_argument('--checkname', type=str, default="vggsmall2bit",
                         help='set the checkpoint name')
-    parser.add_argument('--pretrained', action='store_true', default=True,
+    parser.add_argument('--pretrained', action='store_true', default=False,
                         help='set if use a pretrained network')
     # re-train a pre-trained model
     parser.add_argument('--rt', action='store_true', default=False,
