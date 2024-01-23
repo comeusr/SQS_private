@@ -67,9 +67,9 @@ class Trainer(object):
         self.evaluator = Evaluator(self.nclass, self.args)
         
         if args.cuda:
-            # print("Move the model to CUDA")
+            print("Move the model to CUDA")
             torch.backends.cudnn.benchmark=True
-            # self.model = torch.nn.parallel.DataParallel(self.model, device_ids=self.args.gpu_ids)
+            self.model = torch.nn.parallel.DataParallel(self.model, device_ids=self.args.gpu_ids)
             self.model = self.model.cuda()
 
         self.best_top1 = 0.0
