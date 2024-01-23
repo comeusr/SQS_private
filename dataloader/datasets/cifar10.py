@@ -50,7 +50,7 @@ class CIFAR10_Module(Dataset):
         dataset = CIFAR10(root=self.args.train_dir,
                           train=True, download=True, transform=transform_train)
         dataloader = DataLoader(dataset, batch_size=self.args.batch_size,
-                                num_workers=4, shuffle=True, drop_last=True, pin_memory=True)
+                                num_workers=self.args.workers, shuffle=True, drop_last=True, pin_memory=True)
         return dataloader
 
     def val_dataloader(self):
@@ -59,7 +59,7 @@ class CIFAR10_Module(Dataset):
         dataset = CIFAR10(root=self.args.val_dir,
                           train=False, download=True, transform=transform_val)
         dataloader = DataLoader(dataset, batch_size=self.args.batch_size, 
-                                num_workers=4, pin_memory=True)
+                                num_workers=self.args.workers, pin_memory=True)
         return dataloader
 
 class CIFAR100_Module(CIFAR10_Module):
