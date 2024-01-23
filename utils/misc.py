@@ -137,7 +137,7 @@ def resume_ckpt(args, model, train_loader, optimizer, lr_scheduler):
     if args.only_inference:
         checkpoint = torch.load(args.resume)
         if args.cuda:
-            model.module.load_state_dict(checkpoint)
+            model.load_state_dict(checkpoint)
             model = model.cuda()
         else:
             model.load_state_dict(checkpoint['state_dict'])
@@ -151,8 +151,8 @@ def resume_ckpt(args, model, train_loader, optimizer, lr_scheduler):
         checkpoint = torch.load(args.resume)
         args.start_epoch = checkpoint['epoch']
         if args.cuda:
-            model.module.load_state_dict(checkpoint['state_dict'])
-            model.module.init_mask_params()
+            model.load_state_dict(checkpoint['state_dict'])
+            model.init_mask_params()
             optimizer = get_optimizer(model, args)
             lr_scheduler = get_scheduler(args, optimizer, \
                     args.lr, len(train_loader))

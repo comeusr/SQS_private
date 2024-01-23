@@ -67,7 +67,7 @@ class Trainer(object):
         
         if args.cuda:
             torch.backends.cudnn.benchmark=True
-            self.model = torch.nn.parallel.DataParallel(self.model, device_ids=self.args.gpu_ids)
+            # self.model = torch.nn.parallel.DataParallel(self.model, device_ids=self.args.gpu_ids)
             self.model = self.model.cuda()
 
         self.best_top1 = 0.0
