@@ -41,7 +41,6 @@ class Trainer(object):
         kwargs = {'num_workers': args.workers, 'pin_memory': True}
         self.train_loader, self.val_loader, self.test_loader, self.nclass = make_data_loader(args, **kwargs)
 
-        print("Initialize DGMSNet")
         model = DGMSNet(args, args.freeze_bn)
         
         if args.mask:
@@ -67,7 +66,6 @@ class Trainer(object):
         self.evaluator = Evaluator(self.nclass, self.args)
         
         if args.cuda:
-            print("Move the model to CUDA")
             torch.backends.cudnn.benchmark=True
             self.model = torch.nn.parallel.DataParallel(self.model, device_ids=self.args.gpu_ids)
             self.model = self.model.cuda()
@@ -213,11 +211,11 @@ class Trainer(object):
 def main():
     parser = argparse.ArgumentParser(description="Differentiable Gaussian Mixture Weight Sharing (DGMS)",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-b', '--network', type=str, default='vggsmall',
+    parser.add_argument('-b', '--network', type=str, default='resnet18',
                         choices=['resnet18', 'resnet50', 'mnasnet', 'proxylessnas',
                                  'resnet20', 'resnet32', 'resnet56', 'vggsmall'],
                         help='network name (default: resnet18)')
-    parser.add_argument('-d', '--dataset', type=str, default='cifar10',
+    parser.add_argument('-d', '--dataset', type=str, default='imagenet',
                         choices=['cifar10', 'imagenet', 'cars', 'cub200', 'aircraft'],
                         help='dataset name (default: imgenet)')
     parser.add_argument('-j', '--workers', type=int, default=4,
@@ -230,37 +228,37 @@ def main():
                         help='whether to use sync bn (default: auto)')
     parser.add_argument('--freeze-bn', type=bool, default=False,
                         help='whether to freeze bn parameters (default: False)')
-    parser.add_argument('--train-dir', type=str, default='Path2DatasetCIFAR10/train/',
+    parser.add_argument('--train-dir', type=str, default=None,
                         help='training set directory (default: None)')
-    parser.add_argument('--val-dir', type=str, default='Path2DatasetCIFAR10/val/',
+    parser.add_argument('--val-dir', type=str, default='None',
                         help='validation set directory (default: None)')
-    parser.add_argument('--num-classes', type=int, default=10,
+    parser.add_argument('--num-classes', type=int, default=1000,
                         help='Number of classes (default: 1000)')
-    parser.add_argument('--show-info', action='store_true', default=True,
+    parser.add_argument('--show-info', action='store_true', default=False, 
                         help='set if show model compression info (default: False)')
 
     # training hyper params
-    parser.add_argument('--epochs', type=int, default=350, metavar='N',
+    parser.add_argument('--epochs', type=int, default=None, metavar='N',
                         help='number of epochs to train (default: auto)')
     parser.add_argument('--start_epoch', type=int, default=0,
                         metavar='N', help='start epochs (default:0)')
-    parser.add_argument('--batch-size', type=int, default=128, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=256, metavar='N', 
                         help='input batch size for training (default: 256)')
     parser.add_argument('--test-batch-size', type=int, default=256, metavar='N', 
                         help='input batch size for testing (default: 256)')
     # model params
-    parser.add_argument('--K', type=int, default=4, metavar='K',
+    parser.add_argument('--K', type=int, default=16, metavar='K',
                         help='number of GMM components (default: 2^4=16)')
     parser.add_argument('--tau', type=float, default=0.01, metavar='TAU',
                         help='gumbel softmax temperature (default: 0.01)')
     parser.add_argument('--normal', action='store_true', default=False,
                         help='whether train noramlly (default: False)')
-    parser.add_argument('--empirical', type=bool, default=True,
+    parser.add_argument('--empirical', type=bool, default=False,
                         help='whether use empirical initialization for parameter sigma (default: False)')
     parser.add_argument('--mask', action='store_true', default=False,
                         help='whether transform normal convolution into DGMS convolution (default: False)')
     # optimizer params
-    parser.add_argument('--lr', type=float, default=0.05, metavar='LR',
+    parser.add_argument('--lr', type=float, default=2e-5, metavar='LR',
                         help='learning rate (default: 2e-5)')
     parser.add_argument('--lr-scheduler', type=str, default='one-cycle',
                         choices=['one-cycle', 'cosine', 'multi-step', 'reduce'],
@@ -283,7 +281,7 @@ def main():
     # checking point
     parser.add_argument('--resume', type=str, default=None,
                         help='put the path to resuming file if needed')
-    parser.add_argument('--checkname', type=str, default="vggsmall2bit",
+    parser.add_argument('--checkname', type=str, default="Experiments",
                         help='set the checkpoint name')
     parser.add_argument('--pretrained', action='store_true', default=True,
                         help='set if use a pretrained network')
@@ -291,7 +289,7 @@ def main():
     parser.add_argument('--rt', action='store_true', default=False,
                         help='retraining model for quantization')
     # evaluation option
-    parser.add_argument('--eval-interval', type=int, default=5,
+    parser.add_argument('--eval-interval', type=int, default=1,
                         help='evaluuation interval (default: 1)')
     parser.add_argument('--only-inference', type=bool, default=False,
                         help='skip training and only inference')
@@ -308,7 +306,6 @@ def main():
     args = parser.parse_args()
     args.schedule = [int(s) for s in args.schedule.split(',')]
     args.cuda = not args.no_cuda and torch.cuda.is_available()
-    print(args)
     if args.cuda:
         try:
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]

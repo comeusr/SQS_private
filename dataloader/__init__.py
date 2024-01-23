@@ -8,7 +8,7 @@ def make_data_loader(args, **kwargs):
         val_loader = _cifar10.val_dataloader()
         test_loader = None
         num_class = _cifar10.num_class
-        print("Data Loader Finish")
+
         return train_loader, val_loader, test_loader, num_class
 
     elif args.dataset == 'cub200':

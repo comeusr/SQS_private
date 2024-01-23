@@ -15,6 +15,7 @@ from graphviz import Digraph
 from .utils import _ReplaceFunc, Log, UnitLayer
 
 
+
 class TorchTransformer(nn.Module):
 	"""!
 	This class handle layer swap, summary, visualization of the input model
@@ -56,7 +57,6 @@ class TorchTransformer(nn.Module):
 			return model
 		else:
 			for module_name in model._modules:
-				print(module_name)
 				# has children
 				if len(model._modules[module_name]._modules) > 0:
 					self.trans_layers(model._modules[module_name])
