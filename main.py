@@ -41,6 +41,7 @@ class Trainer(object):
         kwargs = {'num_workers': args.workers, 'pin_memory': True}
         self.train_loader, self.val_loader, self.test_loader, self.nclass = make_data_loader(args, **kwargs)
 
+        print("Initialize DGMSNet")
         model = DGMSNet(args, args.freeze_bn)
         
         if args.mask:
@@ -66,6 +67,7 @@ class Trainer(object):
         self.evaluator = Evaluator(self.nclass, self.args)
         
         if args.cuda:
+            # print("Move the model to CUDA")
             torch.backends.cudnn.benchmark=True
             # self.model = torch.nn.parallel.DataParallel(self.model, device_ids=self.args.gpu_ids)
             self.model = self.model.cuda()
