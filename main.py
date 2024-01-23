@@ -300,6 +300,7 @@ def main():
     args = parser.parse_args()
     args.schedule = [int(s) for s in args.schedule.split(',')]
     args.cuda = not args.no_cuda and torch.cuda.is_available()
+    print(args)
     if args.cuda:
         try:
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
