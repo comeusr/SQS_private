@@ -60,7 +60,7 @@ def mkdir_p(path):
 def check_cuda_memory():
     allocated = torch.cuda.memory_allocated() / 1024**3
     reserved = torch.cuda.memory_reserved() / 1024**3
-    print("Total CUDA Memory {:.3f} GBs, Used Memory {:.3f}".format(reserved, allocated))
+    print("Total CUDA Memory {:.3f} GBs, Used Memory {:.3f} GBs".format(reserved, allocated))
 
 @torch.no_grad()
 def cluster_weights(weights, n_clusters):

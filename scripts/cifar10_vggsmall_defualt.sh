@@ -11,7 +11,7 @@ GPU="--gpu-ids 0"
 sbatch --time=4:00:00 --nodes=1 --gpus-per-node=1 <<EOT
 #!/bin/bash -l
 
-#SBATCH --out /home/wang4538/DGMS-master/out/%j.out
+#SBATCH --output /home/wang4538/DGMS-master/out/%j.out
 #SBATCH --error /home/wang4538/DGMS-master/out/%j.out
 
 nvidia-smi
