@@ -14,6 +14,7 @@ sbatch --time=4:00:00 --nodes=1 --gpus-per-node=1 <<EOT
 #SBATCH --out /home/wang4538/DGMS-master/out/%j.out
 #SBATCH --error /home/wang4538/DGMS-master/out/%j.out
 
+nvidia-smi
 python ../main.py $DATASET $GENERAL $MODEL $INFO $PARAMS $RESUME $GPU
 
 EOT

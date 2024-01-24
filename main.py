@@ -312,8 +312,8 @@ def main():
         except ValueError:
             raise ValueError("Argument --gpu_ids must be a comma-separeted list of integers only")
         torch.cuda.empty_cache()
+        print('CUDA memory released!')
         check_cuda_memory()
-
     if args.sync_bn is None:
         if args.cuda and len(args.gpu_ids) > 1:
             args.sync_bn = True
