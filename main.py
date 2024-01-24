@@ -24,7 +24,7 @@ from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 from utils.summaries import TensorboardSummary
 from utils.metrics import Evaluator
 from utils.saver import Saver
-from utils.misc import AverageMeter, get_optimizer, resume_ckpt
+from utils.misc import AverageMeter, get_optimizer, resume_ckpt, check_cuda_memory
 from utils.loss import *
 
 class Trainer(object):
@@ -311,6 +311,9 @@ def main():
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
         except ValueError:
             raise ValueError("Argument --gpu_ids must be a comma-separeted list of integers only")
+        torch.cuda.empty_cache()
+        check_cuda_memory()
+
     if args.sync_bn is None:
         if args.cuda and len(args.gpu_ids) > 1:
             args.sync_bn = True
