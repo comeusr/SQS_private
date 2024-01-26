@@ -177,7 +177,7 @@ def resume_ckpt(args, model, train_loader, optimizer, lr_scheduler):
             best_pred = checkpoint['best_pred']
         print("=> loaded checkpoint '{}' (epoch {})"
                 .format(args.resume, checkpoint['epoch']))
-        print("Checkpoint Top-1 Acc: ", checkpoint['best_pred'])
+        print("Checkpoint Top-1 Acc: ", best_pred)
     return model, optimizer, lr_scheduler, best_pred
 
 class AverageMeter(object):
