@@ -295,15 +295,15 @@ def main():
                         help='skip training and only inference')
 
 
-    # args = parser.parse_args([
-    #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
-    #     "--num-classes", "10", "--lr", "2e-5", "--batch-size", "128", "--epochs", "350", "--workers", "1", "--base-size", "32", "--crop-size", "32", "--nesterov",
-    #     "--checkname", "resnet182bit", "--lr-scheduler", "one-cycle", "--network", "resnet18", "--mask", "--K", "4", "--weight-decay", "5e-4",
-    #     "--empirical", "True", "--tau", "0.01",
-    #     "--resume", r"..\DGMS\run\cifar10\resnet18_32bit_uncompressed\experiment_1\checkpoint.pth.tar",
-    #     "--rt", "--show-info", "--gpu-ids", "0"
-    # ])
-    args = parser.parse_args()
+    args = parser.parse_args([
+        "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
+        "--num-classes", "10", "--lr", "2e-5", "--batch-size", "128", "--epochs", "350", "--workers", "1", "--base-size", "32", "--crop-size", "32", "--nesterov",
+        "--checkname", "resnet182bit", "--lr-scheduler", "one-cycle", "--network", "resnet18", "--mask", "--K", "4", "--weight-decay", "5e-4",
+        "--empirical", "True", "--tau", "0.01",
+        "--resume", r"..\DGMS\run\cifar10\resnet18_32bit_uncompressed\experiment_1\checkpoint.pth.tar",
+        "--rt", "--show-info", "--gpu-ids", "0"
+    ])
+    # args = parser.parse_args()
     args.schedule = [int(s) for s in args.schedule.split(',')]
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     if args.cuda:
