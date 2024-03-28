@@ -9,7 +9,7 @@ import time
 import os
 import sys
 import math
-
+import wandb
 import torch.nn as nn
 import config as cfg
 
@@ -26,6 +26,12 @@ from utils.metrics import Evaluator
 from utils.saver import Saver
 from utils.misc import AverageMeter, get_optimizer, resume_ckpt, check_cuda_memory
 from utils.loss import *
+
+from composer import Trainer
+from composer.loggers import WandBLogger, TensorboardLogger
+from composer.optim import DecoupledAdamW, LinearWithWarmupScheduler
+from composer.callbacks import LRMonitor, OptimizerMonitor, NaNMonitor
+
 
 class Trainer(object):
     def __init__(self, args):
@@ -263,7 +269,6 @@ def main():
     parser.add_argument('--lr-scheduler', type=str, default='one-cycle',
                         choices=['one-cycle', 'cosine', 'multi-step', 'reduce'],
                         help='lr scheduler mode: (default: one-cycle)')
-    parser.add_argument('--schedule', type=str, default='70,140,190')
     parser.add_argument('--momentum', type=float, default=0.9,
                         metavar='M', help='momentum (default: 0.9)')
     parser.add_argument('--weight-decay', type=float, default=5e-4,
@@ -293,19 +298,111 @@ def main():
                         help='evaluuation interval (default: 1)')
     parser.add_argument('--only-inference', type=bool, default=False,
                         help='skip training and only inference')
+    parser.add_argument('--wandb_watch', type=bool, default=False,
+                        halp='Use Weights & Bias as logger.')
+    parser.add_argument('--t_warmup', type=str, default='0.0dur',
+                        help="Length of learning rate warm up phase.")
+    parser.add_argument('--alpha_f', type=float, default=0.001,
+                        help="Final learning rate.")
+    parser.add_argument('--duration', type=str, default='200ep',
+                        help="Number of Epochs")
+    parser.add_argument('--watch_freq', type=int, defualt=1000,
+                        help="Frequency of Wandb watch model")
+    parser.add_argument('--run_name', type=str, default=None,
+                        help="Run name")
+    parser.add_argument('--save_folder', type=str, default=None,
+                        help="Save Directory")
+    parser.add_argument('--save_interval', type=str, default='0.01dur',
+                        help='Frequency of Saving Model')
+    parser.add_argument('--load_path', type=str, default=None,
+                        help='Directory to resume the training')
 
-
-    # args = parser.parse_args([
-    #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
-    #     "--num-classes", "10", "--lr", "2e-5", "--batch-size", "128", "--epochs", "350", "--workers", "1", "--base-size", "32", "--crop-size", "32", "--nesterov",
-    #     "--checkname", "vggsmall2bit", "--lr-scheduler", "one-cycle", "--network", "vggsmall", "--mask", "--K", "4", "--weight-decay", "5e-4",
-    #     "--empirical", "True", "--tau", "0.01",
-    #     "--resume", r"..\DGMS\run\cifar10\vggsmall_32bit_uncompressed\experiment_9\checkpoint.pth.tar",
-    #     "--rt", "--show-info", "--gpu-ids", "0"
-    # ])
+    args = parser.parse_args([
+        "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
+        "--num-classes", "10", "--lr", "2e-5", "--batch-size", "128", "--epochs", "350", "--workers", "1", "--base-size", "32", "--crop-size", "32", "--nesterov",
+        "--checkname", "vggsmall2bit", "--lr-scheduler", "one-cycle", "--network", "res", "--mask", "--K", "4", "--weight-decay", "5e-4",
+        "--empirical", "True", "--tau", "0.01",
+        "--resume", r"..\DGMS\run\cifar10\vggsmall_32bit_uncompressed\experiment_9\checkpoint.pth.tar",
+        "--rt", "--show-info", "--gpu-ids", "0", "--wandb_watch", "--t_warmup", "0.1ep", "--alpha_f", "0.001",
+        "--duration", "5ep", "--save_folder", "/DGMS/debug/cifar10"
+    ])
     args = parser.parse_args()
-    args.schedule = [int(s) for s in args.schedule.split(',')]
     args.cuda = not args.no_cuda and torch.cuda.is_available()
+    saver = Saver(args)
+    train_loader, val_loader, test_loader, nclass = make_data_loader(args)
+    model = DGMSNet(args, args.freeze_bn)
+
+    if args.mask:
+        print("DGMS Conv!")
+        _transformer = TorchTransformer()
+        _transformer.register(nn.Conv2d, DGMSConv)
+        model = _transformer.trans_layers(model)
+    else:
+        print("Normal Conv!")
+
+    print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
+
+    cfg.IS_NORMAL = True if (args.resume is not None) else False
+    cfg.IS_NORMAL = args.normal
+
+    criterion = nn.CrossEntropyLoss()
+    sparsity = SparsityMeasure(args)
+    evaluator = Evaluator(nclass, args)
+
+    # if args.cuda:
+    #     torch.backends.cudnn.benchmark = True
+    #     model = model.cuda()
+
+    wandb_logger = WandBLogger(
+        project="Diff Quantization",
+        entity="Ziyi",
+        tags=["Baseline", "DGMS"],
+        args=args
+    )
+
+    wandb.watch(model, log="parameters", log_freq=args.watch_freq)
+
+    optimizer = DecoupledAdamW(
+        model.parameters(),
+        lr=args.lr,
+        betas=(0.9, 0.999),
+        eps=1e-8,
+        weight_decay=args.weight_decay
+    )
+
+    lr_scheduler = LinearWithWarmupScheduler(
+        t_warmup=args.t_warmup,
+        alpha_f=args.alpha_f
+    )
+
+    trainer = Trainer(
+        model=model,
+        optimizer=optimizer,
+        schedulers=lr_scheduler,
+        max_duration=args.duration,
+        device_train_microbatch_size='auto',
+
+        train_dataloader=train_loader,
+        eval_dataloader=test_loader,
+        device="gpu" if torch.cuda.is_available() else "cpu",
+
+        loggers=[wandb_logger,],
+
+        #callbacks
+        callbacks=[LRMonitor(),  OptimizerMonitor(), NaNMonitor()],
+
+        #Save Checkpoint
+        save_folder=args.save_folder,
+        save_filename="ep{epoch}",
+        save_latest_filename="latest",
+        autoresume = args.autoresume,
+        load_path=args.load_path,
+
+        seed=args.seed
+
+    )
+
+
     if args.cuda:
         try:
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]

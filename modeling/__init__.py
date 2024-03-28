@@ -4,6 +4,7 @@ import torch.nn as nn
 
 from .networks import get_network
 from modeling.DGMS import DGMSConv
+import torch.nn.functional as F
 
 class DGMSNet(nn.Module):
     def __init__(self, args, freeze_bn=False):
@@ -41,3 +42,7 @@ class DGMSNet(nn.Module):
                     for p in m[1].parameters():
                         if p.requires_grad:
                             yield p
+
+    def loss(outputs, batch):
+        _, targets = batch
+        return F.cross_entropy(outputs, targets)

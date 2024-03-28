@@ -1,9 +1,3 @@
-# Copyright (c) Runpei Dong, ArChip Lab.
-
-""" DGMS convolution implementation.
-
-Author: Runpei Dong
-"""
 
 import torch
 import torch.nn as nn
