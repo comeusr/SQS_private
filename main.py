@@ -345,13 +345,13 @@ def main():
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
 
-    for name, p in model.named_parameters():
-        print(name, p.size())
+    # for name, p in model.named_parameters():
+    #     print(name, p.size())
 
     print("-"*80)
     for name, m in model.named_modules():
         if isinstance(m, DGMSConv):
-            print(name, m.sub_distribution.mu)
+            print(name)
 
     cfg.IS_NORMAL = True if (args.resume is not None) else False
     cfg.IS_NORMAL = args.normal
