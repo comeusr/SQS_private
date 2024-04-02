@@ -317,7 +317,7 @@ def main():
                         help='Frequency of Saving Model')
     parser.add_argument('--load_path', type=str, default=None,
                         help='Directory to resume the training')
-    parser.add_argument('--auto_resume', action='store_true', default=False,
+    parser.add_argument('--autoresume', action='store_true', default=False,
                         help="Auto Resume the training process.")
 
     args = parser.parse_args([
@@ -327,7 +327,7 @@ def main():
         "--empirical", "True", "--tau", "0.01",
         "--resume", r"..\DGMS\run\cifar10\vggsmall_32bit_uncompressed\experiment_9\checkpoint.pth.tar",
         "--rt", "--show-info", "--gpu-ids", "0", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
-        "--duration", "1ep", "--save_folder", "/DGMS/debug/cifar10", "--auto_resume"
+        "--duration", "1ep", "--save_folder", "/DGMS/debug/cifar10", "--autoresume"
     ])
     # args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
