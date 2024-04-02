@@ -365,7 +365,7 @@ def main():
     #     model = model.cuda()
 
     wandb_logger = WandBLogger(
-        project="Diff Quantization",
+        project="DiffQuantization",
         entity="Ziyi",
         tags=["Baseline", "DGMS"],
         init_kwargs={"config": vars(args)}
