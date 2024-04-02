@@ -343,7 +343,7 @@ def main():
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
 
     for name, p in model.named_parameters():
-        print(name)
+        print(name, p.size)
 
     cfg.IS_NORMAL = True if (args.resume is not None) else False
     cfg.IS_NORMAL = args.normal
@@ -360,7 +360,7 @@ def main():
         project="Diff Quantization",
         entity="Ziyi",
         tags=["Baseline", "DGMS"],
-        args=args
+        init_kwargs={"config": vars(args)}
     )
 
     wandb.watch(model, log="parameters", log_freq=args.watch_freq)
