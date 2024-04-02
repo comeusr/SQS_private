@@ -26,6 +26,7 @@ from utils.metrics import Evaluator
 from utils.saver import Saver
 from utils.misc import AverageMeter, get_optimizer, resume_ckpt, check_cuda_memory
 from utils.loss import *
+from watch import Sparsity
 
 from composer import Trainer
 from composer.loggers import WandBLogger, TensorboardLogger
@@ -316,6 +317,8 @@ def main():
                         help='Frequency of Saving Model')
     parser.add_argument('--load_path', type=str, default=None,
                         help='Directory to resume the training')
+    parser.add_argument('--auto_resume', action='store_true', default=False,
+                        help="Auto Resume the training process.")
 
     args = parser.parse_args([
         "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
@@ -324,7 +327,7 @@ def main():
         "--empirical", "True", "--tau", "0.01",
         "--resume", r"..\DGMS\run\cifar10\vggsmall_32bit_uncompressed\experiment_9\checkpoint.pth.tar",
         "--rt", "--show-info", "--gpu-ids", "0", "--wandb_watch", "--t_warmup", "0.1ep", "--alpha_f", "0.001",
-        "--duration", "1ep", "--save_folder", "/DGMS/debug/cifar10"
+        "--duration", "1ep", "--save_folder", "/DGMS/debug/cifar10", "--auto_resume"
     ])
     # args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -345,7 +348,7 @@ def main():
     for name, p in model.named_parameters():
         print(name, p.size())
 
-    print("-"*50)
+    print("-"*80)
     for name, m in model.named_modules():
         if isinstance(m, DGMSConv):
             print(name, m.sub_distribution.mu)
@@ -353,9 +356,9 @@ def main():
     cfg.IS_NORMAL = True if (args.resume is not None) else False
     cfg.IS_NORMAL = args.normal
 
-    criterion = nn.CrossEntropyLoss()
-    sparsity = SparsityMeasure(args)
-    evaluator = Evaluator(nclass, args)
+    # criterion = nn.CrossEntropyLoss()
+    # sparsity = SparsityMeasure(args)
+    # evaluator = Evaluator(nclass, args)
 
     # if args.cuda:
     #     torch.backends.cudnn.benchmark = True
@@ -368,7 +371,7 @@ def main():
         init_kwargs={"config": vars(args)}
     )
 
-    wandb.watch(model, log="parameters", log_freq=args.watch_freq)
+    # wandb.watch(model, log="parameters", log_freq=args.watch_freq)
 
     optimizer = DecoupledAdamW(
         model.parameters(),
@@ -397,62 +400,63 @@ def main():
         loggers=[wandb_logger,],
 
         #callbacks
-        callbacks=[LRMonitor(),  OptimizerMonitor(), NaNMonitor()],
+        callbacks=[LRMonitor(),  OptimizerMonitor(), NaNMonitor(), Sparsity()],
 
         #Save Checkpoint
         save_folder=args.save_folder,
         save_filename="ep{epoch}",
         save_latest_filename="latest",
-        autoresume = args.autoresume,
+        autoresume=args.autoresume,
         load_path=args.load_path,
 
         seed=args.seed
 
     )
 
+    trainer.fit()
 
-    if args.cuda:
-        try:
-            args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
-        except ValueError:
-            raise ValueError("Argument --gpu_ids must be a comma-separeted list of integers only")
-        torch.cuda.empty_cache()
-        print('CUDA memory released!')
-        check_cuda_memory()
-    if args.sync_bn is None:
-        if args.cuda and len(args.gpu_ids) > 1:
-            args.sync_bn = True
-        else:
-            args.sync_bn = False
-
-    if args.epochs is None:
-        args.epochs = cfg.EPOCH[args.dataset.lower()]
-    
-    if args.num_classes is None:
-        args.num_classes = cfg.NUM_CLASSES[args.dataset.lower()]
-    
-    if args.train_dir is None or args.val_dir is None:
-        args.train_dir, args.val_dir = Path.db_root_dir(args.dataset.lower()), Path.db_root_dir(args.dataset.lower())
-
-    print(args)
-    torch.manual_seed(args.seed)
-    trainer = Trainer(args)
-    print('Starting Epoch:', trainer.args.start_epoch)
-    print('Total Epoches:', trainer.args.epochs)
-    if args.only_inference:
-        print("Only inference with given resumed model...")
-        val_loss, val_acc = trainer.validation(0)
-        return
-    for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
-        train_loss, train_acc = trainer.training(epoch)
-        if epoch % args.eval_interval == (args.eval_interval - 1):
-            val_loss, val_acc = trainer.validation(epoch)
-    nz_val = 1 - trainer.best_sparse_ratio
-    params_val = trainer.best_params
-    compression_rate = 1/(nz_val * (math.floor(math.log(cfg.K_LEVEL, 2)) / 32))
-    print(f"Best Top-1: {trainer.best_top1} | Top-5: {trainer.best_top5} | NZ: {nz_val} | #Params: {params_val:.2f}M | CR: {compression_rate:.2f}")
-
-    trainer.writer.close()
+    # if args.cuda:
+    #     try:
+    #         args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
+    #     except ValueError:
+    #         raise ValueError("Argument --gpu_ids must be a comma-separeted list of integers only")
+    #     torch.cuda.empty_cache()
+    #     print('CUDA memory released!')
+    #     check_cuda_memory()
+    # if args.sync_bn is None:
+    #     if args.cuda and len(args.gpu_ids) > 1:
+    #         args.sync_bn = True
+    #     else:
+    #         args.sync_bn = False
+    #
+    # if args.epochs is None:
+    #     args.epochs = cfg.EPOCH[args.dataset.lower()]
+    #
+    # if args.num_classes is None:
+    #     args.num_classes = cfg.NUM_CLASSES[args.dataset.lower()]
+    #
+    # if args.train_dir is None or args.val_dir is None:
+    #     args.train_dir, args.val_dir = Path.db_root_dir(args.dataset.lower()), Path.db_root_dir(args.dataset.lower())
+    #
+    # print(args)
+    # torch.manual_seed(args.seed)
+    # trainer = Trainer(args)
+    # print('Starting Epoch:', trainer.args.start_epoch)
+    # print('Total Epoches:', trainer.args.epochs)
+    # if args.only_inference:
+    #     print("Only inference with given resumed model...")
+    #     val_loss, val_acc = trainer.validation(0)
+    #     return
+    # for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
+    #     train_loss, train_acc = trainer.training(epoch)
+    #     if epoch % args.eval_interval == (args.eval_interval - 1):
+    #         val_loss, val_acc = trainer.validation(epoch)
+    # nz_val = 1 - trainer.best_sparse_ratio
+    # params_val = trainer.best_params
+    # compression_rate = 1/(nz_val * (math.floor(math.log(cfg.K_LEVEL, 2)) / 32))
+    # print(f"Best Top-1: {trainer.best_top1} | Top-5: {trainer.best_top5} | NZ: {nz_val} | #Params: {params_val:.2f}M | CR: {compression_rate:.2f}")
+    #
+    # trainer.writer.close()
 
 if __name__ == '__main__':
     main()
