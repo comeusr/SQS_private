@@ -320,7 +320,7 @@ def main():
     args = parser.parse_args([
         "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
         "--num-classes", "10", "--lr", "2e-5", "--batch-size", "128", "--epochs", "350", "--workers", "1", "--base-size", "32", "--crop-size", "32", "--nesterov",
-        "--checkname", "vggsmall2bit", "--lr-scheduler", "one-cycle", "--network", "res", "--mask", "--K", "4", "--weight-decay", "5e-4",
+        "--checkname", "vggsmall2bit", "--lr-scheduler", "one-cycle", "--network", "resnet18", "--mask", "--K", "4", "--weight-decay", "5e-4",
         "--empirical", "True", "--tau", "0.01",
         "--resume", r"..\DGMS\run\cifar10\vggsmall_32bit_uncompressed\experiment_9\checkpoint.pth.tar",
         "--rt", "--show-info", "--gpu-ids", "0", "--wandb_watch", "--t_warmup", "0.1ep", "--alpha_f", "0.001",
