@@ -326,7 +326,7 @@ def main():
         "--rt", "--show-info", "--gpu-ids", "0", "--wandb_watch", "--t_warmup", "0.1ep", "--alpha_f", "0.001",
         "--duration", "5ep", "--save_folder", "/DGMS/debug/cifar10"
     ])
-    args = parser.parse_args()
+    # args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     saver = Saver(args)
     train_loader, val_loader, test_loader, nclass = make_data_loader(args)
@@ -341,6 +341,9 @@ def main():
         print("Normal Conv!")
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
+
+    for name, p in model.named_parameters():
+        print(name)
 
     cfg.IS_NORMAL = True if (args.resume is not None) else False
     cfg.IS_NORMAL = args.normal
