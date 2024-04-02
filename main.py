@@ -388,7 +388,7 @@ def main():
 
     trainer = Trainer(
         model=model,
-        optimizer=optimizer,
+        optimizers=optimizer,
         schedulers=lr_scheduler,
         max_duration=args.duration,
         device_train_microbatch_size='auto',
