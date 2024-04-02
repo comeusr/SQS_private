@@ -326,7 +326,7 @@ def main():
         "--checkname", "vggsmall2bit", "--lr-scheduler", "one-cycle", "--network", "resnet18", "--mask", "--K", "4", "--weight-decay", "5e-4",
         "--empirical", "True", "--tau", "0.01",
         "--resume", r"..\DGMS\run\cifar10\vggsmall_32bit_uncompressed\experiment_9\checkpoint.pth.tar",
-        "--rt", "--show-info", "--gpu-ids", "0", "--wandb_watch", "--t_warmup", "0.1ep", "--alpha_f", "0.001",
+        "--rt", "--show-info", "--gpu-ids", "0", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
         "--duration", "1ep", "--save_folder", "/DGMS/debug/cifar10", "--auto_resume"
     ])
     # args = parser.parse_args()
