@@ -345,6 +345,11 @@ def main():
     for name, p in model.named_parameters():
         print(name, p.size())
 
+    print("-"*50)
+    for name, m in model.named_modules():
+        if isinstance(m, DGMSConv):
+            print(name, m.sub_distribution.mu)
+
     cfg.IS_NORMAL = True if (args.resume is not None) else False
     cfg.IS_NORMAL = args.normal
 
