@@ -26,7 +26,7 @@ from utils.metrics import Evaluator
 from utils.saver import Saver
 from utils.misc import AverageMeter, get_optimizer, resume_ckpt, check_cuda_memory
 from utils.loss import *
-from watch import Sparsity
+from utils.watch import Sparsity
 
 from composer import Trainer
 from composer.loggers import WandBLogger, TensorboardLogger
