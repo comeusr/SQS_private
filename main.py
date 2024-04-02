@@ -296,9 +296,9 @@ def main():
     # evaluation option
     parser.add_argument('--eval-interval', type=int, default=1,
                         help='evaluuation interval (default: 1)')
-    parser.add_argument('--only-inference', type=bool, default=False,
+    parser.add_argument('--only-inference', action='store_true', default=False,
                         help='skip training and only inference')
-    parser.add_argument('--wandb_watch', type=bool, default=False,
+    parser.add_argument('--wandb_watch', action='store_true', default=False,
                         help='Use Weights & Bias as logger.')
     parser.add_argument('--t_warmup', type=str, default='0.0dur',
                         help="Length of learning rate warm up phase.")
