@@ -306,7 +306,7 @@ def main():
                         help="Final learning rate.")
     parser.add_argument('--duration', type=str, default='200ep',
                         help="Number of Epochs")
-    parser.add_argument('--watch_freq', type=int, defualt=1000,
+    parser.add_argument('--watch_freq', type=int, default=1000,
                         help="Frequency of Wandb watch model")
     parser.add_argument('--run_name', type=str, default=None,
                         help="Run name")
