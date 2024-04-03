@@ -20,7 +20,7 @@ from modeling import DGMSNet
 from modeling.DGMS import DGMSConv
 from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 from utils.loss import *
-from utils.watch import Sparsity
+from utils.watch import Sparsity, EpochMonitor
 
 from composer import Trainer
 from composer.loggers import WandBLogger, TensorboardLogger
@@ -215,11 +215,9 @@ def main():
         eval_interval='1ep',
         device="gpu" if torch.cuda.is_available() else "cpu",
 
-        # loggers=[wandb_logger],
+        # callbacks
+        callbacks=[Sparsity(), EpochMonitor()],
         loggers=[WandBLogger()],
-
-        #callbacks
-        callbacks=[Sparsity()],
 
         #Save Checkpoint
         save_folder=args.save_folder,
