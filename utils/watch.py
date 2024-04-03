@@ -41,7 +41,7 @@ class EpochMonitor(Callback):
                     data = m.sub_distribution.mu.detach().data.cpu().numpy()
                     # hist = np.histogram(data)
                     # print(hist)
-                    wandb.log({name+"_mu": wandb.Histogram(data)})
+                    wandb.log({name+"_mu": wandb.Histogram(data)}, commit=False)
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
                     total_zero = check_total_zero(m.weight)
                     total_weight = check_total_weights(m.weight)
