@@ -43,11 +43,12 @@ class EpochMonitor(Callback):
                     data = m.sub_distribution.mu.detach().data.cpu().numpy()
                     hist = np.histogram(data)
                     print(hist)
-                    wandb.log({name+"mu": wandb.Histogram(np_histogram=hist)}, commit=False)
+                    wandb.log({name+"mu": wandb.Histogram(np_histogram=hist)}, step=state.timestamp.epoch)
                     print("Logged Histogram")
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
                     print("Found Non-DGMS Layer")
                     total_zero = check_total_zero(m.weight)
                     total_weight = check_total_weights(m.weight)
-                    wandb.log({name+"sparsity": total_zero/total_weight})
+                    print(total_zero/total_weight)
+                    wandb.log({name+"sparsity": total_zero/total_weight}, step=state.timestamp.epoch)
 
