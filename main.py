@@ -397,7 +397,7 @@ def main():
         eval_dataloader=test_loader,
         device="gpu" if torch.cuda.is_available() else "cpu",
 
-        loggers=[wandb_logger,],
+        loggers=[wandb_logger],
 
         #callbacks
         callbacks=[LRMonitor(),  OptimizerMonitor(), NaNMonitor(), Sparsity()],
