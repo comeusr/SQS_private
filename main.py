@@ -376,7 +376,7 @@ def main():
     # wandb.watch(model, log="parameters", log_freq=args.watch_freq)
 
     optimizer = DecoupledAdamW(
-        model.parameters(),
+        model.network.parameters(),
         lr=args.lr,
         betas=(0.9, 0.999),
         eps=1e-8,
