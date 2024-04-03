@@ -216,7 +216,7 @@ def main():
         device="gpu" if torch.cuda.is_available() else "cpu",
 
         # callbacks
-        callbacks=[Sparsity(), EpochMonitor()],
+        callbacks=[EpochMonitor()],
         loggers=[WandBLogger()],
 
         #Save Checkpoint
