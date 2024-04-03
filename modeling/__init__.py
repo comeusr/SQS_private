@@ -1,12 +1,13 @@
 from __future__ import print_function
 
 import torch.nn as nn
+from composer.models import ComposerModel
 
 from .networks import get_network
 from modeling.DGMS import DGMSConv
 import torch.nn.functional as F
 
-class DGMSNet(nn.Module):
+class DGMSNet(ComposerModel):
     def __init__(self, args, freeze_bn=False):
         super(DGMSNet, self).__init__()
         self.args = args
@@ -20,9 +21,9 @@ class DGMSNet(nn.Module):
                 m.init_mask_params()
         print("--> Sub-distribution parameters initialization finished!")
 
-    def forward(self, x):
-        x = self.network(x)
-        return x
+    def forward(self, batch):
+        inputs, _ = batch
+        return self.network(inputs)
 
     def get_1x_lr_params(self):
         self.init_mask_params()
@@ -43,6 +44,22 @@ class DGMSNet(nn.Module):
                         if p.requires_grad:
                             yield p
 
-    def loss(outputs, batch):
+    def loss(self, outputs, batch):
         _, targets = batch
         return F.cross_entropy(outputs, targets)
+
+
+class DGMSComposerNet(ComposerModel):
+
+    def __init__(self, args):
+        super(DGMSComposerNet, self).__init__()
+        self.network = DGMSNet(args, args.freeze_bn)
+
+    def forward(self, batch):
+        inputs, _ = batch
+        return self.network(inputs)
+
+    def loss(self, outputs, batch):
+        _, targets=batch
+        return F.cross_entropy(outputs, targets)
+
