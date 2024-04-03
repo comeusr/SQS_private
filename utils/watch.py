@@ -17,14 +17,16 @@ def check_total_weights(x):
 
 class Sparsity(Callback):
 
-    def log_mu_sparsity(self, state:State, logger:Logger):
-        for name, m in state.model.named_modules():
-            if isinstance(m, DGMSConv):
-                logger.log({name+"mu": wandb.Histogram(m.sub_distribution.mu)})
-            elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-                total_zero = check_total_zero(m.weight)
-                total_weight = check_total_weights(m.weight)
-                logger.log({name+"sparsity": total_zero/total_weight})
+    def log_mu_sparsity(self, event:Event, state:State, logger:Logger):
+        if event == Event.EPOCH_END:
+            for name, m in state.model.named_modules():
+                print(name)
+            # if isinstance(m, DGMSConv):
+            #     logger.log({name+"mu": wandb.Histogram(m.sub_distribution.mu)})
+            # elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+            #     total_zero = check_total_zero(m.weight)
+            #     total_weight = check_total_weights(m.weight)
+            #     logger.log({name+"sparsity": total_zero/total_weight})
 
 
 class EpochMonitor(Callback):
