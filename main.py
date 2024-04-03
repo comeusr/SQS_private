@@ -371,7 +371,7 @@ def main():
         init_kwargs={"config": vars(args)}
     )
 
-    wandb.init(project="DiffQuantization")
+    # wandb.init(project="DiffQuantization")
 
     # wandb.watch(model, log="parameters", log_freq=args.watch_freq)
 
@@ -399,7 +399,8 @@ def main():
         eval_dataloader=test_loader,
         device="gpu" if torch.cuda.is_available() else "cpu",
 
-        loggers=[wandb_logger],
+        # loggers=[wandb_logger],
+        loggers=[WandBLogger()],
 
         #callbacks
         callbacks=[LRMonitor(),  OptimizerMonitor(), NaNMonitor(), Sparsity()],
@@ -417,6 +418,8 @@ def main():
     )
 
     trainer.fit()
+
+    trainer.close()
 
     # if args.cuda:
     #     try:
