@@ -331,7 +331,7 @@ def main():
     ])
     # args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
-    saver = Saver(args)
+    # saver = Saver(args)
     train_loader, val_loader, test_loader, nclass = make_data_loader(args)
     model = DGMSNet(args, args.freeze_bn)
 
