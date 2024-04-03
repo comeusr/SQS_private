@@ -18,7 +18,8 @@ def check_total_weights(x):
 class Sparsity(Callback):
 
     def log_mu_sparsity(self, event:Event, state:State, logger:Logger):
-        if event == Event.EPOCH_END:
+        if event == Event.EPOCH_START:
+            print("Try to print Module Name")
             for name, m in state.model.named_modules():
                 print(name)
             # if isinstance(m, DGMSConv):

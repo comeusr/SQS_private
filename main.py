@@ -141,7 +141,7 @@ def main():
         "--network", "resnet18", "--mask", "--K", "4", "--weight-decay", "5e-4",
         "--empirical", "True", "--tau", "0.01",
         "--show-info", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
-        "--duration", "3ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
+        "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
     ])
     # args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -212,7 +212,7 @@ def main():
 
         train_dataloader=train_loader,
         eval_dataloader=val_loader,
-        eval_interval='1ep',
+        eval_interval='2ep',
         device="gpu" if torch.cuda.is_available() else "cpu",
 
         # callbacks
