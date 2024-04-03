@@ -51,9 +51,9 @@ class EpochMonitor(Callback):
                     # hist = np.histogram(data)
                     # print(hist)
                     min_mu = min(np.abs(data))
-                    wandb.log({name+"min_abs_mu": min_mu})
+                    wandb.log({name+"_min_abs_mu": min_mu})
 
-                    wandb.log({name+"_mu": wandb.Histogram(data)}, commit=False)
+                    wandb.log({name+"_mu": wandb.Histogram(data)})
                     wandb.log({name+"_P_weight": wandb.Histogram(P_weight.data.cpu().numpy())})
                     wandb.log({name+"_S_weight": wandb.Histogram(S_weight.data.cpu().numpy())})
                     wandb.log({name+"_Origin_weight": wandb.Histogram(Origin_weight.data.cpu().numpy())})
