@@ -42,7 +42,9 @@ class EpochMonitor(Callback):
                     print("Found DGMSConv")
                     data = m.sub_distribution.mu.detach().data.cpu().numpy()
                     hist = np.histogram(data)
-                    wandb.log({name+"mu": wandb.Histogram(np_histogram=hist)})
+                    print(hist)
+                    wandb.log({name+"mu": wandb.Histogram(np_histogram=hist)}, commit=False)
+                    print("Logged Histogram")
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
                     print("Found Non-DGMS Layer")
                     total_zero = check_total_zero(m.weight)
