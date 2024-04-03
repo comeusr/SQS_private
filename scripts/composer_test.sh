@@ -11,7 +11,7 @@ MODEL_NAME="resnet18"
 EPOCHS="200ep"
 FINAL_LR=0.0001
 EVAL_INTERV='5ep'
-SEED=5
+SEED=10
 
 
 sbatch --time=4:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
