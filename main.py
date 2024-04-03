@@ -367,11 +367,11 @@ def main():
     wandb_logger = WandBLogger(
         project="DiffQuantization",
         entity="Ziyi",
-        tags=["Baseline", "DGMS"],
+        tags=["Baseline"],
         init_kwargs={"config": vars(args)}
     )
 
-    wandb.init(project="DiffQuantization")
+    # wandb.init(project="DiffQuantization")
 
     # wandb.watch(model, log="parameters", log_freq=args.watch_freq)
 
