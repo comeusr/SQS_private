@@ -219,7 +219,7 @@ def main():
         loggers=[WandBLogger()],
 
         #callbacks
-        callbacks=[LRMonitor(), Sparsity()],
+        callbacks=[Sparsity()],
 
         #Save Checkpoint
         save_folder=args.save_folder,
