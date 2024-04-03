@@ -137,11 +137,10 @@ def main():
 
     args = parser.parse_args([
         "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
-        "--num-classes", "10", "--lr", "2e-5", "--batch-size", "128", "--epochs", "350", "--workers", "1", "--base-size", "32", "--crop-size", "32", "--nesterov",
-        "--checkname", "vggsmall2bit", "--lr-scheduler", "one-cycle", "--network", "resnet18", "--mask", "--K", "4", "--weight-decay", "5e-4",
+        "--num-classes", "10", "--lr", "2e-5",  "--base-size", "32", "--crop-size", "32",
+        "--network", "resnet18", "--mask", "--K", "4", "--weight-decay", "5e-4",
         "--empirical", "True", "--tau", "0.01",
-        "--resume", r"..\DGMS\run\cifar10\vggsmall_32bit_uncompressed\experiment_9\checkpoint.pth.tar",
-        "--rt", "--show-info", "--gpu-ids", "0", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
+        "--show-info", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
         "--duration", "3ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
     ])
     # args = parser.parse_args()
@@ -222,12 +221,14 @@ def main():
         callbacks=[LRMonitor(),  OptimizerMonitor(), NaNMonitor()],
 
         #Save Checkpoint
+        save_overwrite=True,
         save_folder=args.save_folder,
         save_filename="ep{epoch}",
         save_latest_filename="latest",
         autoresume=args.autoresume,
         load_path=args.load_path,
         run_name=args.run_name,
+
 
         seed=args.seed
 
