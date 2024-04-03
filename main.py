@@ -371,6 +371,8 @@ def main():
         init_kwargs={"config": vars(args)}
     )
 
+    wandb.init(project="DiffQuantization")
+
     # wandb.watch(model, log="parameters", log_freq=args.watch_freq)
 
     optimizer = DecoupledAdamW(
