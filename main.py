@@ -327,7 +327,7 @@ def main():
         "--empirical", "True", "--tau", "0.01",
         "--resume", r"..\DGMS\run\cifar10\vggsmall_32bit_uncompressed\experiment_9\checkpoint.pth.tar",
         "--rt", "--show-info", "--gpu-ids", "0", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
-        "--duration", "1ep", "--save_folder", "/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
+        "--duration", "1ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
     ])
     # args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
