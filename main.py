@@ -218,10 +218,9 @@ def main():
         loggers=[WandBLogger()],
 
         #callbacks
-        callbacks=[LRMonitor(),  OptimizerMonitor(), NaNMonitor()],
+        callbacks=[LRMonitor(),  OptimizerMonitor(), NaNMonitor(), Sparsity()],
 
         #Save Checkpoint
-        save_overwrite=True,
         save_folder=args.save_folder,
         save_filename="ep{epoch}",
         save_latest_filename="latest",
