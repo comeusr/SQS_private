@@ -344,6 +344,7 @@ def main():
         print("Normal Conv!")
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
+    model.init_mask_params()
 
     # for name, p in model.named_parameters():
     #     print(name, p.size())
