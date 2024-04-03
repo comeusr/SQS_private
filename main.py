@@ -179,12 +179,12 @@ def main():
     #     torch.backends.cudnn.benchmark = True
     #     model = model.cuda()
 
-    wandb_logger = WandBLogger(
-        project="DiffQuantization",
-        entity="Ziyi",
-        tags=["Baseline"],
-        init_kwargs={"config": vars(args)}
-    )
+    # wandb_logger = WandBLogger(
+    #     project="DiffQuantization",
+    #     entity="Ziyi",
+    #     tags=["Baseline"],
+    #     init_kwargs={"config": vars(args)}
+    # )
 
     # wandb.init(project="DiffQuantization")
 
@@ -212,6 +212,7 @@ def main():
 
         train_dataloader=train_loader,
         eval_dataloader=test_loader,
+        eval_interval='1ep',
         device="gpu" if torch.cuda.is_available() else "cpu",
 
         # loggers=[wandb_logger],
@@ -225,9 +226,8 @@ def main():
         save_filename="ep{epoch}",
         save_latest_filename="latest",
         autoresume=args.autoresume,
-        load_path=args.load_path,
+        # load_path=args.load_path,
         run_name=args.run_name,
-
 
         seed=args.seed
 

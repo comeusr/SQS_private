@@ -19,10 +19,10 @@ class Sparsity(Callback):
 
     def __init__(self):
         super().__init__()
+        print("Sparse Callback Init")
 
     def log_mu_sparsity(self, state:State, logger:Logger):
         for name, m in state.model.named_modules():
-            print(name)
             if isinstance(m, DGMSConv):
                 wandb.log({name+"mu": wandb.Histogram(m.sub_distribution.mu)})
             elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
