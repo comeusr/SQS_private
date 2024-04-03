@@ -134,16 +134,18 @@ def main():
                         help='Directory to resume the training')
     parser.add_argument('--autoresume', action='store_true', default=False,
                         help="Auto Resume the training process.")
+    parser.add_argument('--eval_interval', type=str, default='5ep',
+                        help="Eval Interval")
 
-    args = parser.parse_args([
-        "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
-        "--num-classes", "10", "--lr", "2e-5",  "--base-size", "32", "--crop-size", "32",
-        "--network", "resnet18", "--mask", "--K", "4", "--weight-decay", "5e-4",
-        "--empirical", "True", "--tau", "0.01",
-        "--show-info", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
-        "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
-    ])
-    # args = parser.parse_args()
+    # args = parser.parse_args([
+    #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
+    #     "--num-classes", "10", "--lr", "2e-5",  "--base-size", "32", "--crop-size", "32",
+    #     "--network", "resnet18", "--mask", "--K", "4", "--weight-decay", "5e-4",
+    #     "--empirical", "True", "--tau", "0.01",
+    #     "--show-info", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
+    #     "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
+    # ])
+    args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     # saver = Saver(args)
     train_loader, val_loader, test_loader, nclass = make_data_loader(args)
@@ -160,35 +162,14 @@ def main():
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     model.init_mask_params()
 
-    # for name, p in model.named_parameters():
-    #     print(name, p.size())
-
-    print("-"*80)
-    for name, m in model.named_modules():
-        if isinstance(m, DGMSConv):
-            print(name)
+    # print("-"*80)
+    # for name, m in model.named_modules():
+    #     if isinstance(m, DGMSConv):
+    #         print(name)
 
     cfg.IS_NORMAL = True if (args.resume is not None) else False
     cfg.IS_NORMAL = args.normal
 
-    # criterion = nn.CrossEntropyLoss()
-    # sparsity = SparsityMeasure(args)
-    # evaluator = Evaluator(nclass, args)
-
-    # if args.cuda:
-    #     torch.backends.cudnn.benchmark = True
-    #     model = model.cuda()
-
-    # wandb_logger = WandBLogger(
-    #     project="DiffQuantization",
-    #     entity="Ziyi",
-    #     tags=["Baseline"],
-    #     init_kwargs={"config": vars(args)}
-    # )
-
-    # wandb.init(project="DiffQuantization")
-
-    # wandb.watch(model, log="parameters", log_freq=args.watch_freq)
 
     optimizer = DecoupledAdamW(
         model.network.parameters(),
@@ -212,11 +193,11 @@ def main():
 
         train_dataloader=train_loader,
         eval_dataloader=val_loader,
-        eval_interval='2ep',
+        eval_interval=args.eval_intervel,
         device="gpu" if torch.cuda.is_available() else "cpu",
 
         # callbacks
-        callbacks=[EpochMonitor()],
+        callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
         loggers=[WandBLogger()],
 
         #Save Checkpoint

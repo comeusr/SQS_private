@@ -36,18 +36,14 @@ class EpochMonitor(Callback):
     def run_event(self, event: Event, state: State, logger: Logger):
         if event == Event.EPOCH_START:
             print(f'Epoch: {state.timestamp.epoch}')
-            print("Try to print Module Name")
             for name, m in state.model.named_modules():
                 if isinstance(m, DGMSConv):
-                    print("Found DGMSConv")
                     data = m.sub_distribution.mu.detach().data.cpu().numpy()
-                    hist = np.histogram(data)
-                    print(hist)
-                    wandb.log({name+"_mu": wandb.Histogram(data)}, commit=False)
+                    # hist = np.histogram(data)
+                    # print(hist)
+                    wandb.log({name+"_mu": wandb.Histogram(data)})
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-                    print("Found Non-DGMS Layer")
                     total_zero = check_total_zero(m.weight)
                     total_weight = check_total_weights(m.weight)
-                    print(total_zero/total_weight)
-                    wandb.log({name+"_sparsity": total_zero/total_weight}, step=int(state.timestamp.epoch))
+                    wandb.log({name+"_sparsity": total_zero/total_weight})
 
