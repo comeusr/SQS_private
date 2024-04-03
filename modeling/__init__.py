@@ -19,6 +19,8 @@ class DGMSNet(ComposerModel):
         for name, m in self.network.named_modules():
             if isinstance(m, DGMSConv):
                 m.init_mask_params()
+            m.init
+
         print("--> Sub-distribution parameters initialization finished!")
 
     def forward(self, batch):

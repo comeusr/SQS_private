@@ -43,8 +43,11 @@ class EpochMonitor(Callback):
                     S_weight = m.get_Sweight()
                     Origin_weight = m.weight
                     P_weight_zeros = check_total_zero(P_weight)
+                    P_weight_tot = check_total_weights(P_weight)
                     S_weight_zeros = check_total_zero(S_weight)
+                    S_weight_tot = check_total_weights(S_weight)
                     Origin_weight_zeros=check_total_zero(Origin_weight)
+                    Origin_weight_tot=check_total_weights(Origin_weight)
                     # hist = np.histogram(data)
                     # print(hist)
                     wandb.log({name+"_mu": wandb.Histogram(data)}, commit=False)
@@ -52,9 +55,9 @@ class EpochMonitor(Callback):
                     wandb.log({name+"_S_weight": wandb.Histogram(S_weight.data.cpu().numpy())})
                     wandb.log({name+"_Origin_weight": wandb.Histogram(Origin_weight.data.cpu().numpy())})
 
-                    wandb.log({name+"_P_zeros": P_weight_zeros})
-                    wandb.log({name+"_S_zeros": S_weight_zeros})
-                    wandb.log({name+"_Origin_zeros": Origin_weight_zeros})
+                    wandb.log({name+"_P_zeros": P_weight_zeros/P_weight_tot})
+                    wandb.log({name+"_S_zeros": S_weight_zeros/S_weight_tot})
+                    wandb.log({name+"_Origin_zeros": Origin_weight_zeros/Origin_weight_tot})
 
 
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
