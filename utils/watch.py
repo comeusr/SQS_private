@@ -17,7 +17,7 @@ def check_total_weights(x):
 
 class Sparsity(Callback):
 
-    def log_mu_sparsity(self, event:Event, state:State, logger:Logger):
+    def run_event(self, event:Event, state:State, logger:Logger):
         if event == Event.EPOCH_START:
             print("Try to print Module Name")
             for name, m in state.model.named_modules():
@@ -35,4 +35,7 @@ class EpochMonitor(Callback):
     def run_event(self, event: Event, state: State, logger: Logger):
         if event == Event.EPOCH_START:
             print(f'Epoch: {state.timestamp.epoch}')
+            print("Try to print Module Name")
+            for name, m in state.model.named_modules():
+                print(name)
 
