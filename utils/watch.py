@@ -18,13 +18,12 @@ class Sparsity(Callback):
         super().__init__()
 
     def log_mu_sparsity(self, state:State, event:Event, logger:Logger):
-        if event==Event.BATCH_END:
-            for name, m in state.model.network.named_modules():
-                if isinstance(m, DGMSConv):
-                    wandb.log({name+"mu": wandb.Histogram(m.sub_distribution.mu)}, commit=False)
-                elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-                    total_zero = check_total_zero(m.weight)
-                    total_weight = check_total_weights(m.weight)
-                    print({name+"sparsity": total_zero/total_weight})
+        for name, m in state.model.named_modules():
+            if isinstance(m, DGMSConv):
+                wandb.log({name+"mu": wandb.Histogram(m.sub_distribution.mu)}, commit=False)
+            elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+                total_zero = check_total_zero(m.weight)
+                total_weight = check_total_weights(m.weight)
+                print({name+"sparsity": total_zero/total_weight})
 
 
