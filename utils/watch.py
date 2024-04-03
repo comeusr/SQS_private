@@ -39,7 +39,7 @@ class EpochMonitor(Callback):
             for name, m in state.model.named_modules():
                 if isinstance(m, DGMSConv):
                     print("Found DGMSConv")
-                    wandb.log({name+"mu": wandb.Histogram(m.sub_distribution.mu.detach().date.cpu())})
+                    wandb.log({name+"mu": wandb.Histogram(m.sub_distribution.mu.detach().data.cpu())})
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
                     total_zero = check_total_zero(m.weight)
                     total_weight = check_total_weights(m.weight)
