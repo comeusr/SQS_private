@@ -202,11 +202,11 @@ def main():
         loggers=[WandBLogger()],
 
         #Save Checkpoint
-        save_overwrite=True,
+        # save_overwrite=True,
         save_folder=args.save_folder,
         save_filename="ep{epoch}",
         save_latest_filename="latest",
-        autoresume=False,
+        autoresume=True,
         # load_path=args.load_path,
         run_name=args.run_name,
 
