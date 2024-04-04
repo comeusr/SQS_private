@@ -46,6 +46,7 @@ class DGMSConv(nn.Conv2d):
     def forward(self, input):
         if cfg.IS_NORMAL:
             # pretraning using normal convolution operator
+            print("Normal Train")
             output = F.conv2d(input, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
         else:
             # DGMS convolution operator
