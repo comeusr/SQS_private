@@ -34,7 +34,7 @@ class Sparsity(Callback):
 class EpochMonitor(Callback):
 
     def run_event(self, event: Event, state: State, logger: Logger):
-        if event == Event.EPOCH_START:
+        if event == Event.EPOCH_END:
             print(f'Epoch: {state.timestamp.epoch}')
             for name, m in state.model.named_modules():
                 if isinstance(m, DGMSConv):

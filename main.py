@@ -141,7 +141,7 @@ def main():
         "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
         "--num-classes", "10", "--lr", "2e-5",  "--base-size", "32", "--crop-size", "32",
         "--network", "resnet18", "--mask", "--K", "4", "--weight_decay", "5e-4",
-        "--empirical", "True", "--tau", "0.01",
+        "--empirical", "True", "--tau", "0.01", '--normal',
         "--show-info", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
         "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
     ])
@@ -197,7 +197,8 @@ def main():
         device="gpu" if torch.cuda.is_available() else "cpu",
 
         # callbacks
-        callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
+        # callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
+        callbacks=[LRMonitor(), OptimizerMonitor()],
         loggers=[WandBLogger()],
 
         #Save Checkpoint
