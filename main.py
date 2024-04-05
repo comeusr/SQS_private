@@ -170,20 +170,16 @@ def main():
     model = _transformer.trans_layers(model)
 
     print("-" * 40 + "DGMS Model" + "-" * 40)
-    for name, m in model.named_modules():
-        if isinstance(m, DGMSConv):
-            print(name)
-
     if args.freeze_weight:
-        freeze_param(model)
+        for name, m in model.named_modules():
+            if isinstance(m, DGMSConv):
+                m.weight.requires_grad=False
+
+    # if args.freeze_weight:
+    #     freeze_param(model)
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     model.init_mask_params()
-
-    # print("-"*80)
-    # for name, m in model.named_modules():
-    #     if isinstance(m, DGMSConv):
-    #         print(name)
 
     cfg.IS_NORMAL = True if (args.resume is not None) else False
     cfg.IS_NORMAL = args.normal
