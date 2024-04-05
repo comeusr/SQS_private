@@ -30,7 +30,9 @@ class DGMSNet(ComposerModel):
         inputs, _ = batch
         return self.network(inputs)
 
-    def eval_forward(self, batch):
+    def eval_forward(self, batch, outputs):
+        if outputs:
+            return outputs
         inputs, _ = batch
         return self.network(inputs)
 
