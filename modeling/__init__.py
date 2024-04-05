@@ -6,6 +6,7 @@ from composer.models import ComposerModel
 from .networks import get_network
 from modeling.DGMS import DGMSConv
 import torch.nn.functional as F
+import torchmetrics
 
 class DGMSNet(ComposerModel):
     def __init__(self, network, args, freeze_bn=False):
@@ -13,6 +14,8 @@ class DGMSNet(ComposerModel):
         self.args = args
         self.network = network
         self.freeze_bn = freeze_bn
+        self.train_accuracy = torchmetrics.classification.MulticlassAccuracy(num_classes=args.num_classes, average='micro')
+        self.val_accuracy = torchmetrics.classification.MulticlassAccuracy(num_classers=args.num_classes, average='micro')
 
     def init_mask_params(self):
         print("--> Start to initialize sub-distribution parameters, this may take some time...")
@@ -26,6 +29,18 @@ class DGMSNet(ComposerModel):
     def forward(self, batch):
         inputs, _ = batch
         return self.network(inputs)
+
+    def eval_forward(self, batch):
+        inputs, _ = batch
+        return self.network(inputs)
+
+    def update_metric(self, batch, outputs, metric):
+        _, targets = batch
+        metric.update(outputs, targets)
+
+    def get_metrics(self, is_train=False):
+        # defines which metrics to use in each phase of training
+        return {'MulticlassAccuracy': self.train_accuracy} if is_train else {'MulticlassAccuracy': self.val_accuracy}
 
     def get_1x_lr_params(self):
         self.init_mask_params()
@@ -48,20 +63,5 @@ class DGMSNet(ComposerModel):
 
     def loss(self, outputs, batch):
         _, targets = batch
-        return F.cross_entropy(outputs, targets)
-
-
-class DGMSComposerNet(ComposerModel):
-
-    def __init__(self, args):
-        super(DGMSComposerNet, self).__init__()
-        self.network = DGMSNet(args, args.freeze_bn)
-
-    def forward(self, batch):
-        inputs, _ = batch
-        return self.network(inputs)
-
-    def loss(self, outputs, batch):
-        _, targets=batch
         return F.cross_entropy(outputs, targets)
 

@@ -171,10 +171,6 @@ def main():
     _transformer.register(nn.Conv2d, DGMSConv)
     model = _transformer.trans_layers(model)
 
-    for DGMS_name, DGMS_m in model.named_modules():
-        for base_name, base_m in base_model.named_modules():
-            if DGMS_name == 'network.layer1.0.conv1' and base_name == 'layer1.0.conv1':
-                print(torch.eq(DGMS_m.weight.data, base_m.weight.data))
 
     print("-" * 40 + "DGMS Model" + "-" * 40)
     if args.freeze_weight:
@@ -218,8 +214,8 @@ def main():
         device="gpu" if torch.cuda.is_available() else "cpu",
 
         # callbacks
-        # callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
-        callbacks=[LRMonitor(), OptimizerMonitor()],
+        callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
+        # callbacks=[LRMonitor(), OptimizerMonitor()],
         loggers=[WandBLogger()],
 
         #Save Checkpoint
