@@ -158,10 +158,10 @@ def main():
 
     # Load Pretrain Data
     model = timm.create_model("resnet18_cifar10", pretrained=True)
-    base_model = copy.deepcopy(model)
-    print("-"*40+"Pretrian Model"+"-"*40)
-    for name, m in model.named_modules():
-        print(name)
+    # base_model = copy.deepcopy(model)
+    # print("-"*40+"Pretrian Model"+"-"*40)
+    # for name, m in model.named_modules():
+    #     print(name)
 
     model = DGMSNet(model, args, args.freeze_bn)
 
