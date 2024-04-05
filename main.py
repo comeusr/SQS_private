@@ -12,6 +12,8 @@ import math
 import wandb
 import torch.nn as nn
 import config as cfg
+import detectors
+import timm
 
 from tqdm import tqdm
 from mypath import Path
@@ -20,6 +22,7 @@ from modeling import DGMSNet
 from modeling.DGMS import DGMSConv
 from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 from utils.loss import *
+from utils.misc import freeze_param
 from utils.watch import Sparsity, EpochMonitor
 
 from composer import Trainer
@@ -136,28 +139,34 @@ def main():
                         help="Auto Resume the training process.")
     parser.add_argument('--eval_interval', type=str, default='5ep',
                         help="Eval Interval")
+    parser.add_argument('--freeze_weight', action='store_true', default=False,
+                        help='Freeze Parameters')
 
-    # args = parser.parse_args([
-    #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
-    #     "--num-classes", "10", "--lr", "2e-5",  "--base-size", "32", "--crop-size", "32",
-    #     "--network", "resnet18", "--mask", "--K", "4", "--weight_decay", "5e-4",
-    #     "--empirical", "True", "--tau", "0.01", '--normal',
-    #     "--show-info", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
-    #     "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
-    # ])
-    args = parser.parse_args()
+    args = parser.parse_args([
+        "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
+        "--num-classes", "10", "--lr", "2e-5",  "--base-size", "32", "--crop-size", "32",
+        "--network", "resnet18", "--mask", "--K", "4", "--weight_decay", "5e-4",
+        "--empirical", "True", "--tau", "0.01", '--normal', '--freeze_weight',
+        "--show-info", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001",
+        "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
+    ])
+    # args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     # saver = Saver(args)
     train_loader, val_loader, test_loader, nclass = make_data_loader(args)
-    model = DGMSNet(args, args.freeze_bn)
 
-    if args.mask:
-        print("DGMS Conv!")
-        _transformer = TorchTransformer()
-        _transformer.register(nn.Conv2d, DGMSConv)
-        model = _transformer.trans_layers(model)
-    else:
-        print("Normal Conv!")
+    # Load Pretrain Data
+    model = timm.create_model("resnet18_cifar10", pretrained=True)
+    model = DGMSNet(model, args, args.freeze_bn)
+
+
+    print("DGMS Conv!")
+    _transformer = TorchTransformer()
+    _transformer.register(nn.Conv2d, DGMSConv)
+    model = _transformer.trans_layers(model)
+
+    if args.freeze_weight:
+        freeze_param(model)
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     model.init_mask_params()
@@ -214,52 +223,10 @@ def main():
 
     )
 
-    trainer.fit()
+    # trainer.fit()
+    #
+    # trainer.close()
 
-    trainer.close()
-
-    # if args.cuda:
-    #     try:
-    #         args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
-    #     except ValueError:
-    #         raise ValueError("Argument --gpu_ids must be a comma-separeted list of integers only")
-    #     torch.cuda.empty_cache()
-    #     print('CUDA memory released!')
-    #     check_cuda_memory()
-    # if args.sync_bn is None:
-    #     if args.cuda and len(args.gpu_ids) > 1:
-    #         args.sync_bn = True
-    #     else:
-    #         args.sync_bn = False
-    #
-    # if args.epochs is None:
-    #     args.epochs = cfg.EPOCH[args.dataset.lower()]
-    #
-    # if args.num_classes is None:
-    #     args.num_classes = cfg.NUM_CLASSES[args.dataset.lower()]
-    #
-    # if args.train_dir is None or args.val_dir is None:
-    #     args.train_dir, args.val_dir = Path.db_root_dir(args.dataset.lower()), Path.db_root_dir(args.dataset.lower())
-    #
-    # print(args)
-    # torch.manual_seed(args.seed)
-    # trainer = Trainer(args)
-    # print('Starting Epoch:', trainer.args.start_epoch)
-    # print('Total Epoches:', trainer.args.epochs)
-    # if args.only_inference:
-    #     print("Only inference with given resumed model...")
-    #     val_loss, val_acc = trainer.validation(0)
-    #     return
-    # for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
-    #     train_loss, train_acc = trainer.training(epoch)
-    #     if epoch % args.eval_interval == (args.eval_interval - 1):
-    #         val_loss, val_acc = trainer.validation(epoch)
-    # nz_val = 1 - trainer.best_sparse_ratio
-    # params_val = trainer.best_params
-    # compression_rate = 1/(nz_val * (math.floor(math.log(cfg.K_LEVEL, 2)) / 32))
-    # print(f"Best Top-1: {trainer.best_top1} | Top-5: {trainer.best_top5} | NZ: {nz_val} | #Params: {params_val:.2f}M | CR: {compression_rate:.2f}")
-    #
-    # trainer.writer.close()
 
 if __name__ == '__main__':
     main()

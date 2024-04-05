@@ -8,10 +8,10 @@ from modeling.DGMS import DGMSConv
 import torch.nn.functional as F
 
 class DGMSNet(ComposerModel):
-    def __init__(self, args, freeze_bn=False):
+    def __init__(self, network, args, freeze_bn=False):
         super(DGMSNet, self).__init__()
         self.args = args
-        self.network = get_network(args)
+        self.network = network
         self.freeze_bn = freeze_bn
 
     def init_mask_params(self):

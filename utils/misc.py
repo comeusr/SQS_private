@@ -12,6 +12,7 @@ import config as cfg
 from utils.cluster import kmeans
 from utils.lr_scheduler import get_scheduler
 from sklearn.mixture import GaussianMixture
+from modeling.DGMS import DGMSConv
 
 __all__ = ['get_mean_and_std', 'init_params', 'mkdir_p', 'AverageMeter', 'cluster_weights', 'get_optimizer', 'resume_ckpt']
 
@@ -135,11 +136,18 @@ def cluster_weights_em(weights, n_clusters):
     region_saliency = region_saliency[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx] # remove zero component center
     return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
 
+
 def get_optimizer(model, args):
     train_params = [{'params': model.get_1x_lr_params(), 'lr': args.lr}]
     optimizer = torch.optim.SGD(train_params, momentum=args.momentum,
                                 weight_decay=args.weight_decay, nesterov=args.nesterov)
     return optimizer
+
+@torch.no_grad()
+def freeze_param(model):
+    for name, m in model.named_modules():
+        if isinstance(m, DGMSConv):
+            m.weight.requires_grad=False
 
 def resume_ckpt(args, model, train_loader, optimizer, lr_scheduler):
     if not os.path.isfile(args.resume):
