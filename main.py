@@ -25,7 +25,6 @@ from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 from utils.loss import *
 from utils.misc import freeze_param
 from utils.watch import Sparsity, EpochMonitor
-import HuggingFa
 
 from composer import Trainer
 from composer.loggers import WandBLogger, TensorboardLogger
