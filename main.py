@@ -157,6 +157,10 @@ def main():
 
     # Load Pretrain Data
     model = timm.create_model("resnet18_cifar10", pretrained=True)
+    print("-"*40+"Pretrian Model"+"-"*40)
+    for name, m in model.named_modules():
+        print(name)
+
     model = DGMSNet(model, args, args.freeze_bn)
 
 
@@ -164,6 +168,10 @@ def main():
     _transformer = TorchTransformer()
     _transformer.register(nn.Conv2d, DGMSConv)
     model = _transformer.trans_layers(model)
+
+    print("-" * 40 + "Pretrian Model" + "-" * 40)
+    for name, m in model.named_modules():
+        print(name)
 
     if args.freeze_weight:
         freeze_param(model)
