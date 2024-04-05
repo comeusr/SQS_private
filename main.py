@@ -14,6 +14,7 @@ import torch.nn as nn
 import config as cfg
 import detectors
 import timm
+import copy
 
 from tqdm import tqdm
 from mypath import Path
@@ -157,6 +158,7 @@ def main():
 
     # Load Pretrain Data
     model = timm.create_model("resnet18_cifar10", pretrained=True)
+    base_model = copy.deepcopy(model)
     print("-"*40+"Pretrian Model"+"-"*40)
     for name, m in model.named_modules():
         print(name)
@@ -169,9 +171,14 @@ def main():
     _transformer.register(nn.Conv2d, DGMSConv)
     model = _transformer.trans_layers(model)
 
+    # for DGMS_name, DGMS_m in model.named_modules():
+    #     for base_name, base_m in base_model.named_modules():
+    #         if DGMS_name == 'layer1.0.conv1' and
+
     print("-" * 40 + "DGMS Model" + "-" * 40)
     if args.freeze_weight:
         for name, m in model.named_modules():
+            print(name)
             if isinstance(m, DGMSConv):
                 m.weight.requires_grad=False
 
