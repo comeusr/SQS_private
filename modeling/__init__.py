@@ -7,6 +7,7 @@ from .networks import get_network
 from modeling.DGMS import DGMSConv
 import torch.nn.functional as F
 import torchmetrics
+import config as cfg
 
 class DGMSNet(ComposerModel):
     def __init__(self, network, args, freeze_bn=False):
@@ -27,10 +28,12 @@ class DGMSNet(ComposerModel):
         print("--> Sub-distribution parameters initialization finished!")
 
     def forward(self, batch):
+        cfg.IS_TRAIN = True
         inputs, _ = batch
         return self.network(inputs)
 
     def eval_forward(self, batch, outputs=None):
+        cfg.IS_TRAIN = False
         if outputs != None:
             return outputs
         inputs, _ = batch
