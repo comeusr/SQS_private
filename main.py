@@ -231,9 +231,9 @@ def main():
 
     )
 
-    # trainer.fit()
-    #
-    # trainer.close()
+    trainer.fit()
+
+    trainer.close()
 
 
 if __name__ == '__main__':
