@@ -43,9 +43,9 @@ class DGMSNet(ComposerModel):
         _, targets = batch
         metric.update(outputs, targets)
 
-    def get_metrics(self, is_train=False):
-        # defines which metrics to use in each phase of training
-        return {'MulticlassAccuracy': self.train_accuracy} if is_train else {'MulticlassAccuracy': self.val_accuracy}
+    # def get_metrics(self, is_train=False):
+    #     # defines which metrics to use in each phase of training
+    #     return {'MulticlassAccuracy': self.train_accuracy} if is_train else {'MulticlassAccuracy': self.val_accuracy}
 
     def get_1x_lr_params(self):
         self.init_mask_params()
