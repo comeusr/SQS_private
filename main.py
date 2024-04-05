@@ -169,9 +169,10 @@ def main():
     _transformer.register(nn.Conv2d, DGMSConv)
     model = _transformer.trans_layers(model)
 
-    print("-" * 40 + "Pretrian Model" + "-" * 40)
+    print("-" * 40 + "DGMS Model" + "-" * 40)
     for name, m in model.named_modules():
-        print(name)
+        if isinstance(m, DGMSConv):
+            print(name)
 
     if args.freeze_weight:
         freeze_param(model)
