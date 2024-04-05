@@ -171,14 +171,14 @@ def main():
     _transformer.register(nn.Conv2d, DGMSConv)
     model = _transformer.trans_layers(model)
 
-    # for DGMS_name, DGMS_m in model.named_modules():
-    #     for base_name, base_m in base_model.named_modules():
-    #         if DGMS_name == 'layer1.0.conv1' and
+    for DGMS_name, DGMS_m in model.named_modules():
+        for base_name, base_m in base_model.named_modules():
+            if DGMS_name == 'network.layer1.0.conv1' and base_name == 'layer1.0.conv1':
+                print(torch.eq(DGMS_m.weight.data, base_m.weight.data))
 
     print("-" * 40 + "DGMS Model" + "-" * 40)
     if args.freeze_weight:
         for name, m in model.named_modules():
-            print(name)
             if isinstance(m, DGMSConv):
                 m.weight.requires_grad=False
 
