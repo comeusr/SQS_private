@@ -16,7 +16,6 @@ import detectors
 import timm
 import copy
 
-from tqdm import tqdm
 from mypath import Path
 from dataloader import make_data_loader
 from modeling import DGMSNet
