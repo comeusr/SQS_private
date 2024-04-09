@@ -149,7 +149,7 @@ def main():
         "--network", "resnet18", "--mask", "--K", "4", "--weight_decay", "5e-4",
         "--empirical", "True", "--tau", "0.01", '--normal', '--freeze_weight',
         "--show-info", "--wandb_watch", "--t_warmup", "1ep", "--alpha_f", "0.001", '--eval_interval', '1ep',
-        "--duration", "2ep", "--save_folder", "/Users/Ziyi/Documents/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug',
+        "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug',
         '--freeze_weight'
     ])
     # args = parser.parse_args()
