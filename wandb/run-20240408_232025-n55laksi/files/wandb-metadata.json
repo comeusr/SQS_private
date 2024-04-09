@@ -1,0 +1,45 @@
+{
+    "os": "macOS-10.16-x86_64-i386-64bit",
+    "python": "3.12.2",
+    "heartbeatAt": "2024-04-09T03:20:25.705793",
+    "startedAt": "2024-04-09T03:20:25.258525",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/Users/ziyi/Documents/DGMS-ziyi/DGMS-master/main.py",
+    "codePathLocal": "main.py",
+    "codePath": "main.py",
+    "git": {
+        "remote": "https://github.com/comeusr/DGMS-master.git",
+        "commit": "d5385f1a99dbd20370cd9b56b0334769a04a0c01"
+    },
+    "email": "wang4538@purdue.edu",
+    "root": "/Users/ziyi/Documents/DGMS-ziyi/DGMS-master",
+    "host": "pal-nat186-62-86.itap.purdue.edu",
+    "username": "ziyi",
+    "executable": "/Users/ziyi/opt/anaconda3/envs/low/bin/python",
+    "cpu_count": 11,
+    "cpu_count_logical": 11,
+    "cpu_freq": {
+        "current": 2400,
+        "min": 2400,
+        "max": 2400
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2400,
+            "min": 2400,
+            "max": 2400
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 460.4317207336426,
+            "used": 10.120010375976562
+        }
+    },
+    "memory": {
+        "total": 36.0
+    }
+}

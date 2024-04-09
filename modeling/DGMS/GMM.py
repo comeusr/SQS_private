@@ -11,7 +11,10 @@ import torch.nn.functional as F
 import math
 import config as cfg
 
-from utils.misc import cluster_weights
+from utils.misc import cluster_weights, get_device
+
+DEVICE = get_device()
+
 
 class GaussianMixtureModel(nn.Module):
     """Concrete GMM for sub-distribution approximation.
@@ -22,6 +25,8 @@ class GaussianMixtureModel(nn.Module):
         self.temperature = temperature
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
+        elif torch.backends.mps.is_available():
+            self.device = torch.device('mps')
         else:
             self.device = torch.device('cpu')
         self.params_initialization(init_weights, init_method)
@@ -37,17 +42,17 @@ class GaussianMixtureModel(nn.Module):
             initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
         elif method == 'empirical':
             initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
-            sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).cuda(), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).cuda()
-        self.mu = nn.Parameter(data=torch.mul(self.mu.cuda(), initial_region_saliency.flatten().cuda()))
-        self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.cuda(), pi_init)).cuda().float()
-        self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).cuda().float()
+            sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
+        self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
+        self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
+        self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).to(DEVICE).float()
         self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=self.device)).float()
-        self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).cuda().float()
+        self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
         self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device))
 
     def gaussian_mixing_regularization(self):
         pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
-        return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).cuda()
+        return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
 
     def Normal_pdf(self, x, _pi, mu, sigma):
         """ Standard Normal Distribution PDF. """
@@ -57,11 +62,11 @@ class GaussianMixtureModel(nn.Module):
 
     def GMM_region_responsibility(self, weights):
         """" Region responsibility of GMM. """
-        pi_normalized = self.gaussian_mixing_regularization().cuda()
+        pi_normalized = self.gaussian_mixing_regularization().to(DEVICE)
         responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
-        responsibility[0] = self.Normal_pdf(weights.cuda(), pi_normalized[0], 0.0, self.sigma_zero.cuda())
+        responsibility[0] = self.Normal_pdf(weights.to(DEVICE), pi_normalized[0], 0.0, self.sigma_zero.to(DEVICE))
         for k in range(self.num_components-1):
-            responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k].cuda(), self.sigma[k].cuda())
+            responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k].to(DEVICE), self.sigma[k].to(DEVICE))
         responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
         return F.softmax(responsibility / self.temperature, dim=0)
 

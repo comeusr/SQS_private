@@ -32,20 +32,20 @@ class DGMSNet(ComposerModel):
         inputs, _ = batch
         return self.network(inputs)
 
-    # def eval_forward(self, batch, outputs=None):
-    #     cfg.IS_TRAIN = False
-    #     if outputs != None:
-    #         return outputs
-    #     inputs, _ = batch
-    #     return self.network(inputs)
-    #
-    # def update_metric(self, batch, outputs, metric):
-    #     _, targets = batch
-    #     metric.update(outputs, targets)
+    def eval_forward(self, batch, outputs=None):
+        cfg.IS_TRAIN = False
+        if outputs != None:
+            return outputs
+        inputs, _ = batch
+        return self.network(inputs)
+    
+    def update_metric(self, batch, outputs, metric):
+        _, targets = batch
+        metric.update(outputs, targets)
 
-    # def get_metrics(self, is_train=False):
-    #     # defines which metrics to use in each phase of training
-    #     return {'MulticlassAccuracy': self.train_accuracy} if is_train else {'MulticlassAccuracy': self.val_accuracy}
+    def get_metrics(self, is_train=False):
+        # defines which metrics to use in each phase of training
+        return {'MulticlassAccuracy': self.train_accuracy} if is_train else {'MulticlassAccuracy': self.val_accuracy}
 
     def get_1x_lr_params(self):
         self.init_mask_params()

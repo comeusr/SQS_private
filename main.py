@@ -22,11 +22,11 @@ from modeling import DGMSNet
 from modeling.DGMS import DGMSConv
 from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 from utils.loss import *
-from utils.misc import freeze_param
+from utils.misc import freeze_param, get_device
 from utils.watch import Sparsity, EpochMonitor
 
 from composer import Trainer
-from composer.loggers import WandBLogger, TensorboardLogger
+from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW, LinearWithWarmupScheduler
 from composer.callbacks import LRMonitor, OptimizerMonitor, NaNMonitor
 
@@ -142,15 +142,16 @@ def main():
     parser.add_argument('--freeze_weight', action='store_true', default=False,
                         help='Freeze Parameters')
 
-    # args = parser.parse_args([
-    #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
-    #     "--num-classes", "10", "--lr", "2e-5",  "--base-size", "32", "--crop-size", "32",
-    #     "--network", "resnet18", "--mask", "--K", "4", "--weight_decay", "5e-4",
-    #     "--empirical", "True", "--tau", "0.01", '--normal', '--freeze_weight',
-    #     "--show-info", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001", '--eval_interval', '1ep',
-    #     "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug'
-    # ])
-    args = parser.parse_args()
+    args = parser.parse_args([
+        "--train-dir", "/Users/ziyi/Documents/DGMS-master/CIFAR10/train/", "--val-dir", "/Users/ziyi/Documents/DGMS-master/CIFAR10/val/", "-d", "cifar10",
+        "--num-classes", "10", "--lr", "2e-5",  "--base-size", "32", "--crop-size", "32",
+        "--network", "resnet18", "--mask", "--K", "4", "--weight_decay", "5e-4",
+        "--empirical", "True", "--tau", "0.01", '--normal', '--freeze_weight',
+        "--show-info", "--wandb_watch", "--t_warmup", "0.1dur", "--alpha_f", "0.001", '--eval_interval', '1ep',
+        "--duration", "2ep", "--save_folder", "/Users/Ziyi/Documents/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug',
+        '--freeze_weight'
+    ])
+    # args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     # saver = Saver(args)
     train_loader, val_loader, test_loader, nclass = make_data_loader(args)
@@ -163,6 +164,8 @@ def main():
     #     print(name)
 
     model = DGMSNet(model, args, args.freeze_bn)
+
+    device = get_device()
 
 
     print("DGMS Conv!")
@@ -205,12 +208,12 @@ def main():
         optimizers=optimizer,
         schedulers=lr_scheduler,
         max_duration=args.duration,
-        device_train_microbatch_size='auto',
+        device_train_microbatch_size= 'auto' if torch.cuda.is_available() else 64,
 
         train_dataloader=train_loader,
         eval_dataloader=val_loader,
         eval_interval=args.eval_interval,
-        device="gpu" if torch.cuda.is_available() else "cpu",
+        device="gpu" if torch.cuda.is_available() else "mps",
 
         # callbacks
         callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],

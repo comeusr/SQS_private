@@ -58,6 +58,17 @@ def mkdir_p(path):
             raise
 
 @torch.no_grad()
+def get_device():
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    elif torch.backends.mps.is_available():
+        return torch.device('mps')
+    else:
+        return torch.device('cpu')
+
+DEVICE = get_device()
+
+@torch.no_grad()
 def check_cuda_memory():
     allocated = torch.cuda.memory_allocated() / 1024**3
     reserved = torch.cuda.memory_reserved() / 1024**3
@@ -73,11 +84,11 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
     Returns:
         [n_clusters-1] initial region saliency obtained by k-means algorthm
     """
-    flat_weight = weights.view(-1, 1).cuda()
+    flat_weight = weights.view(-1, 1).to(DEVICE)
     _tol = 1e-11
     if cfg.IS_NORMAL is True:
         print("skip k-means")
-        tmp = torch.rand(n_clusters-1).cuda()
+        tmp = torch.rand(n_clusters-1).to(DEVICE)
         return tmp, tmp , 0.5, tmp, 0.01
     _cluster_idx, region_saliency = kmeans(X=flat_weight, num_clusters=n_clusters, tol=_tol, \
                         distance='euclidean', iter_limit=iter_limit, device=torch.device('cuda'), tqdm_flag=False)
@@ -89,7 +100,7 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
     region_saliency_tmp[zero_center_idx] = 0.0
     pi_zero = pi_initialization[zero_center_idx]
 
-    sigma_tmp = torch.zeros(n_clusters,1).cuda()
+    sigma_tmp = torch.zeros(n_clusters,1).to(DEVICE)
     # # for i in range(n_clusters):
     #     indices = _cluster_idx.index(i)
     #     temp = flat_weight[indices,0]
@@ -100,10 +111,10 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
     sigma_initialization = torch.tensor([torch.true_divide(sigma_tmp[i], _cluster_idx.eq(i).sum()-1) \
                                     for i in range(n_clusters)], device='cuda').sqrt()
     sigma_zero = sigma_initialization[zero_center_idx]
-    sigma_initialization = sigma_initialization[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx]    
+    sigma_initialization = sigma_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]    
 
-    pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx]
-    region_saliency = region_saliency[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx] # remove zero component center
+    pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]
+    region_saliency = region_saliency[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx] # remove zero component center
     return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
 
 @torch.no_grad()
@@ -120,20 +131,20 @@ def cluster_weights_em(weights, n_clusters):
     _tol = 1e-5
     if cfg.IS_NORMAL is True:
         print("skip k-means")
-        tmp = torch.rand(n_clusters-1).cuda()
+        tmp = torch.rand(n_clusters-1).to(DEVICE)
         return tmp, tmp , 0.5, tmp, 0.01
     # construct GMM using EM algorithm
     gm = GaussianMixture(n_components=n_clusters, random_state=0, tol=_tol).fit(flat_weight)
-    region_saliency = torch.from_numpy(gm.means_).view(-1).cuda()
-    pi_initialization = torch.from_numpy(gm.weights_).cuda()
-    sigma_initialization = torch.from_numpy(gm.covariances_).view(-1).sqrt().cuda()
+    region_saliency = torch.from_numpy(gm.means_).view(-1).to(DEVICE)
+    pi_initialization = torch.from_numpy(gm.weights_).to(DEVICE)
+    sigma_initialization = torch.from_numpy(gm.covariances_).view(-1).sqrt().to(DEVICE)
     
     zero_center_idx = torch.argmin(torch.abs(region_saliency))
     pi_zero = pi_initialization[zero_center_idx]
     sigma_zero = sigma_initialization[zero_center_idx]
-    sigma_initialization = sigma_initialization[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx] 
-    pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx]
-    region_saliency = region_saliency[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx] # remove zero component center
+    sigma_initialization = sigma_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx] 
+    pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]
+    region_saliency = region_saliency[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx] # remove zero component center
     return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
 
 
@@ -156,7 +167,7 @@ def resume_ckpt(args, model, train_loader, optimizer, lr_scheduler):
         checkpoint = torch.load(args.resume)
         if args.cuda:
             model.module.load_state_dict(checkpoint)
-            model = model.cuda()
+            model = model.to(DEVICE)
         else:
             model.load_state_dict(checkpoint['state_dict'])
             model.init_mask_params()
@@ -174,7 +185,7 @@ def resume_ckpt(args, model, train_loader, optimizer, lr_scheduler):
             optimizer = get_optimizer(model.module, args)
             lr_scheduler = get_scheduler(args, optimizer, \
                     args.lr, len(train_loader))
-            model = model.cuda()
+            model = model.to(DEVICE)
         else:
             model.load_state_dict(checkpoint['state_dict'])
             model.init_mask_params()
