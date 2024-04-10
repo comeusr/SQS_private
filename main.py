@@ -187,9 +187,10 @@ def main():
     #     freeze_param(model)
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
+    cfg.IS_NORMAL = False
     model.init_mask_params()
 
-    cfg.IS_NORMAL = False
+
 
     optimizer = DecoupledAdamW(
         model.network.parameters(),
