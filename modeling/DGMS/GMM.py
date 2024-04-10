@@ -50,6 +50,14 @@ class GaussianMixtureModel(nn.Module):
         self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
         self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device))
 
+        # self.pi, self.mu, self.sigma = \
+        #         torch.ones(self.num_components, device=self.device), \
+        #         torch.ones(self.num_components, device=self.device), \
+        #         torch.ones(self.num_components, device=self.device)
+        # if method == 'k-means':
+        #     initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
+
+
     def gaussian_mixing_regularization(self):
         pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
         return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
