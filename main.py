@@ -212,7 +212,7 @@ def main():
         schedulers=lr_scheduler,
         max_duration=args.duration,
         # device_train_microbatch_size = 64,
-        device_train_microbatch_size= 'auto' if torch.cuda.is_available() else 1,
+        device_train_microbatch_size= 'auto',
         train_dataloader=train_loader,
         device="gpu" if torch.cuda.is_available() else "mps",
 
@@ -221,8 +221,8 @@ def main():
         # eval_interval=args.eval_interval,
 
         # callbacks
-        callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
-        # callbacks=[LRMonitor(), OptimizerMonitor()],
+        # callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
+        callbacks=[LRMonitor(), OptimizerMonitor()],
         loggers=[WandBLogger()],
 
         #Save Checkpoint

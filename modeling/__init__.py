@@ -15,8 +15,8 @@ class DGMSNet(ComposerModel):
         self.args = args
         self.network = network
         self.freeze_bn = freeze_bn
-        self.train_accuracy = torchmetrics.classification.MulticlassAccuracy(num_classes=args.num_classes, average='micro')
-        self.val_accuracy = torchmetrics.classification.MulticlassAccuracy(num_classes=args.num_classes, average='micro')
+        # self.train_accuracy = torchmetrics.classification.MulticlassAccuracy(num_classes=args.num_classes, average='micro')
+        # self.val_accuracy = torchmetrics.classification.MulticlassAccuracy(num_classes=args.num_classes, average='micro')
 
     def init_mask_params(self):
         print("--> Start to initialize sub-distribution parameters, this may take some time...")
