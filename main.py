@@ -215,7 +215,7 @@ def main():
 
         train_dataloader=train_loader,
         eval_dataloader=val_loader,
-        eval_interval=args.eval_interval,
+        # eval_interval=args.eval_interval,
         device="gpu" if torch.cuda.is_available() else "mps",
 
         # callbacks
