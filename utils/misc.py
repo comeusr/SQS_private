@@ -13,7 +13,7 @@ from utils.cluster import kmeans
 from utils.lr_scheduler import get_scheduler
 from sklearn.mixture import GaussianMixture
 from modeling.DGMS import DGMSConv
-from torch_kmeans import Kmeans
+from torch_kmeans import KMeans
 
 __all__ = ['get_mean_and_std', 'init_params', 'mkdir_p', 'AverageMeter', 'cluster_weights', 'get_optimizer', 'resume_ckpt']
 
