@@ -217,8 +217,8 @@ def main():
         device="gpu" if torch.cuda.is_available() else "mps",
 
         # Evaluation
-        # eval_dataloader=val_loader,
-        # eval_interval=args.eval_interval,
+        eval_dataloader=val_loader,
+        eval_interval=args.eval_interval,
 
         # callbacks
         callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],

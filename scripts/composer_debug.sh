@@ -10,7 +10,7 @@ DATA_NAME="cifar10"
 MODEL_NAME="resnet18"
 EPOCHS="2ep"
 FINAL_LR=0.0001
-EVAL_INTERV='5ep'
+EVAL_INTERV='1ep'
 SEED=10
 FREEZE="--freeze_weight"
 
