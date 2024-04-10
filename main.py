@@ -215,7 +215,7 @@ def main():
         device_train_microbatch_size= 'auto' if torch.cuda.is_available() else 1,
 
         train_dataloader=train_loader,
-        # eval_dataloader=val_loader,
+        eval_dataloader=val_loader,
         # eval_interval=args.eval_interval,
         device="gpu" if torch.cuda.is_available() else "mps",
 
