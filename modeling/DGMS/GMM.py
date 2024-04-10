@@ -48,7 +48,8 @@ class GaussianMixtureModel(nn.Module):
         self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).to(DEVICE).float()
         self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=self.device)).float()
         self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
-        self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device))
+        # self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device))
+        self.temperature = torch.tensor(0.001, device=self.device)
 
         # self.pi, self.mu, self.sigma = \
         #         torch.ones(self.num_components, device=self.device), \
