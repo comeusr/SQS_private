@@ -180,8 +180,6 @@ def main():
             if isinstance(m, DGMSConv):
                 m.weight.requires_grad=False
 
-    # if args.freeze_weight:
-    #     freeze_param(model)
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     model.init_mask_params()
@@ -212,7 +210,7 @@ def main():
 
         train_dataloader=train_loader,
         eval_dataloader=val_loader,
-        # eval_interval=args.eval_interval,
+        eval_interval=args.eval_interval,
         device="gpu" if torch.cuda.is_available() else "mps",
 
         # callbacks
