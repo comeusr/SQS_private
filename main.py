@@ -221,8 +221,8 @@ def main():
         # eval_interval=args.eval_interval,
 
         # callbacks
-        # callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
-        callbacks=[LRMonitor(), OptimizerMonitor()],
+        callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
+        # callbacks=[LRMonitor(), OptimizerMonitor()],
         loggers=[WandBLogger()],
 
         #Save Checkpoint
