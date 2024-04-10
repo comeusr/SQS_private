@@ -165,7 +165,10 @@ def main():
 
     # Load Pretrain Data
     model = timm.create_model("resnet18_cifar10", pretrained=True)
+
     model = DGMSNet(model, args, args.freeze_bn)
+
+    device = get_device()
 
 
     print("DGMS Conv!")
@@ -180,6 +183,8 @@ def main():
             if isinstance(m, DGMSConv):
                 m.weight.requires_grad=False
 
+    # if args.freeze_weight:
+    #     freeze_param(model)
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     model.init_mask_params()
