@@ -8,9 +8,9 @@ K=8
 LR=0.05
 DATA_NAME="cifar10"
 MODEL_NAME="resnet18"
-EPOCHS="200ep"
+EPOCHS="2ep"
 FINAL_LR=0.0001
-EVAL_INTERV='5ep'
+EVAL_INTERV='2ep'
 SEED=10
 FREEZE="--freeze_weight"
 
