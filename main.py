@@ -165,14 +165,7 @@ def main():
 
     # Load Pretrain Data
     model = timm.create_model("resnet18_cifar10", pretrained=True)
-    # base_model = copy.deepcopy(model)
-    # print("-"*40+"Pretrian Model"+"-"*40)
-    # for name, m in model.named_modules():
-    #     print(name)
-
     model = DGMSNet(model, args, args.freeze_bn)
-
-    device = get_device()
 
 
     print("DGMS Conv!")
@@ -219,7 +212,7 @@ def main():
 
         train_dataloader=train_loader,
         eval_dataloader=val_loader,
-        eval_interval=args.eval_interval,
+        # eval_interval=args.eval_interval,
         device="gpu" if torch.cuda.is_available() else "mps",
 
         # callbacks
