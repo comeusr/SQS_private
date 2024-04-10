@@ -157,11 +157,11 @@ def main():
     # saver = Saver(args)
     train_loader, val_loader, test_loader, nclass = make_data_loader(args)
 
-    val_loader = Evaluator(
-        label='Eval',
-        dataloader=val_loader,
-        metric_names=['MulticlassAccuracy']
-    )
+    # val_loader = Evaluator(
+    #     label='Eval',
+    #     dataloader=val_loader,
+    #     metric_names=['MulticlassAccuracy']
+    # )
 
     # Load Pretrain Data
     model = timm.create_model("resnet18_cifar10", pretrained=True)
@@ -213,11 +213,12 @@ def main():
         max_duration=args.duration,
         # device_train_microbatch_size = 64,
         device_train_microbatch_size= 'auto' if torch.cuda.is_available() else 1,
-
         train_dataloader=train_loader,
+        device="gpu" if torch.cuda.is_available() else "mps",
+
+        # Evaluation
         eval_dataloader=val_loader,
         # eval_interval=args.eval_interval,
-        device="gpu" if torch.cuda.is_available() else "mps",
 
         # callbacks
         callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
