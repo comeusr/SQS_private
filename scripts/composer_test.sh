@@ -2,7 +2,7 @@
 
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR10/train/ --val-dir /home/wang4538/DGMS-master/CIFAR10/val/ --num-classes 10"
 MODEL="--network resnet18 --mask --empirical True"
-WD=5e-4
+WD=0
 TEMP=0.01
 K=8
 LR=5e-5
