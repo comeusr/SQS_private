@@ -13,6 +13,7 @@ from utils.cluster import kmeans
 from utils.lr_scheduler import get_scheduler
 from sklearn.mixture import GaussianMixture
 from modeling.DGMS import DGMSConv
+from torch_kmeans import Kmeans
 
 __all__ = ['get_mean_and_std', 'init_params', 'mkdir_p', 'AverageMeter', 'cluster_weights', 'get_optimizer', 'resume_ckpt']
 
@@ -90,8 +91,12 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
         print("skip k-means")
         tmp = torch.rand(n_clusters-1).to(DEVICE)
         return tmp, tmp , 0.5, tmp, 0.01
-    _cluster_idx, region_saliency = kmeans(X=flat_weight, num_clusters=n_clusters, tol=_tol, \
-                        distance='euclidean', iter_limit=iter_limit, device=torch.device('cuda'), tqdm_flag=False)
+    # _cluster_idx, region_saliency = kmeans(X=flat_weight, num_clusters=n_clusters, tol=_tol, \
+    #                     distance='euclidean', iter_limit=iter_limit, device=torch.device('cuda'), tqdm_flag=False)
+    Kmean_model = Kmeans(n_clusters=n_clusters, max_iter=300, tol=_tol)
+    result = Kmean_model(flat_weight)
+    _cluster_idx, region_saliency = result.label, result.cluster_centers
+    
     pi_initialization = torch.tensor([torch.true_divide(_cluster_idx.eq(i).sum(), _cluster_idx.numel()) \
                             for i in range(n_clusters)], device='cuda')
     zero_center_idx = torch.argmin(torch.abs(region_saliency))
@@ -146,6 +151,15 @@ def cluster_weights_em(weights, n_clusters):
     pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]
     region_saliency = region_saliency[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx] # remove zero component center
     return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
+
+
+# @torch.no_grad()
+# def cluster_weight_quantile(weights, n_clusters):
+#     flat_weight = weights.view(-1, 1).contiguous().detach().numpy()
+    
+    
+    
+
 
 
 def get_optimizer(model, args):
