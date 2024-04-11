@@ -27,7 +27,7 @@ from utils.watch import Sparsity, EpochMonitor
 
 from composer import Trainer
 from composer.loggers import WandBLogger
-from composer.optim import DecoupledAdamW, LinearWithWarmupScheduler
+from composer.optim import DecoupledAdamW, LinearWithWarmupScheduler, LinearScheduler
 from composer.callbacks import LRMonitor, OptimizerMonitor, NaNMonitor
 from composer.core import Evaluator
 
@@ -188,7 +188,7 @@ def main():
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     cfg.IS_NORMAL = False
-    # model.init_mask_params()
+    model.init_mask_params()
 
 
 
@@ -200,9 +200,14 @@ def main():
         weight_decay=args.weight_decay
     )
 
-    lr_scheduler = LinearWithWarmupScheduler(
-        t_warmup=args.t_warmup,
-        alpha_f=args.alpha_f
+    # lr_scheduler = LinearWithWarmupScheduler(
+    #     t_warmup=args.t_warmup,
+    #     alpha_f=args.alpha_f
+    # )
+
+    lr_scheduler  = LinearScheduler(
+        alpha_i=args.lr,
+        alpha_f=args.alpha_f,
     )
 
     trainer = Trainer(
