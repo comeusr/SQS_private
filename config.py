@@ -75,6 +75,7 @@ EPS = 1e-11
 KEEP = True
 DEBUG = False
 SKIPPED_LAYERS = []
+INIT_METHOD = ""
 
 def set_status(flag):
     global IS_TRAIN
@@ -93,3 +94,4 @@ def set_config(args):
     K_LEVEL = args.K
     LAYER_NUM = LAYER[args.network]
     SKIPPED_LAYERS = [1, LAYER_NUM]
+    INIT_METHOD = args.init_method

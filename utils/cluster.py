@@ -151,7 +151,7 @@ def kmeans_predict(
     dis = pairwise_distance_function(X, cluster_centers)
     choice_cluster = torch.argmin(dis, dim=1)
 
-    return choice_cluster.cpu()
+    return choice_cluster
 
 
 def pairwise_distance(data1, data2, device=torch.device('cpu')):

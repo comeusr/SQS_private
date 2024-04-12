@@ -142,6 +142,9 @@ def main():
                         help="Eval Interval")
     parser.add_argument('--freeze_weight', action='store_true', default=False,
                         help='Freeze Parameters')
+    parser.add_argument('--init_method', type=str, default='k-means',
+                        choices=['k-means', 'quantile', 'empirical'],
+                        help='Choose Initialization Method for Mu')
 
     # args = parser.parse_args([
     #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
@@ -155,6 +158,7 @@ def main():
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     # saver = Saver(args)
+    cfg.set_config(args)
     train_loader, val_loader, test_loader, nclass = make_data_loader(args)
 
     # val_loader = Evaluator(
@@ -189,7 +193,6 @@ def main():
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     cfg.IS_NORMAL = False
     model.init_mask_params()
-
 
 
     optimizer = DecoupledAdamW(

@@ -40,6 +40,8 @@ class GaussianMixtureModel(nn.Module):
                 torch.ones(self.num_components-1, device=self.device)
         if method == 'k-means':
             initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
+        elif method == "quantile":
+            initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
         elif method == 'empirical':
             initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
             sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
@@ -49,15 +51,6 @@ class GaussianMixtureModel(nn.Module):
         self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=self.device)).float()
         self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
         self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device), requires_grad=False)
-        # self.temperature = torch.tensor(0.001, device=self.device)
-
-        # self.pi, self.mu, self.sigma = \
-        #         torch.ones(self.num_components, device=self.device), \
-        #         torch.ones(self.num_components, device=self.device), \
-        #         torch.ones(self.num_components, device=self.device)
-        # if method == 'k-means':
-        #     initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
-
 
     def gaussian_mixing_regularization(self):
         pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()

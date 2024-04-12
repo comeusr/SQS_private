@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 import config as cfg
-from utils.cluster import kmeans
+from utils.cluster import kmeans, kmeans_predict
 from utils.lr_scheduler import get_scheduler
 from sklearn.mixture import GaussianMixture
 from modeling.DGMS import DGMSConv
@@ -153,11 +153,34 @@ def cluster_weights_em(weights, n_clusters):
     return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
 
 
-# @torch.no_grad()
-# def cluster_weight_quantile(weights, n_clusters):
-#     flat_weight = weights.view(-1, 1).contiguous().detach().numpy()
-    
-    
+@torch.no_grad()
+def cluster_weight_quantile(weights, n_clusters):
+    q = torch.linspace(0,1, n_clusters)
+    flat_weight = weights.view(-1, 1).contiguous().detach().numpy()
+    region_saliency = torch.quantile(flat_weight, q)
+    _cluster_idx = kmeans_predict(flat_weight, region_saliency)
+
+    pi_initialization = torch.tensor([torch.true_divide(_cluster_idx.eq(i).sum(), _cluster_idx.numel()) \
+                            for i in range(n_clusters)], device='cuda')
+    zero_center_idx = torch.argmin(torch.abs(region_saliency))
+    region_saliency_tmp = region_saliency.clone()
+    region_saliency_zero = region_saliency[zero_center_idx]
+    region_saliency_tmp[zero_center_idx] = 0.0
+    pi_zero = pi_initialization[zero_center_idx]
+
+    sigma_tmp = torch.zeros(n_clusters,1).to(DEVICE)
+
+    for i in range(flat_weight.size(0)):
+        _idx = _cluster_idx[i]
+        sigma_tmp[_idx] += (flat_weight[i,0]-region_saliency_tmp[_idx])**2
+    sigma_initialization = torch.tensor([torch.true_divide(sigma_tmp[i], _cluster_idx.eq(i).sum()-1) \
+                                    for i in range(n_clusters)], device='cuda').sqrt()
+    sigma_zero = sigma_initialization[zero_center_idx]
+    sigma_initialization = sigma_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]    
+
+    pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]
+    region_saliency = region_saliency[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx] # remove zero component center
+    return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
     
 
 

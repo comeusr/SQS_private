@@ -60,8 +60,8 @@ class EpochMonitor(Callback):
                         wandb.log({name+"_P_zeros": P_weight_zeros/P_weight_tot}, commit=False)
                         wandb.log({name+"_S_zeros": S_weight_zeros/S_weight_tot}, commit=False)
                         # wandb.log({name+"_Origin_zeros": Origin_weight_zeros/Origin_weight_tot}, commit=False)
-                        wandb.log({name+"_Pretrained_weight": wandb.Histogram(Origin_weight.cpu().numpy())}, commit=False)
-                        wandb.log({name+"_Soft_weight": wandb.Histogram(S_weight.cpu().numpy())}, commit=False)
+                        # wandb.log({name+"_Pretrained_weight": wandb.Histogram(Origin_weight.cpu().numpy())}, commit=False)
+                        # wandb.log({name+"_Soft_weight": wandb.Histogram(S_weight.cpu().numpy())}, commit=False)
 
 
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
