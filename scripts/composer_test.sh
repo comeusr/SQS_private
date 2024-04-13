@@ -25,7 +25,7 @@ sbatch --time=4:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 nvidia-smi
 python ../main.py $DATASET $MODEL $RESUME $GPU $FREEZE --K ${K} --tau ${TEMP} --dataset ${DATA_NAME} --weight_decay ${WD} \
        --lr ${LR} --duration ${EPOCHS} --t_warmup "5ep" --alpha_f ${FINAL_LR} --seed ${SEED} --init_method ${INIT_METHOD}\
-       --run_name K${K}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD} --autoresume --eval_interval ${EVAL_INTERV} \
-       --save_folder /scratch/gilbreth/wang4538/DGMS/Run/${DATA_NAME}_${MODEL_NAME}/K${K}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD}
+       --run_name ${INIT_METHOD}K${K}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD} --autoresume --eval_interval ${EVAL_INTERV} \
+       --save_folder /scratch/gilbreth/wang4538/DGMS/Run/${INIT_METHOD}${DATA_NAME}_${MODEL_NAME}/K${K}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD}
 
 EOT
