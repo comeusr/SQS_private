@@ -160,7 +160,7 @@ def cluster_weight_quantile(weights, n_clusters):
     print(q)
     flat_weight = weights.view(-1, 1).contiguous().detach().numpy()
     region_saliency = torch.quantile(flat_weight, q)
-    print(region_saliency)
+    # print(region_saliency)
     _cluster_idx = kmeans_predict(flat_weight, region_saliency)
 
     pi_initialization = torch.tensor([torch.true_divide(_cluster_idx.eq(i).sum(), _cluster_idx.numel()) \
