@@ -1,7 +1,3 @@
-# Copyright (c) Runpei Dong, ArChip Lab.
-# This source code is licensed under the Apache 2.0 license found in the
-# LICENSE file in the root directory of this source tree.
-
 import torch
 
 import argparse
@@ -145,6 +141,8 @@ def main():
     parser.add_argument('--init_method', type=str, default='k-means',
                         choices=['k-means', 'quantile', 'empirical'],
                         help='Choose Initialization Method for Mu')
+    parser.add_argument('--prune_end', type=str, default='1ep',
+                        help='Epoch when Stop the pruning process')
 
     # args = parser.parse_args([
     #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
@@ -161,11 +159,10 @@ def main():
     cfg.set_config(args)
     train_loader, val_loader, test_loader, nclass = make_data_loader(args)
 
-    # val_loader = Evaluator(
-    #     label='Eval',
-    #     dataloader=val_loader,
-    #     metric_names=['MulticlassAccuracy']
-    # )
+    epochs = int(args.duration.replace('ep', ''))
+    cfg.TOT_TRAIN_STEP = len(train_loader)*epochs
+    cfg.PRUNE_END_STEP = len(train_loader)*float(args.prune_end.replace('ep', ''))
+    
 
     # Load Pretrain Data
     model = timm.create_model("resnet18_cifar10", pretrained=True)

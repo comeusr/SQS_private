@@ -40,6 +40,9 @@ IS_TRAIN = True
 K_LEVEL = 16
 IS_NORMAL = True
 IS_EMP = False
+PRUNE = False
+TOT_TRAIN_STEP = 0
+PRUNE_END_STEP = 0
 
 # Training settings
 BATCH_SIZE = {

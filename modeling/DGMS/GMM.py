@@ -19,7 +19,7 @@ DEVICE = get_device()
 class GaussianMixtureModel(nn.Module):
     """Concrete GMM for sub-distribution approximation.
     """
-    def __init__(self, num_components, init_weights, temperature=0.01, init_method="k-means"):
+    def __init__(self, num_components, init_weights, temperature=0.01, sparsity=0.0, init_method="k-means"):
         super(GaussianMixtureModel, self).__init__()
         self.num_components = num_components
         self.temperature = temperature
@@ -30,14 +30,37 @@ class GaussianMixtureModel(nn.Module):
         else:
             self.device = torch.device('cpu')
         self.params_initialization(init_weights, init_method)
+        self.prune = cfg.PRUNE
+        self.sparsity = sparsity
+
 
     def params_initialization(self, init_weights, method='k-means'):
         """ Initialization of GMM parameters using k-means algorithm. """
+        # self.mu_zero = torch.tensor([0.0], device=self.device).float()
+        # self.pi_k, self.mu, self.sigma = \
+        #         torch.ones(self.num_components-1, device=self.device), \
+        #         torch.ones(self.num_components-1, device=self.device), \
+        #         torch.ones(self.num_components-1, device=self.device)
+        # if method == 'k-means':
+        #     initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
+        # elif method == "quantile":
+        #     initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
+        # elif method == 'empirical':
+        #     initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
+        #     sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
+        # self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
+        # self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
+        # self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).to(DEVICE).float()
+        # self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=self.device)).float()
+        # self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
+        # self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device), requires_grad=False)
+
+        """ Intialization of GMM + Pruning parameters using k-means"""
         self.mu_zero = torch.tensor([0.0], device=self.device).float()
         self.pi_k, self.mu, self.sigma = \
-                torch.ones(self.num_components-1, device=self.device), \
-                torch.ones(self.num_components-1, device=self.device), \
-                torch.ones(self.num_components-1, device=self.device)
+                torch.ones(self.num_components, device=self.device), \
+                torch.ones(self.num_components, device=self.device), \
+                torch.ones(self.num_components, device=self.device)
         if method == 'k-means':
             initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
         elif method == "quantile":
@@ -51,6 +74,7 @@ class GaussianMixtureModel(nn.Module):
         self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=self.device)).float()
         self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
         self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device), requires_grad=False)
+        self.pruning_parameter = nn.Parameter(data=6*torch.ones_like(init_weights, device=self.device))
 
     def gaussian_mixing_regularization(self):
         pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
@@ -66,25 +90,43 @@ class GaussianMixtureModel(nn.Module):
         """" Region responsibility of GMM. """
         pi_normalized = self.gaussian_mixing_regularization().to(DEVICE)
         responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
-        responsibility[0] = self.Normal_pdf(weights.to(DEVICE), pi_normalized[0], 0.0, self.sigma_zero.to(DEVICE))
-        for k in range(self.num_components-1):
-            responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k].to(DEVICE), self.sigma[k].to(DEVICE))
+        # responsibility[0] = self.Normal_pdf(weights.to(DEVICE), pi_normalized[0], 0.0, self.sigma_zero.to(DEVICE))
+        for k in range(self.num_components):
+            responsibility[k] = self.Normal_pdf(weights, pi_normalized[k], self.mu[k].to(DEVICE), self.sigma[k].to(DEVICE))
         responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
         return F.softmax(responsibility / self.temperature, dim=0)
 
     def forward(self, weights, train=True):
-        if train:
-            # soft mask generalized pruning during training
-            self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-            Sweight = torch.mul(self.region_belonging[0], 0.) \
-                    + torch.mul(self.region_belonging[1:], self.mu.unsqueeze(1)).sum(dim=0)
-            return Sweight.view(weights.size())
+        if not self.prune:
+            if train:
+                # soft mask generalized pruning during training
+                self.region_belonging = self.GMM_region_responsibility(weights.flatten())
+                Sweight = torch.mul(self.region_belonging[0], 0.) \
+                        + torch.mul(self.region_belonging[1:], self.mu.unsqueeze(1)).sum(dim=0)
+                return Sweight.view(weights.size())
+            else:
+                self.region_belonging = self.GMM_region_responsibility(weights.flatten())
+                max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
+                mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
+                Pweight = torch.mul(mask_w[1:], self.mu.unsqueeze(1)).sum(dim=0)
+                return Pweight.view(weights.size())
         else:
-            self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-            max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
-            mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
-            Pweight = torch.mul(mask_w[1:], self.mu.unsqueeze(1)).sum(dim=0)
-            return Pweight.view(weights.size())
+            if train:
+                self.region_belonging = self.GMM_region_responsibility(weights.flatten())
+                Sweight = torch.mul(self.region_belonging[0], 0.) \
+                        + torch.mul(self.region_belonging[1:], self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())
+                return Sweight.view(weights.size())
+            else:
+                self.region_belonging = self.GMM_region_responsibility(weights.flatten())
+                max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
+                mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
+                Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
+                prune_mask = self.make_pruning_mask()
+                
+                return Pweight.view(weights.size())
+    
+    def make_pruning_mask(self):
+        return 
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, init_method='k-means'):
     return GaussianMixtureModel(num_components, init_weights.flatten(), temperature, init_method)
