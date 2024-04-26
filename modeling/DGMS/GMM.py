@@ -19,7 +19,7 @@ DEVICE = get_device()
 class GaussianMixtureModel(nn.Module):
     """Concrete GMM for sub-distribution approximation.
     """
-    def __init__(self, num_components, init_weights, temperature=0.01, sparsity=0.0, init_method="k-means"):
+    def __init__(self, num_components, init_weights, temperature=0.01, init_method="k-means"):
         super(GaussianMixtureModel, self).__init__()
         self.num_components = num_components
         self.temperature = temperature
@@ -31,7 +31,8 @@ class GaussianMixtureModel(nn.Module):
             self.device = torch.device('cpu')
         self.params_initialization(init_weights, init_method)
         self.prune = cfg.PRUNE
-        self.sparsity = sparsity
+        self.mask = None
+        
 
 
     def params_initialization(self, init_weights, method='k-means'):
@@ -121,12 +122,9 @@ class GaussianMixtureModel(nn.Module):
                 max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
                 mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
-                prune_mask = self.make_pruning_mask()
-                
-                return Pweight.view(weights.size())
-    
-    def make_pruning_mask(self):
-        return 
+                Pweight.view(weights.size())
+                Pweight.detach().fill_(self.mask, 0.0)
+                return 
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, init_method='k-means'):
     return GaussianMixtureModel(num_components, init_weights.flatten(), temperature, init_method)

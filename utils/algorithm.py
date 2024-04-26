@@ -37,11 +37,10 @@ class Pruning(Algorithm):
         return
     
     def generate_mask(self, model:ComposerModel, mask_thresh, is_dict):
-        mask = {}
         for name, m in model.named_modules():
             if isinstance(m, DGMSConv):
-                mask[name] = (is_dict[name] < mask_thresh)
-        return mask
+                m.sub_distribution.mask = (is_dict[name] < mask_thresh)
+        return 
     
     def sparsity_scheduler(self, train_step):
         _frac = 1-(train_step)/(cfg.PRUNE_END_STEP)
@@ -50,10 +49,11 @@ class Pruning(Algorithm):
         return sparsity
         
 
-    def prune_with_mask(self, model, mask):
+    def prune_with_mask(self, model):
         for name, m in model.named_modules():
-            if isinstance(m, DGMSConv) and name in mask:
-                m.sub_distribution.pruning_parameter.detach().masked_fill_(mask[name], 0.0)
+            if isinstance(m, DGMSConv):
+                mask = m.sub_distribution.mask
+                m.sub_distribution.pruning_parameter.detach().masked_fill_(mask, 0.0)
     
     def match(self, event, state):
         return event in [Event.BEFORE_TRAIN_BATCH, Event.AFTER_BACKWARD]
@@ -72,9 +72,9 @@ class Pruning(Algorithm):
             mask_threshold, is_dict = self.caculate_mask_thresh(state.model, self.cur_sparsity)
             # Generate mask for pruning 
             # mask = {'layer_name': 0, 1 matrix}
-            mask = self.generate_mask(state.model, mask_threshold, is_dict)
+            self.generate_mask(state.model, mask_threshold, is_dict)
             #Prune with mask
-            self.prune_with_mask(state.model, mask)
+            self.prune_with_mask(state.model)
             
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
