@@ -234,6 +234,7 @@ def main():
         # callbacks
         callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
         # callbacks=[LRMonitor(), OptimizerMonitor()],
+        algorithms=[GMM_Pruner],
         loggers=[WandBLogger()],
 
         #Save Checkpoint
