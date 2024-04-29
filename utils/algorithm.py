@@ -8,9 +8,9 @@ import torch.nn.functional as F
 def sigmoid_derivative(x):
     return F.sigmoid(x)*(1-F.sigmoid(x))
 
-class Pruning(Algorithm):
+class GMM_Pruning(Algorithm):
     
-    def __init__(self, args, init_sparsity, final_sparsity):
+    def __init__(self, init_sparsity, final_sparsity):
         self.init_sparsity = init_sparsity
         self.final_sparsity = final_sparsity
         
@@ -30,10 +30,11 @@ class Pruning(Algorithm):
 
     def apply_pruning_grad(self, model: ComposerModel):
         
-        for name, m in model.named_modules():
-            if isinstance(m, DGMSConv):
-                p = m.sub_distribution.pruning_parameter
-                m.sub_distribution.pruning_parameter.grad.add_(torch.log(F.sigmoid(p.detach())/(1-self.cur_sparsity))*sigmoid_derivative(p.detach()))
+        with torch.no_grad():
+            for name, m in model.named_modules():
+                if isinstance(m, DGMSConv):
+                    p = m.sub_distribution.pruning_parameter
+                    m.sub_distribution.pruning_parameter.grad.add_(torch.log(F.sigmoid(p.detach())/(1-self.cur_sparsity))*sigmoid_derivative(p.detach()))
         return
     
     def generate_mask(self, model:ComposerModel, mask_thresh, is_dict):

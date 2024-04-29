@@ -20,6 +20,7 @@ from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 from utils.loss import *
 from utils.misc import freeze_param, get_device
 from utils.watch import Sparsity, EpochMonitor
+from utils.algorithm import GMM_Pruning
 
 from composer import Trainer
 from composer.loggers import WandBLogger
@@ -143,6 +144,10 @@ def main():
                         help='Choose Initialization Method for Mu')
     parser.add_argument('--prune_end', type=str, default='1ep',
                         help='Epoch when Stop the pruning process')
+    parser.add_argument('--init_sparsity', type=float, default=0.0,
+                        help='Begin with this intial step size.')
+    parser.add_argument('--final_sparsity', type=float, default=0.7,
+                        help='The target sparsity.')
 
     # args = parser.parse_args([
     #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
@@ -199,6 +204,8 @@ def main():
         eps=1e-8,
         weight_decay=args.weight_decay
     )
+
+    GMM_Pruner = GMM_Pruning(init_sparsity=args.init_sparsity, final_sparsity=args.final_sparsity)
 
     # lr_scheduler = LinearWithWarmupScheduler(
     #     t_warmup=args.t_warmup,
