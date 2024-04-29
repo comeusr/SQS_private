@@ -90,7 +90,7 @@ def count_layer():
 
 
 def set_config(args):
-    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS, INIT_METHOD
+    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS, INIT_METHOD, PRUNE
     IS_EMP = args.empirical
     IS_NORMAL = args.normal
     TAU = args.tau
@@ -98,3 +98,4 @@ def set_config(args):
     LAYER_NUM = LAYER[args.network]
     SKIPPED_LAYERS = [1, LAYER_NUM]
     INIT_METHOD = args.init_method
+    PRUNE = (args.final_sparsity != 0.0)
