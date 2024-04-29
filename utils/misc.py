@@ -126,6 +126,7 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
     # print('Sigma_initialization shape {}'.format(sigma_initialization.shape))
     # print('Pi_initialization shape {}'.format(pi_initialization.shape))
     # print('Region_saliency shape return {}'.format(region_saliency.shape))
+    print("Pring sigma initialization {}".format(sigma_initialization))
 
     return region_saliency, pi_initialization, sigma_initialization
 
