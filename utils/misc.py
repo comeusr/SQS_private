@@ -100,11 +100,11 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
     
     pi_initialization = torch.tensor([torch.true_divide(_cluster_idx.eq(i).sum(), _cluster_idx.numel()) \
                             for i in range(n_clusters)], device='cuda')
-    zero_center_idx = torch.argmin(torch.abs(region_saliency))
+    # zero_center_idx = torch.argmin(torch.abs(region_saliency))
     region_saliency_tmp = region_saliency.clone()
-    region_saliency_zero = region_saliency[zero_center_idx]
-    region_saliency_tmp[zero_center_idx] = 0.0
-    pi_zero = pi_initialization[zero_center_idx]
+    # region_saliency_zero = region_saliency[zero_center_idx]
+    # region_saliency_tmp[zero_center_idx] = 0.0
+    # pi_zero = pi_initialization[zero_center_idx]
 
     sigma_tmp = torch.zeros(n_clusters,1).to(DEVICE)
     # # for i in range(n_clusters):
@@ -116,18 +116,18 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
         sigma_tmp[_idx] += (flat_weight[i,0]-region_saliency_tmp[_idx])**2
     sigma_initialization = torch.tensor([torch.true_divide(sigma_tmp[i], _cluster_idx.eq(i).sum()-1) \
                                     for i in range(n_clusters)], device='cuda').sqrt()
-    sigma_zero = sigma_initialization[zero_center_idx]
-    sigma_initialization = sigma_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]    
+    # sigma_zero = sigma_initialization[zero_center_idx]
+    # sigma_initialization = sigma_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]
 
-    pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]
-    region_saliency = region_saliency[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx] # remove zero component center
-    print('Sigma shape {}'.format(sigma_initialization.shape))
-    print('Sigma_zero shape {}'.format(sigma_initialization.shape))
-    print('Sigma_initialization shape {}'.format(sigma_initialization.shape))
-    print('Pi_initialization shape {}'.format(pi_initialization.shape))
-    print('Region_saliency shape return {}'.format(region_saliency.shape))
+    # pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]
+    # region_saliency = region_saliency[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx] # remove zero component center
+    # print('Sigma shape {}'.format(sigma_initialization.shape))
+    # print('Sigma_zero shape {}'.format(sigma_initialization.shape))
+    # print('Sigma_initialization shape {}'.format(sigma_initialization.shape))
+    # print('Pi_initialization shape {}'.format(pi_initialization.shape))
+    # print('Region_saliency shape return {}'.format(region_saliency.shape))
 
-    return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
+    return region_saliency, pi_initialization, sigma_initialization
 
 @torch.no_grad()
 def cluster_weights_em(weights, n_clusters):

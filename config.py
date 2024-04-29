@@ -90,7 +90,7 @@ def count_layer():
 
 
 def set_config(args):
-    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS
+    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS, INIT_METHOD
     IS_EMP = args.empirical
     IS_NORMAL = args.normal
     TAU = args.tau

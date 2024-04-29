@@ -63,22 +63,23 @@ class GaussianMixtureModel(nn.Module):
                 torch.ones(self.num_components, device=self.device), \
                 torch.ones(self.num_components, device=self.device)
         if method == 'k-means':
-            initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
+            initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
         elif method == "quantile":
-            initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
+            initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
         elif method == 'empirical':
-            initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
+            initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
             sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
         self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
         self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
-        self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).to(DEVICE).float()
-        self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=self.device)).float()
+        # self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).to(DEVICE).float()
+        # self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=self.device)).float()
         self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
         self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device), requires_grad=False)
         self.pruning_parameter = nn.Parameter(data=6*torch.ones_like(init_weights, device=self.device))
 
     def gaussian_mixing_regularization(self):
-        pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
+        # pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
+        pi_tmp = self.pi_k.abs()
         return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
 
     def Normal_pdf(self, x, _pi, mu, sigma):
