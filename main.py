@@ -158,6 +158,7 @@ def main():
     #     "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug',
     #     '--freeze_weight'
     # ])
+    
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     # saver = Saver(args)
