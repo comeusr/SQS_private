@@ -96,6 +96,7 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
     # Kmean_model = Kmeans(n_clusters=n_clusters, max_iter=300, tol=_tol)
     # result = Kmean_model(flat_weight)
     # _cluster_idx, region_saliency = result.label, result.cluster_centers
+    print("region_saliency shape right after kmeans {region_saliency.shape}")
     
     pi_initialization = torch.tensor([torch.true_divide(_cluster_idx.eq(i).sum(), _cluster_idx.numel()) \
                             for i in range(n_clusters)], device='cuda')
@@ -120,6 +121,12 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
 
     pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx]
     region_saliency = region_saliency[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx] # remove zero component center
+    print('Sigma shape {sigma_initialization.shape}')
+    print('Sigma_zero shape {sigma_zero.shape}')
+    print('Sigma_initialization shape {sigma_initialization.shape}')
+    print('Pi_initialization shape {pi_initialization.shape}')
+    print('Region_saliency shape return {region_saliency.shape}')
+
     return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
 
 @torch.no_grad()
