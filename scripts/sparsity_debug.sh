@@ -18,7 +18,7 @@ INIT_SPARSITY=0.1
 FINAL_SPARSITY=0.7
 
 
-sbatch --time=4:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
+sbatch --time=00:30:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #!/bin/bash -l
 
 #SBATCH --output /home/wang4538/DGMS-master/out/%j.out
