@@ -99,7 +99,6 @@ class GaussianMixtureModel(nn.Module):
         for k in range(self.num_components):
             responsibility[k] = self.Normal_pdf(weights, pi_normalized[k], self.mu[k].to(DEVICE), self.sigma[k].to(DEVICE))
         responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
-        print('Responsibility {}'.format(responsibility))
         return F.softmax(responsibility / self.temperature, dim=0)
 
     def forward(self, weights, train=True):
@@ -119,7 +118,8 @@ class GaussianMixtureModel(nn.Module):
         else:
             if train:
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-                print("self.region_belonging {}".format(self.region_belonging[0]))
+                print("torch.mul(self.region_belonging[0], 0.) {}".format(torch.mul(self.region_belonging[0], 0.)))
+                print("torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()) {}".format(torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())))
                 Sweight = torch.mul(self.region_belonging[0], 0.) \
                         + torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())
                 return Sweight.view(weights.size())
