@@ -62,14 +62,16 @@ class GaussianMixtureModel(nn.Module):
                 torch.ones(self.num_components, device=self.device), \
                 torch.ones(self.num_components, device=self.device), \
                 torch.ones(self.num_components, device=self.device)
-        if method == 'k-means':
-            initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
-        elif method == "quantile":
-            initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
-        elif method == 'empirical':
-            initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
-            sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
+        # if method == 'k-means':
+        #     initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
+        # elif method == "quantile":
+        #     initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
+        # elif method == 'empirical':
+        #     initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
+        #     sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
             # sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
+        
+        initial_region_saliency = pi_init = sigma_init = torch.zeros_like(self.mu, device='cuda')
         self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
         self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
         # self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).to(DEVICE).float()
