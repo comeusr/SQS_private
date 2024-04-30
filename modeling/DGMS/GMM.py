@@ -31,7 +31,7 @@ class GaussianMixtureModel(nn.Module):
             self.device = torch.device('cpu')
         self.params_initialization(init_weights, init_method)
         self.prune = cfg.PRUNE
-        self.mask = torch.zeros_like(init_weights)
+        self.mask = torch.zeros_like(init_weights, device='cuda')
         
 
 
