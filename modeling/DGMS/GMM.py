@@ -125,7 +125,8 @@ class GaussianMixtureModel(nn.Module):
                 mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
                 Pweight.view(weights.size())
-                Pweight.detach().fill_(self.mask, 0.0)
+                print(self.mask)
+                Pweight.detach().masked_fill_(self.mask, 0.0)
                 return 
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, init_method='k-means'):

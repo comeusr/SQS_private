@@ -96,7 +96,6 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
     # Kmean_model = Kmeans(n_clusters=n_clusters, max_iter=300, tol=_tol)
     # result = Kmean_model(flat_weight)
     # _cluster_idx, region_saliency = result.label, result.cluster_centers
-    print("region_saliency shape right after kmeans {}".format(region_saliency.shape))
     
     pi_initialization = torch.tensor([torch.true_divide(_cluster_idx.eq(i).sum(), _cluster_idx.numel()) \
                             for i in range(n_clusters)], device='cuda')
@@ -126,7 +125,6 @@ def cluster_weights(weights, n_clusters, iter_limit=100):
     # print('Sigma_initialization shape {}'.format(sigma_initialization.shape))
     # print('Pi_initialization shape {}'.format(pi_initialization.shape))
     # print('Region_saliency shape return {}'.format(region_saliency.shape))
-    print("Pring sigma initialization {}".format(sigma_initialization))
 
     return region_saliency, pi_initialization, sigma_initialization
 
@@ -165,7 +163,7 @@ def cluster_weights_em(weights, n_clusters):
 def cluster_weight_quantile(weights, n_clusters):
     q = torch.linspace(0,1, n_clusters+2)[1:-1]
     print("Printing Quantiles")
-    print(q)
+    # print(q)
     flat_weight = weights.view(-1, 1).contiguous().detach().numpy()
     region_saliency = torch.quantile(flat_weight, q)
     # print(region_saliency)
