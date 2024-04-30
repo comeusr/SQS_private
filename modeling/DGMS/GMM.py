@@ -118,8 +118,8 @@ class GaussianMixtureModel(nn.Module):
         else:
             if train:
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-                print("torch.mul(self.region_belonging[0], 0.) {}".format(torch.mul(self.region_belonging[0], 0.)))
-                print("torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()) {}".format(torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())))
+                # print("torch.mul(self.region_belonging[0], 0.) {}".format(torch.mul(self.region_belonging[0], 0.)))
+                # print("torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()) {}".format(torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())))
                 Sweight = torch.mul(self.region_belonging[0], 0.) \
                         + torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())
                 return Sweight.view(weights.size())
@@ -128,10 +128,11 @@ class GaussianMixtureModel(nn.Module):
                 max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
                 mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
+                # print('Pweight before mask {}'.format(Pweight))
                 Pweight.view(weights.size())
-                print(self.mask)
+                # print(self.mask)
                 Pweight.detach().masked_fill_(self.mask, 0.0)
-                return 
+                return Pweight
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, init_method='k-means'):
     return GaussianMixtureModel(num_components, init_weights.flatten(), temperature, init_method)
