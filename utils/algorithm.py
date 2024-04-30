@@ -25,8 +25,9 @@ class GMM_Pruning(Algorithm):
                 is_dict[name] = m.sub_distribution.pruning_parameter.detach()
         
         all_is = torch.cat([is_dict[name].view(-1) for name in is_dict])
+        print("Sparsity {}".format(sparsity))
         print("all_is dimension {}".format(all_is.shape))
-        print("{}".format(int(sparsity*all_is.shape[0])))
+        print("If kth less than total".format(int(sparsity*all_is.shape[0]) < all_is.shape[0]))
         mask_thresh = torch.kthvalue(all_is, int(sparsity*all_is.shape[0]))[0].item()
         return mask_thresh, is_dict
 
