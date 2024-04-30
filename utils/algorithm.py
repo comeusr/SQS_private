@@ -13,6 +13,7 @@ class GMM_Pruning(Algorithm):
     def __init__(self, init_sparsity, final_sparsity):
         self.init_sparsity = init_sparsity
         self.final_sparsity = final_sparsity
+        # self.pruning_scaling = 
         
 
     def caculate_mask_thresh(self, model: ComposerModel, sparsity):
@@ -54,7 +55,7 @@ class GMM_Pruning(Algorithm):
         else:
             sparsity = self.final_sparsity
             self.cur_sparsity = sparsity
-        print('Fraction {}'.format(_frac))
+        # print('Fraction {}'.format(_frac))
         return sparsity
         
 
