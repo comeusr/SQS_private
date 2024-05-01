@@ -94,7 +94,7 @@ def set_config(args):
     IS_EMP = args.empirical
     IS_NORMAL = args.normal
     TAU = args.tau
-    K_LEVEL = args.K
+    K_LEVEL = 2**args.K
     LAYER_NUM = LAYER[args.network]
     SKIPPED_LAYERS = [1, LAYER_NUM]
     INIT_METHOD = args.init_method
