@@ -129,7 +129,7 @@ class GaussianMixtureModel(nn.Module):
                 mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
                 # print('Pweight before mask {}'.format(Pweight))
-                Pweight.view(weights.size())
+                Pweight = Pweight.view(weights.size())
                 # print(self.mask)
                 Pweight.detach().masked_fill_(self.mask, 0.0)
                 print('Pweight shape {}'.format(Pweight.shape))
