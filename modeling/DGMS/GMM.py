@@ -32,6 +32,7 @@ class GaussianMixtureModel(nn.Module):
         self.params_initialization(init_weights, init_method)
         self.prune = cfg.PRUNE
         self.mask = (init_weights.abs()< 0.0).to(DEVICE)
+        print('GMM weight dim {}'.format(init_weights.shape))
         print('Init Mask dim {}'.format(self.mask.shape))
 
     def params_initialization(self, init_weights, method='k-means'):

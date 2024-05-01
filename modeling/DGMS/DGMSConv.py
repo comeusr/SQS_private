@@ -31,7 +31,7 @@ class DGMSConv(nn.Conv2d):
 
     def init_mask_params(self):
         init_method = 'empirical' if cfg.IS_EMP else 'k-means'
-        print("Init weight dim{}".format(self.weight.shape))
+        print("Init weight dim {}".format(self.weight.shape))
         self.sub_distribution = gmm_approximation(self.k_level, self.weight, self.temperature, init_method)
 
     def get_Sweight(self):
