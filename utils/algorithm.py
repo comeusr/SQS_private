@@ -24,9 +24,11 @@ class GMM_Pruning(Algorithm):
         for name, m in model.named_modules():
             if isinstance(m, DGMSConv):
                 is_dict[name] = m.sub_distribution.pruning_parameter.detach()
+                print("is_dict_{} {}".format(name, is_dict[name]))
         
         all_is = torch.cat([is_dict[name].view(-1) for name in is_dict])
         print("Sparsity {}".format(sparsity))
+        print("All IS {}".format(all_is))
         # print("all_is dimension {}".format(all_is.shape))
         # print("If kth less than total {}".format(int(sparsity*all_is.shape[0]) < all_is.shape[0]))
         mask_thresh = torch.kthvalue(all_is, int(sparsity*all_is.shape[0]))[0].item()
@@ -45,8 +47,8 @@ class GMM_Pruning(Algorithm):
         for name, m in model.named_modules():
             if isinstance(m, DGMSConv):
                 m.sub_distribution.mask = (is_dict[name] < mask_thresh)
-                print("Threshold {}".format(mask_thresh))
-                print(m.sub_distribution.mask)
+                # print("Threshold {}".format(mask_thresh))
+                # print(m.sub_distribution.mask)
         return 
     
     def sparsity_scheduler(self, train_step):
@@ -83,7 +85,7 @@ class GMM_Pruning(Algorithm):
             # is_dict =  {'layer_name': pruning_parameter}
             mask_threshold, is_dict = self.caculate_mask_thresh(state.model, self.cur_sparsity)
             # Generate mask for pruning 
-            # mask = {'layer_name': 0, 1 matrix}
+            # mask = {'layer_name': bool matrix}
             self.generate_mask(state.model, mask_threshold, is_dict)
             #Prune with mask
             self.prune_with_mask(state.model)
