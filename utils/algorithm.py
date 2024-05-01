@@ -28,9 +28,10 @@ class GMM_Pruning(Algorithm):
         
         all_is = torch.cat([is_dict[name].view(-1) for name in is_dict])
         print("Sparsity {}".format(sparsity))
-        print("All IS {}".format(all_is))
+        # print("All IS {}".format(all_is))
         # print("all_is dimension {}".format(all_is.shape))
         # print("If kth less than total {}".format(int(sparsity*all_is.shape[0]) < all_is.shape[0]))
+        print('K th smallest elemment {}'.format(int(sparsity*all_is.shape[0])))
         mask_thresh = torch.kthvalue(all_is, int(sparsity*all_is.shape[0]))[0].item()
         return mask_thresh, is_dict
 
@@ -39,7 +40,7 @@ class GMM_Pruning(Algorithm):
         with torch.no_grad():
             for name, m in model.named_modules():
                 if isinstance(m, DGMSConv):
-                    p = m.sub_distribution.pruning_parameter
+                    p = m.sub_distribution.pruning_parameter.detach()
                     m.sub_distribution.pruning_parameter.grad.add_(torch.log(F.sigmoid(p.detach())/(1-self.cur_sparsity))*sigmoid_derivative(p.detach()))
         return
     
@@ -92,6 +93,7 @@ class GMM_Pruning(Algorithm):
             
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
+            print("Apply Pruning Gradient")
             self.apply_pruning_grad(state.model)
             
             return
