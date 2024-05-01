@@ -31,7 +31,7 @@ class GMM_Pruning(Algorithm):
         # print("All IS {}".format(all_is))
         # print("all_is dimension {}".format(all_is.shape))
         # print("If kth less than total {}".format(int(sparsity*all_is.shape[0]) < all_is.shape[0]))
-        print('K th smallest elemment {}'.format(int(sparsity*all_is.shape[0])))
+        # print('K th smallest elemment {}'.format(int(sparsity*all_is.shape[0])))
         mask_thresh = torch.kthvalue(all_is, int(sparsity*all_is.shape[0]))[0].item()
         return mask_thresh, is_dict
 
@@ -44,6 +44,8 @@ class GMM_Pruning(Algorithm):
                     m.sub_distribution.pruning_parameter.grad.add_(torch.log(F.sigmoid(p.detach())/(1-self.cur_sparsity))*sigmoid_derivative(p.detach()))
                     print('Pruning Gradients')
                     print(m.sub_distribution.pruning_parameter.grad)
+                    print('Pruning Parameters')
+                    print(m.sub_distribution.pruning_parameter)
         return      
     
     def generate_mask(self, model:ComposerModel, mask_thresh, is_dict):
