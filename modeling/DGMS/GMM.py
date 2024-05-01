@@ -32,8 +32,8 @@ class GaussianMixtureModel(nn.Module):
         self.params_initialization(init_weights, init_method)
         self.prune = cfg.PRUNE
         self.mask = (init_weights.abs()< 0.0).to(DEVICE)
-        print('GMM weight dim {}'.format(init_weights.shape))
-        print('Init Mask dim {}'.format(self.mask.shape))
+        # print('GMM weight dim {}'.format(init_weights.shape))
+        # print('Init Mask dim {}'.format(self.mask.shape))
 
     def params_initialization(self, init_weights, method='k-means'):
         """ Initialization of GMM parameters using k-means algorithm. """
@@ -62,16 +62,16 @@ class GaussianMixtureModel(nn.Module):
                 torch.ones(self.num_components, device=self.device), \
                 torch.ones(self.num_components, device=self.device), \
                 torch.ones(self.num_components, device=self.device)
-        # if method == 'k-means':
-        #     initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
-        # elif method == "quantile":
-        #     initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
-        # elif method == 'empirical':
-        #     initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
-        #     sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
-            # sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
+        if method == 'k-means':
+            initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
+        elif method == "quantile":
+            initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
+        elif method == 'empirical':
+            initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
+            sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
+            sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
         
-        initial_region_saliency = pi_init = sigma_init = torch.ones_like(self.mu, device='cuda')
+        # initial_region_saliency = pi_init = sigma_init = torch.ones_like(self.mu, device='cuda')
         self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
         self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
         # self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).to(DEVICE).float()
