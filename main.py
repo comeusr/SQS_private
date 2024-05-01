@@ -148,7 +148,7 @@ def main():
                         help='Begin with this intial step size.')
     parser.add_argument('--final_sparsity', type=float, default=0.7,
                         help='The target sparsity.')
-    parser.add_argument('--prune_scale', type=float, default=0.01,
+    parser.add_argument('--prune_scale', type=float, default=0.00001,
                         help='Scale the pruning parameter by 1/prune_scale')
 
     # args = parser.parse_args([
