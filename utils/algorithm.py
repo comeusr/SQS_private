@@ -40,12 +40,12 @@ class GMM_Pruning(Algorithm):
         with torch.no_grad():
             for name, m in model.named_modules():
                 if isinstance(m, DGMSConv):
-                    p = m.sub_distribution.pruning_parameter.detach()
+                    p = m.sub_distribution.pruning_parameter.detach()/cfg.PRUNE_SCALE
                     m.sub_distribution.pruning_parameter.grad.add_(torch.log(F.sigmoid(p.detach())/(1-self.cur_sparsity))*sigmoid_derivative(p.detach()))
-                    print('Pruning Gradients')
-                    print(m.sub_distribution.pruning_parameter.grad)
-                    print('Pruning Parameters')
-                    print(m.sub_distribution.pruning_parameter)
+                    # print('Pruning Gradients')
+                    # print(m.sub_distribution.pruning_parameter.grad)
+                    # print('Pruning Parameters')
+                    # print(m.sub_distribution.pruning_parameter)
         return      
     
     def generate_mask(self, model:ComposerModel, mask_thresh, is_dict):
@@ -72,7 +72,7 @@ class GMM_Pruning(Algorithm):
         for name, m in model.named_modules():
             if isinstance(m, DGMSConv):
                 mask = m.sub_distribution.mask
-                m.sub_distribution.pruning_parameter.detach().masked_fill_(mask, 0.0)
+                m.sub_distribution.pruning_parameter.detach().masked_fill_(mask, -1)
     
     def match(self, event, state):
         return event in [Event.BEFORE_TRAIN_BATCH, Event.AFTER_BACKWARD]
