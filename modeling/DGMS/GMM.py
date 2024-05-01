@@ -131,6 +131,7 @@ class GaussianMixtureModel(nn.Module):
                 # print('Pweight before mask {}'.format(Pweight))
                 Pweight = Pweight.view(weights.size())
                 print("Mask Shape {}".format(self.mask.shape))
+                print("Masked size {}".format(self.mask.sum()))
                 Pweight.detach().masked_fill_(self.mask, 0.0)
                 return Pweight
 
