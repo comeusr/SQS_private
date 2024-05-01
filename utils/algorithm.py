@@ -97,8 +97,8 @@ class GMM_Pruning(Algorithm):
             
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
-            print("Apply Pruning Gradient")
-            self.apply_pruning_grad(state.model)
+            # print("Apply Pruning Gradient")
+            # self.apply_pruning_grad(state.model)
             
             return
     
