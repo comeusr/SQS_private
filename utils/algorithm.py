@@ -72,7 +72,7 @@ class GMM_Pruning(Algorithm):
         for name, m in model.named_modules():
             if isinstance(m, DGMSConv):
                 mask = m.sub_distribution.mask
-                m.sub_distribution.pruning_parameter.detach().masked_fill_(mask, -1)
+                m.sub_distribution.pruning_parameter.detach().masked_fill_(mask, -0.1)
     
     def match(self, event, state):
         return event in [Event.BEFORE_TRAIN_BATCH, Event.AFTER_BACKWARD]
