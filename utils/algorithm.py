@@ -42,7 +42,9 @@ class GMM_Pruning(Algorithm):
                 if isinstance(m, DGMSConv):
                     p = m.sub_distribution.pruning_parameter.detach()
                     m.sub_distribution.pruning_parameter.grad.add_(torch.log(F.sigmoid(p.detach())/(1-self.cur_sparsity))*sigmoid_derivative(p.detach()))
-        return
+                    print('Pruning Gradients')
+                    print(m.sub_distribution.pruning_parameter.grad)
+        return      
     
     def generate_mask(self, model:ComposerModel, mask_thresh, is_dict):
         for name, m in model.named_modules():
