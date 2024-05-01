@@ -132,6 +132,7 @@ class GaussianMixtureModel(nn.Module):
                 Pweight.view(weights.size())
                 # print(self.mask)
                 Pweight.detach().masked_fill_(self.mask, 0.0)
+                print('Pweight shape {}'.format(Pweight.shape))
                 return Pweight
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, init_method='k-means'):
