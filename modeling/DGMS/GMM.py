@@ -136,4 +136,4 @@ class GaussianMixtureModel(nn.Module):
                 return Pweight
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, init_method='k-means'):
-    return GaussianMixtureModel(num_components, init_weights.flatten(), temperature, init_method)
+    return GaussianMixtureModel(num_components, init_weights, temperature, init_method)
