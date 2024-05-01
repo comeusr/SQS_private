@@ -24,7 +24,7 @@ class GMM_Pruning(Algorithm):
         for name, m in model.named_modules():
             if isinstance(m, DGMSConv):
                 is_dict[name] = m.sub_distribution.pruning_parameter.detach()
-                print("is_dict_{} {}".format(name, is_dict[name]))
+                # print("is_dict_{} {}".format(name, is_dict[name]))
         
         all_is = torch.cat([is_dict[name].view(-1) for name in is_dict])
         print("Sparsity {}".format(sparsity))
