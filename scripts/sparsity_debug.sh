@@ -10,12 +10,13 @@ DATA_NAME="cifar10"
 MODEL_NAME="resnet18"
 EPOCHS="5ep"
 FINAL_LR=5e-7
-EVAL_INTERV='5ep'
+EVAL_INTERV='1ep'
 SEED=428
 FREEZE="--freeze_weight"
 INIT_METHOD='k-means'
 INIT_SPARSITY=0.1
 FINAL_SPARSITY=0.7
+PRUNE_END='4ep'
 
 
 sbatch --time=00:30:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
@@ -28,7 +29,7 @@ nvidia-smi
 python ../main.py $DATASET $MODEL $RESUME $GPU $FREEZE --K ${K} --tau ${TEMP} --dataset ${DATA_NAME} --weight_decay ${WD} \
        --lr ${LR} --duration ${EPOCHS} --t_warmup "5ep" --alpha_f ${FINAL_LR} --seed ${SEED} --init_method ${INIT_METHOD}\
        --run_name debug --autoresume --eval_interval ${EVAL_INTERV} \
-       --init_sparsity ${INIT_SPARSITY} --final_sparsity ${FINAL_SPARSITY} \
+       --init_sparsity ${INIT_SPARSITY} --final_sparsity ${FINAL_SPARSITY} --prune_end ${PRUNE_END} \
        --save_folder /scratch/gilbreth/wang4538/DGMS/Run/${INIT_METHOD}${DATA_NAME}_${MODEL_NAME}/K${K}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD}
 
 EOT

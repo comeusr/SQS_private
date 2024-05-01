@@ -26,7 +26,7 @@ class GMM_Pruning(Algorithm):
                 is_dict[name] = m.sub_distribution.pruning_parameter.detach()
         
         all_is = torch.cat([is_dict[name].view(-1) for name in is_dict])
-        # print("Sparsity {}".format(sparsity))
+        print("Sparsity {}".format(sparsity))
         # print("all_is dimension {}".format(all_is.shape))
         # print("If kth less than total {}".format(int(sparsity*all_is.shape[0]) < all_is.shape[0]))
         mask_thresh = torch.kthvalue(all_is, int(sparsity*all_is.shape[0]))[0].item()
@@ -45,6 +45,8 @@ class GMM_Pruning(Algorithm):
         for name, m in model.named_modules():
             if isinstance(m, DGMSConv):
                 m.sub_distribution.mask = (is_dict[name] < mask_thresh)
+                print("Threshold {}".format(mask_thresh))
+                print(m.sub_distribution.mask)
         return 
     
     def sparsity_scheduler(self, train_step):
