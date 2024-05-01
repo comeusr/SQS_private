@@ -69,7 +69,7 @@ class GaussianMixtureModel(nn.Module):
         elif method == 'empirical':
             initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
             sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
-            sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
+            # sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
         
         # initial_region_saliency = pi_init = sigma_init = torch.ones_like(self.mu, device='cuda')
         self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
