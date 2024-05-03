@@ -150,6 +150,8 @@ def main():
                         help='The target sparsity.')
     parser.add_argument('--prune_scale', type=float, default=0.00001,
                         help='Scale the pruning parameter by 1/prune_scale')
+    parser.add_argument('--prune', action='store_action', default=False,
+                        help="Prune or Not")
 
     # args = parser.parse_args([
     #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
@@ -171,6 +173,10 @@ def main():
     cfg.TOT_TRAIN_STEP = len(train_loader)*epochs
     cfg.PRUNE_END_STEP = len(train_loader)*float(args.prune_end.replace('ep', ''))
     
+    if cfg.PRUNE:
+        print("Pruning the model")
+    else:
+        print("No Pruning Involved")
 
     # Load Pretrain Data
     model = timm.create_model("resnet18_cifar10", pretrained=True)
@@ -184,6 +190,7 @@ def main():
     _transformer = TorchTransformer()
     _transformer.register(nn.Conv2d, DGMSConv)
     model = _transformer.trans_layers(model)
+
 
 
     print("-" * 40 + "DGMS Model" + "-" * 40)

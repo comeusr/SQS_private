@@ -99,6 +99,6 @@ def set_config(args):
     LAYER_NUM = LAYER[args.network]
     SKIPPED_LAYERS = [1, LAYER_NUM]
     INIT_METHOD = args.init_method
-    PRUNE = (args.final_sparsity != 0.0)
+    PRUNE = args.prune
     PRUNE_SCALE = args.prune_scale
     
