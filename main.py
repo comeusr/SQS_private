@@ -150,7 +150,7 @@ def main():
                         help='The target sparsity.')
     parser.add_argument('--prune_scale', type=float, default=0.00001,
                         help='Scale the pruning parameter by 1/prune_scale')
-    parser.add_argument('--prune', action='store_action', default=False,
+    parser.add_argument('--prune', action='store_true', default=False,
                         help="Prune or Not")
 
     # args = parser.parse_args([
