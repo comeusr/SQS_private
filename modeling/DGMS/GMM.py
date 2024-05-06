@@ -93,14 +93,24 @@ class GaussianMixtureModel(nn.Module):
                torch.exp(-torch.div((x - mu)**2, 2 * sigma**2))).mul(_pi)
 
     def GMM_region_responsibility(self, weights):
-        """" Region responsibility of GMM. """
-        pi_normalized = self.gaussian_mixing_regularization().to(DEVICE)
-        responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
-        # responsibility[0] = self.Normal_pdf(weights.to(DEVICE), pi_normalized[0], 0.0, self.sigma_zero.to(DEVICE))
-        for k in range(self.num_components):
-            responsibility[k] = self.Normal_pdf(weights, pi_normalized[k], self.mu[k].to(DEVICE), self.sigma[k].to(DEVICE))
-        responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
-        return F.softmax(responsibility / self.temperature, dim=0)
+        if not cfg.PRUNE:
+            """" Region responsibility of GMM. """
+            pi_normalized = self.gaussian_mixing_regularization().to(DEVICE)
+            responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
+            # responsibility[0] = self.Normal_pdf(weights.to(DEVICE), pi_normalized[0], 0.0, self.sigma_zero.to(DEVICE))
+            for k in range(self.num_components):
+                responsibility[k] = self.Normal_pdf(weights, pi_normalized[k], self.mu[k].to(DEVICE), self.sigma[k].to(DEVICE))
+            responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
+            return F.softmax(responsibility / self.temperature, dim=0)
+        else:
+            """" Region responsibility of GMM. """
+            pi_normalized = self.gaussian_mixing_regularization().cuda()
+            responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
+            responsibility[0] = self.Normal_pdf(weights.cuda(), pi_normalized[0], 0.0, self.sigma_zero.cuda())
+            for k in range(self.num_components-1):
+                responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k].cuda(), self.sigma[k].cuda())
+            responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
+            return F.softmax(responsibility / self.temperature, dim=0)
 
     def forward(self, weights, train=True):
         if not self.prune:
