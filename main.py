@@ -152,6 +152,8 @@ def main():
                         help='Scale the pruning parameter by 1/prune_scale')
     parser.add_argument('--prune', action='store_true', default=False,
                         help="Prune or Not")
+    parser.add_argument('--prune_freq', type=int, default=20,
+                        help='Pruning frequency (i.e. training steps between pruning)')
 
     # args = parser.parse_args([
     #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
