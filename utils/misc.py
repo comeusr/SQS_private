@@ -76,7 +76,46 @@ def check_cuda_memory():
     print("Total CUDA Memory {:.3f} GBs, Used Memory {:.3f} GBs".format(reserved, allocated))
 
 @torch.no_grad()
-def cluster_weights(weights, n_clusters, iter_limit=100):
+def cluster_weights(weights, n_clusters):
+    """ Initialization of GMM with k-means algorithm, note this procedure may bring
+    different initialization results, and the results may be slightly different.
+    Args:
+        weights:[weight_size]
+        n_clusters: 1 + 2^i = K Gaussian Mixture Component number
+    Returns:
+        [n_clusters-1] initial region saliency obtained by k-means algorthm
+    """
+    flat_weight = weights.view(-1, 1).cuda()
+    _tol = 1e-11
+    if cfg.IS_NORMAL is True:
+        print("skip k-means")
+        tmp = torch.rand(n_clusters-1).cuda()
+        return tmp, tmp , 0.5, tmp, 0.01
+    _cluster_idx, region_saliency = kmeans(X=flat_weight, num_clusters=n_clusters, tol=_tol, \
+                        distance='euclidean', device=torch.device('cuda'), tqdm_flag=False)
+    pi_initialization = torch.tensor([torch.true_divide(_cluster_idx.eq(i).sum(), _cluster_idx.numel()) \
+                            for i in range(n_clusters)], device='cuda')
+    zero_center_idx = torch.argmin(torch.abs(region_saliency))
+    region_saliency_tmp = region_saliency.clone()
+    region_saliency_zero = region_saliency[zero_center_idx]
+    region_saliency_tmp[zero_center_idx] = 0.0
+    pi_zero = pi_initialization[zero_center_idx]
+
+    sigma_tmp = torch.zeros(n_clusters,1).cuda()
+    for i in range(flat_weight.size(0)):
+        _idx = _cluster_idx[i]
+        sigma_tmp[_idx] += (flat_weight[i,0]-region_saliency_tmp[_idx])**2
+    sigma_initialization = torch.tensor([torch.true_divide(sigma_tmp[i], _cluster_idx.eq(i).sum()-1) \
+                                    for i in range(n_clusters)], device='cuda').sqrt()
+    sigma_zero = sigma_initialization[zero_center_idx]
+    sigma_initialization = sigma_initialization[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx]    
+
+    pi_initialization = pi_initialization[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx]
+    region_saliency = region_saliency[torch.arange(region_saliency.size(0)).cuda() != zero_center_idx] # remove zero component center
+    return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
+
+@torch.no_grad()
+def cluster_weights_sparsity(weights, n_clusters, iter_limit=100):
     """ Initialization of GMM with k-means algorithm, note this procedure may bring
     different initialization results, and the results may be slightly different.
     Args:
