@@ -96,6 +96,7 @@ class GaussianMixtureModel(nn.Module):
         if not cfg.PRUNE:
             """" Region responsibility of GMM. """
             pi_normalized = self.gaussian_mixing_regularization().cuda()
+            print('Pi shape {}'.format(pi_normalized.shape))
             responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
             responsibility[0] = self.Normal_pdf(weights.cuda(), pi_normalized[0], 0.0, self.sigma_zero.cuda())
             for k in range(self.num_components-1):

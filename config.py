@@ -81,6 +81,7 @@ SKIPPED_LAYERS = []
 INIT_METHOD = ""
 PRUNE_SCALE = 0.1
 PRUNE_FREQ = 10
+DEBUG = False
 
 def set_status(flag):
     global IS_TRAIN
@@ -92,7 +93,7 @@ def count_layer():
 
 
 def set_config(args):
-    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS, INIT_METHOD, PRUNE, PRUNE_SCALE, PRUNE_FREQ
+    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS, INIT_METHOD, PRUNE, PRUNE_SCALE, PRUNE_FREQ, DEBUG
     IS_EMP = args.empirical
     IS_NORMAL = args.normal
     TAU = args.tau
@@ -103,4 +104,5 @@ def set_config(args):
     PRUNE = args.prune
     PRUNE_SCALE = args.prune_scale
     PRUNE_FREQ = args.prune_freq
+    DEBUG=args.debug
     

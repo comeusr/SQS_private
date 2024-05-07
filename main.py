@@ -154,6 +154,8 @@ def main():
                         help="Prune or Not")
     parser.add_argument('--prune_freq', type=int, default=20,
                         help='Pruning frequency (i.e. training steps between pruning)')
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help='When debug skip initialization')
 
     # args = parser.parse_args([
     #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
