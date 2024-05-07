@@ -100,8 +100,6 @@ class GaussianMixtureModel(nn.Module):
         if not cfg.PRUNE:
             """" Region responsibility of GMM. """
             pi_normalized = self.gaussian_mixing_regularization().cuda()
-            print('Pi shape {}'.format(pi_normalized.shape))
-            print()
             responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
             responsibility[0] = self.Normal_pdf(weights.cuda(), pi_normalized[0], 0.0, self.sigma_zero.cuda())
             for k in range(self.num_components-1):
@@ -120,8 +118,9 @@ class GaussianMixtureModel(nn.Module):
 
 
     def forward(self, weights, train=True):
-        if not self.prune:
+        if not cfg.PRUNE:
             if train:
+                print("No Pruning Training")
                 # soft mask generalized pruning during training
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
                 Sweight = torch.mul(self.region_belonging[0], 0.) \
