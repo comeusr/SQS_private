@@ -87,7 +87,7 @@ def cluster_weights(weights, n_clusters):
     """
     flat_weight = weights.view(-1, 1).cuda()
     _tol = 1e-11
-    if cfg.IS_NORMAL is True or cfg.PRUNE:
+    if cfg.IS_NORMAL is True or cfg.DEBUG:
         print("skip k-means")
         tmp = torch.rand(n_clusters-1).cuda()
         return tmp, tmp , 0.5, tmp, 0.01

@@ -171,6 +171,10 @@ def main():
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     # saver = Saver(args)
     cfg.set_config(args)
+
+    if cfg.DEBUG:
+        print("Debugging! No Needs for Initialization!")
+
     train_loader, val_loader, test_loader, nclass = make_data_loader(args)
 
     epochs = int(args.duration.replace('ep', ''))
