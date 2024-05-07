@@ -120,7 +120,6 @@ class GaussianMixtureModel(nn.Module):
     def forward(self, weights, train=True):
         if not cfg.PRUNE:
             if train:
-                print("No Pruning Training")
                 # soft mask generalized pruning during training
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
                 Sweight = torch.mul(self.region_belonging[0], 0.) \
