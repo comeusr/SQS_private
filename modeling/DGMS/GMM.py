@@ -83,8 +83,12 @@ class GaussianMixtureModel(nn.Module):
 
     def gaussian_mixing_regularization(self):
         # pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
-        pi_tmp = self.pi_k.abs()
-        return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
+        if not cfg.PRUNE:
+            pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
+            return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).cuda()
+        else:
+            pi_tmp = self.pi_k.abs()
+            return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
 
     def Normal_pdf(self, x, _pi, mu, sigma):
         """ Standard Normal Distribution PDF. """
@@ -97,6 +101,7 @@ class GaussianMixtureModel(nn.Module):
             """" Region responsibility of GMM. """
             pi_normalized = self.gaussian_mixing_regularization().cuda()
             print('Pi shape {}'.format(pi_normalized.shape))
+            print()
             responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
             responsibility[0] = self.Normal_pdf(weights.cuda(), pi_normalized[0], 0.0, self.sigma_zero.cuda())
             for k in range(self.num_components-1):
