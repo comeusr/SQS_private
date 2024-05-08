@@ -68,8 +68,8 @@ class EpochMonitor(Callback):
                             print("Region Belonging shape {}".format(m.sub_distribution.region_belonging.shape))
                             print("Region Belonging 0 {}".format(m.sub_distribution.region_belonging[0]))
                             print("Region Belonging 1 {}".format(m.sub_distribution.region_belonging[1]))
-                            print("Region Belonging first row non-zero numel {}".format(m.sub_distribution.region_belonging[0].eq(0.0).sum()))
-                            print("Region Belonging second row non-zero numel {}".format(m.sub_distribution.region_belonging[1].eq(0.0).sum()))
+                            print("Region Belonging first row zero numel {}".format(m.sub_distribution.region_belonging[0].eq(0.0).sum()))
+                            print("Region Belonging second row zero numel {}".format(m.sub_distribution.region_belonging[1].eq(0.0).sum()))
                             
 
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):

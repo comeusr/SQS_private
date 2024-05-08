@@ -85,6 +85,8 @@ class GaussianMixtureModel(nn.Module):
         # pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
         if not cfg.PRUNE:
             pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
+            res = torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).cuda()
+            print('Pi shape{}'.format(res.shape))
             return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).cuda()
         else:
             pi_tmp = self.pi_k.abs()
@@ -153,4 +155,4 @@ class GaussianMixtureModel(nn.Module):
                 return Pweight
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, init_method='k-means'):
-    return GaussianMixtureModel(num_components, init_weights, temperature, init_method)
+    return GaussianMixtureModel(num_components, init_weights.flatten(), temperature, init_method)
