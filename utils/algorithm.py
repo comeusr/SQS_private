@@ -41,7 +41,7 @@ class GMM_Pruning(Algorithm):
             for name, m in model.named_modules():
                 if isinstance(m, DGMSConv):
                     p = m.sub_distribution.pruning_parameter.detach()/cfg.PRUNE_SCALE
-                    m.sub_distribution.pruning_parameter.grad.add_(torch.log(F.sigmoid(p.detach())/(1-self.final_sparsity))*sigmoid_derivative(p.detach()))
+                    m.sub_distribution.pruning_parameter.grad.add_(torch.log(F.sigmoid(p.detach())/(0.01))*sigmoid_derivative(p.detach()))
                     # print('Pruning Gradients')
                     # print(m.sub_distribution.pruning_parameter.grad)
                     # print('Pruning Parameters')
@@ -98,7 +98,7 @@ class GMM_Pruning(Algorithm):
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
             # print("Apply Pruning Gradient")
-            # self.apply_pruning_grad(state.model)
-            
+            self.apply_pruning_grad(state.model)
+
             return
     

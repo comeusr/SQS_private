@@ -139,7 +139,7 @@ class GaussianMixtureModel(nn.Module):
                 # print("torch.mul(self.region_belonging[0], 0.) {}".format(torch.mul(self.region_belonging[0], 0.)))
                 # print("torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()) {}".format(torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())))
                 Sweight = torch.mul(self.region_belonging[0], 0.) \
-                        + torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * 1
+                        + torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())
                 print('Pruning Scaler {}'.format(F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)))
                 return Sweight.view(weights.size())
             else:
