@@ -86,7 +86,7 @@ class GaussianMixtureModel(nn.Module):
         if not cfg.PRUNE:
             pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
             res = torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).cuda()
-            print('Pi shape{}'.format(res.shape))
+            # print('Pi shape{}'.format(res.shape))
             return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).cuda()
         else:
             pi_tmp = self.pi_k.abs()
