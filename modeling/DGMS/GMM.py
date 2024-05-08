@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import math
 import config as cfg
 
-from utils.misc import cluster_weights, get_device
+from utils.misc import cluster_weights, get_device, cluster_weights_sparsity
 
 DEVICE = get_device()
 
@@ -64,11 +64,11 @@ class GaussianMixtureModel(nn.Module):
                     torch.ones(self.num_components, device=self.device), \
                     torch.ones(self.num_components, device=self.device)
             if method == 'k-means':
-                initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
+                initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
             elif method == "quantile":
-                initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
+                initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
             elif method == 'empirical':
-                initial_region_saliency, pi_init, sigma_init = cluster_weights(init_weights, self.num_components)
+                initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
                 sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
                 # sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
             
@@ -139,7 +139,7 @@ class GaussianMixtureModel(nn.Module):
                 # print("torch.mul(self.region_belonging[0], 0.) {}".format(torch.mul(self.region_belonging[0], 0.)))
                 # print("torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()) {}".format(torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())))
                 Sweight = torch.mul(self.region_belonging[0], 0.) \
-                        + torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
+                        + torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * 1
                 print('Pruning Scaler {}'.format(F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)))
                 return Sweight.view(weights.size())
             else:
@@ -155,4 +155,4 @@ class GaussianMixtureModel(nn.Module):
                 return Pweight
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, init_method='k-means'):
-    return GaussianMixtureModel(num_components, init_weights.flatten(), temperature, init_method)
+    return GaussianMixtureModel(num_components, init_weights, temperature, init_method)
