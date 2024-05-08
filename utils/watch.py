@@ -64,8 +64,13 @@ class EpochMonitor(Callback):
                         # wandb.log({name+"_Soft_weight": wandb.Histogram(S_weight.cpu().numpy())}, commit=False)
 
                         if name == 'network.layer1.0.conv1':
-                            print("network.layer1.0.conv1 {}".format(S_weight))
-                            print("Region Belonging {}".format(m.sub_distribution.region_belonging))
+                            # print("network.layer1.0.conv1 {}".format(S_weight))
+                            print("Region Belonging shape {}".format(m.sub_distribution.region_belonging.shape))
+                            print("Region Belonging 0 {}".format(m.sub_distribution.region_belonging[0]))
+                            print("Region Belonging 1 {}".format(m.sub_distribution.region_belonging[1]))
+                            print("Region Belonging first row non-zero numel {}".format(m.sub_distribution.region_belonging[0].eq(0.0).sum()))
+                            print("Region Belonging second row non-zero numel {}".format(m.sub_distribution.region_belonging[1].eq(0.0).sum()))
+                            
 
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
                     total_zero = check_total_zero(m.weight)
