@@ -76,7 +76,7 @@ def check_cuda_memory():
     print("Total CUDA Memory {:.3f} GBs, Used Memory {:.3f} GBs".format(reserved, allocated))
 
 @torch.no_grad()
-def cluster_weights(weights, n_clusters):
+def cluster_weights(weights, n_clusters, iter_limit=100):
     """ Initialization of GMM with k-means algorithm, note this procedure may bring
     different initialization results, and the results may be slightly different.
     Args:
@@ -92,7 +92,7 @@ def cluster_weights(weights, n_clusters):
         tmp = torch.rand(n_clusters-1).cuda()
         return tmp, tmp , 0.5, tmp, 0.01
     _cluster_idx, region_saliency = kmeans(X=flat_weight, num_clusters=n_clusters, tol=_tol, \
-                        distance='euclidean', device=torch.device('cuda'), tqdm_flag=False)
+                        distance='euclidean', iter_limit=iter_limit, device=torch.device('cuda'), tqdm_flag=False)
     pi_initialization = torch.tensor([torch.true_divide(_cluster_idx.eq(i).sum(), _cluster_idx.numel()) \
                             for i in range(n_clusters)], device='cuda')
     zero_center_idx = torch.argmin(torch.abs(region_saliency))
