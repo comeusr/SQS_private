@@ -220,8 +220,8 @@ def main():
     model.init_mask_params()
 
     optimizer = DecoupledAdamW(
-        [{'prune_parameters': model.pruning_paramters(), 'lr':args.prune_init_lr},
-         {'parameters':model.non_pruning_parameters()}],
+        [{'params': model.pruning_paramters(), 'lr':args.prune_init_lr},
+         {'params':model.non_pruning_parameters()}],
         lr=args.lr,
         betas=(0.9, 0.999),
         eps=1e-8,
