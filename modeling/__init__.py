@@ -55,7 +55,7 @@ class DGMSNet(ComposerModel):
     def non_pruning_parameters(self):
         # get the non pruning probability parameters
         parameters = []
-        for name, p in self.network.named_paramters():
+        for name, p in self.network.named_parameters():
             if 'pruning_parameter' not in name and p.requires_grad:
                 parameters.append(p)
         
