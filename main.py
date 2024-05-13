@@ -240,7 +240,6 @@ def main():
     )
     print('Initialize Pruning Parameters Optimzier')
 
-
     GMM_Pruner = GMM_Pruning(init_sparsity=args.init_sparsity, final_sparsity=args.final_sparsity)
 
     # lr_scheduler = LinearWithWarmupScheduler(
