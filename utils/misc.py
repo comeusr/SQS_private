@@ -130,7 +130,7 @@ def cluster_weights_sparsity(weights, n_clusters, iter_limit=100):
     _tol = 1e-11
     if cfg.IS_NORMAL is True or cfg.DEBUG:
         print("skip k-means")
-        tmp = torch.rand(n_clusters-1).to(DEVICE)
+        tmp = torch.rand(n_clusters).to(DEVICE)
         return tmp, tmp , tmp
     _cluster_idx, region_saliency = kmeans(X=flat_weight, num_clusters=n_clusters, tol=_tol, \
                         distance='euclidean', iter_limit=iter_limit, device=torch.device('cuda'), tqdm_flag=False)
