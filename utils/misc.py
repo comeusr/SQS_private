@@ -14,6 +14,8 @@ from utils.lr_scheduler import get_scheduler
 from sklearn.mixture import GaussianMixture
 from modeling.DGMS import DGMSConv
 from torch_kmeans import KMeans
+from composer.models import ComposerModel
+
 
 __all__ = ['get_mean_and_std', 'init_params', 'mkdir_p', 'AverageMeter', 'cluster_weights', 'get_optimizer', 'resume_ckpt']
 
@@ -230,8 +232,6 @@ def cluster_weight_quantile(weights, n_clusters):
     region_saliency = region_saliency[torch.arange(region_saliency.size(0)).to(DEVICE) != zero_center_idx] # remove zero component center
     return region_saliency, pi_initialization, pi_zero, sigma_initialization, sigma_zero
     
-
-
 
 def get_optimizer(model, args):
     train_params = [{'params': model.get_1x_lr_params(), 'lr': args.lr}]

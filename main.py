@@ -156,6 +156,10 @@ def main():
                         help='Pruning frequency (i.e. training steps between pruning)')
     parser.add_argument('--debug', action='store_true', default=False,
                         help='When debug skip initialization')
+    parser.add_argument('--prune_init_lr', type=float, default=0.05,
+                        help="Initial LR for pruning parameters")
+    parser.add_argument('--prune_f_lr', type=float, default=0.005,
+                        help="finial")
 
     # args = parser.parse_args([
     #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
@@ -223,6 +227,15 @@ def main():
         weight_decay=args.weight_decay
     )
 
+    pruner_optimzier = DecoupledAdamW(
+        model.pruning_paramters(),
+        lr = args.prune_init_lr,
+        betas=(0.9, 0.999),
+        eps=1e-8,
+        weight_decay=args.weight_decay
+    )
+
+
     GMM_Pruner = GMM_Pruning(init_sparsity=args.init_sparsity, final_sparsity=args.final_sparsity)
 
     # lr_scheduler = LinearWithWarmupScheduler(
@@ -235,10 +248,15 @@ def main():
         alpha_f=args.alpha_f,
     )
 
+    pruner_scheduler = LinearScheduler(
+        alpha_i=args.prune_init_lr,
+        alpha_f=args.prune_f_lr
+    )
+
     trainer = Trainer(
         model=model,
-        optimizers=optimizer,
-        schedulers=lr_scheduler,
+        optimizers=[optimizer, pruner_optimzier],
+        schedulers=[lr_scheduler, pruner_scheduler],
         max_duration=args.duration,
         # device_train_microbatch_size = 64,
         device_train_microbatch_size= 'auto',

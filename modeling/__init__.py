@@ -43,6 +43,25 @@ class DGMSNet(ComposerModel):
         _, targets = batch
         metric.update(outputs, targets)
 
+    def pruning_paramters(self):
+        # get the pruning probability parameter
+        parameters = []
+        for name, p in self.network.named_parameters():
+            if 'pruning_parameter' in name:
+                parameters.append(p)
+        
+        return parameters
+    
+    def non_pruning_parameters(self):
+        # get the non pruning probability parameters
+        parameters = []
+        for name, p in self.network.named_paramters():
+            if 'pruning_parameter' not in name:
+                parameters.append(p)
+        
+        return parameters
+
+
     def get_metrics(self, is_train=False):
         # defines which metrics to use in each phase of training
         return {'Train_Acc': self.train_accuracy} if is_train else {'Val_Acc': self.val_accuracy}
