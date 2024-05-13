@@ -248,15 +248,10 @@ def main():
         alpha_f=args.alpha_f,
     )
 
-    pruner_scheduler = LinearScheduler(
-        alpha_i=args.prune_init_lr,
-        alpha_f=args.prune_f_lr
-    )
-
     trainer = Trainer(
         model=model,
         optimizers=optimizer,
-        schedulers=[lr_scheduler, pruner_scheduler],
+        schedulers=lr_scheduler,
         max_duration=args.duration,
         # device_train_microbatch_size = 64,
         device_train_microbatch_size= 'auto',
