@@ -216,29 +216,25 @@ def main():
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     cfg.IS_NORMAL = False
-    print('DEBUG Option {}'.format(args.debug))
-    print('DEBUG Option {}'.format(cfg.DEBUG))
+
     model.init_mask_params()
 
-    print("Initialize Non Pruning Parameters Optimizer")
     optimizer = DecoupledAdamW(
-        model.network.parameters(),
+        [{'prune_parameters': model.pruning_paramters(), 'lr':args.prune_init_lr},
+         {'parameters':model.non_pruning_parameters()}],
         lr=args.lr,
         betas=(0.9, 0.999),
         eps=1e-8,
         weight_decay=args.weight_decay
     )
-    print('Finish Intialization')
 
-    print('Initialize Pruning Parameters Optimzier')
-    pruner_optimzier = DecoupledAdamW(
-        model.network.parameters(),
-        lr = args.prune_init_lr,
-        betas=(0.9, 0.999),
-        eps=1e-8,
-        weight_decay=args.weight_decay
-    )
-    print('Initialize Pruning Parameters Optimzier')
+    # pruner_optimzier = DecoupledAdamW(
+    #     model.network.parameters(),
+    #     lr = args.prune_init_lr,
+    #     betas=(0.9, 0.999),
+    #     eps=1e-8,
+    #     weight_decay=args.weight_decay
+    # )
 
     GMM_Pruner = GMM_Pruning(init_sparsity=args.init_sparsity, final_sparsity=args.final_sparsity)
 
@@ -259,7 +255,7 @@ def main():
 
     trainer = Trainer(
         model=model,
-        optimizers=[optimizer, pruner_optimzier],
+        optimizers=optimizer,
         schedulers=[lr_scheduler, pruner_scheduler],
         max_duration=args.duration,
         # device_train_microbatch_size = 64,
