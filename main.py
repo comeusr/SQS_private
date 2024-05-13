@@ -244,7 +244,7 @@ def main():
     # )
 
     lr_scheduler  = LinearScheduler(
-        alpha_i=args.lr,
+        alpha_i=1,
         alpha_f=args.alpha_f,
     )
 
