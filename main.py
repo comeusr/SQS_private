@@ -216,9 +216,11 @@ def main():
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     cfg.IS_NORMAL = False
+    print('DEBUG Option {}'.format(args.debug))
+    print('DEBUG Option {}'.format(cfg.DEBUG))
     model.init_mask_params()
 
-
+    print("Initialize Non Pruning Parameters Optimizer")
     optimizer = DecoupledAdamW(
         model.network.parameters(),
         lr=args.lr,
@@ -226,14 +228,17 @@ def main():
         eps=1e-8,
         weight_decay=args.weight_decay
     )
+    print('Finish Intialization')
 
+    print('Initialize Pruning Parameters Optimzier')
     pruner_optimzier = DecoupledAdamW(
-        model.pruning_paramters(),
+        model.network.parameters(),
         lr = args.prune_init_lr,
         betas=(0.9, 0.999),
         eps=1e-8,
         weight_decay=args.weight_decay
     )
+    print('Initialize Pruning Parameters Optimzier')
 
 
     GMM_Pruner = GMM_Pruning(init_sparsity=args.init_sparsity, final_sparsity=args.final_sparsity)
