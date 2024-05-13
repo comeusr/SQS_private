@@ -128,7 +128,7 @@ def cluster_weights_sparsity(weights, n_clusters, iter_limit=100):
     """
     flat_weight = weights.view(-1, 1).to(DEVICE)
     _tol = 1e-11
-    if cfg.IS_NORMAL is True:
+    if cfg.IS_NORMAL is True or cfg.DEBUG:
         print("skip k-means")
         tmp = torch.rand(n_clusters-1).to(DEVICE)
         return tmp, tmp , 0.5, tmp, 0.01
