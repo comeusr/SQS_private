@@ -17,7 +17,7 @@ INIT_METHOD='k-means'
 INIT_SPARSITY=0.1
 FINAL_SPARSITY=0.7
 PRUNE_END='4ep'
-PRUNE_TEMP=0.02
+PRUNE_TEMP=0.002
 
 
 sbatch --time=00:30:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
