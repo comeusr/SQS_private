@@ -40,6 +40,7 @@ class GMM_Pruning(Algorithm):
         with torch.no_grad():
             for name, m in model.named_modules():
                 if isinstance(m, DGMSConv):
+                    print("Applying sparsisty Gradients")
                     p = m.sub_distribution.pruning_parameter.detach()/cfg.PRUNE_SCALE
                     m.sub_distribution.pruning_parameter.grad.add_(torch.log(F.sigmoid(p.detach())/(0.01))*sigmoid_derivative(p.detach()))
                     # print('Pruning Gradients')
