@@ -34,8 +34,10 @@ class Sparsity(Callback):
 class EpochMonitor(Callback):
 
     def run_event(self, event: Event, state: State, logger: Logger):
-        if event == Event.EPOCH_START:
+        if event == Event.EPOCH_END:
             print(f'Epoch: {state.timestamp.epoch}')
+            tot_numel = 0
+            tot_zero_numel = 0
             for name, m in state.model.named_modules():
                 if isinstance(m, DGMSConv):
                     with torch.no_grad():
@@ -51,6 +53,8 @@ class EpochMonitor(Callback):
                         Origin_weight_tot=check_total_weights(Origin_weight)
                         hist = np.histogram(data)
                         # print(hist)
+                        tot_numel += P_weight_tot
+                        tot_zero_numel += P_weight_zeros
 
                         wandb.log({name+"_mu": wandb.Histogram(data)}, commit=False)
                         # wandb.log({name+"_P_weight": wandb.Histogram(P_weight.data.cpu().numpy())})
@@ -70,7 +74,7 @@ class EpochMonitor(Callback):
                         #     print("Region Belonging 1 {}".format(m.sub_distribution.region_belonging[1]))
                         #     print("Region Belonging first row zero numel {}".format(m.sub_distribution.region_belonging[0].eq(0.0).sum()))
                         #     print("Region Belonging second row zero numel {}".format(m.sub_distribution.region_belonging[1].eq(0.0).sum()))
-                            
+                    wandb.log({'Total Sparsity': tot_zero_numel/tot_numel}, commit=False)
 
                 elif isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
                     total_zero = check_total_zero(m.weight)
