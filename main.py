@@ -39,7 +39,7 @@ def main():
                                  'resnet20', 'resnet32', 'resnet56', 'vggsmall'],
                         help='network name (default: resnet18)')
     parser.add_argument('-d', '--dataset', type=str, default='imagenet',
-                        choices=['cifar10', 'imagenet', 'cars', 'cub200', 'aircraft'],
+                        choices=['cifar10', 'imagenet', 'cars', 'cub200', 'aircraft', 'cifar100'],
                         help='dataset name (default: imgenet)')
     parser.add_argument('-j', '--workers', type=int, default=4,
                         metavar='N', help='dataloader threads')
@@ -191,7 +191,10 @@ def main():
         print("No Pruning Involved")
 
     # Load Pretrain Data
-    model = timm.create_model("resnet18_cifar10", pretrained=True)
+    if args.dataset == 'cifar10':
+        model = timm.create_model("resnet18_cifar10", pretrained=True)
+    elif args.dataset == 'cifar100':
+        model = timm.create_model("resnet18_cifar100", pretrained=True)
 
     model = DGMSNet(model, args, args.freeze_bn)
 

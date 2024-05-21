@@ -1,12 +1,12 @@
 #!/bin/bash -l
 
-DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR10/train/ --val-dir /home/wang4538/DGMS-master/CIFAR10/val/ --num-classes 10"
+DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR100/train/ --val-dir /home/wang4538/DGMS-master/CIFAR100/val/ --num-classes 10"
 MODEL="--network resnet18 --mask"
 WD=0
 TEMP=0.001
 K=4
 LR=5e-5
-DATA_NAME="cifar10"
+DATA_NAME="cifar100"
 MODEL_NAME="resnet18"
 EPOCHS="10ep"
 FINAL_LR=0.01
@@ -15,7 +15,7 @@ SEED=428
 FREEZE="--freeze_weight"
 INIT_METHOD='k-means'
 INIT_SPARSITY=0.1
-FINAL_SPARSITY=0.9
+FINAL_SPARSITY=0.7
 PRUNE_END='8ep'
 PRUNE_TEMP=0.02
 

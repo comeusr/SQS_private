@@ -95,7 +95,7 @@ class GMM_Pruning(Algorithm):
                 self.generate_mask(state.model, mask_threshold, is_dict)
                 #Prune with mask
                 self.prune_with_mask(state.model)
-                
+                            
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
             # print("Apply Pruning Gradient")
