@@ -4,6 +4,7 @@
 # Dataset settings
 NUM_CLASSES = {
     'cifar10': 10,
+    'cifar100':100,
     'imagenet': 1000,
     'cub200': 200,
     'cars': 196,
@@ -47,6 +48,7 @@ PRUNE_END_STEP = 0
 # Training settings
 BATCH_SIZE = {
     'cifar10': 128,
+    'cifar100':128,
     'imagenet': 256,
     'cub200': 256,
     'cars': 256,

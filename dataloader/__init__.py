@@ -10,6 +10,16 @@ def make_data_loader(args, **kwargs):
         num_class = _cifar10.num_class
 
         return train_loader, val_loader, test_loader, num_class
+    
+    elif args.dataset == 'cifar100':
+        _cifar100 = cifar10.CIFAR100_Module(args)
+        train_loader = _cifar100.train_dataloader()
+        val_loader = _cifar100.val_dataloader()
+        test_loader = None
+        num_class = _cifar100.num_class
+
+        return train_loader, val_loader, test_loader, num_class
+
 
     elif args.dataset == 'cub200':
         _cub200 = cub200.CUB200(args, **kwargs)
