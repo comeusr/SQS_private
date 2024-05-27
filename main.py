@@ -194,7 +194,7 @@ def main():
     if args.dataset == 'cifar10':
         model = timm.create_model("resnet18_cifar10", pretrained=True)
     elif args.dataset == 'cifar100':
-        print('Loading model Resnet18 trained with cifar100')
+        # print('Loading model Resnet18 trained with cifar100')
         model = timm.create_model("resnet18_cifar100", pretrained=True)
 
     model = DGMSNet(model, args, args.freeze_bn)
