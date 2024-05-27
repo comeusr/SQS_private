@@ -115,7 +115,7 @@ class CIFAR100_Module(CIFAR10_Module):
         transform_val = transforms.Compose([transforms.ToTensor(),
                                             transforms.Normalize(self.mean, self.std)])
         dataset = CIFAR100(root=self.args.val_dir,
-                          train=False, transform=transform_val)
+                          train=False, download=True, transform=transform_val)
         dataloader = DataLoader(
             dataset, batch_size=self.args.batch_size, num_workers=4, pin_memory=True)
         return dataloader
