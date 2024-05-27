@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR100/train/ --val-dir /home/wang4538/DGMS-master/CIFAR100/val/ --num-classes 10"
+DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR100/train/ --val-dir /home/wang4538/DGMS-master/CIFAR100/val/ --num-classes 100"
 MODEL="--network resnet18 --mask"
 WD=0
 TEMP=0.001
