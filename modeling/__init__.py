@@ -31,6 +31,7 @@ class DGMSNet(ComposerModel):
         cfg.IS_TRAIN = True
         inputs, _ = batch
         out = self.network(inputs)
+        print('Target {}'.format(_))
         print('Target Shape {}'.format(_.shape))
         print('Out Shape {}'.format(out.shape))
         return out
