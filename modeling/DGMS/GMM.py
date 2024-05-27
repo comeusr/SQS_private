@@ -19,7 +19,7 @@ DEVICE = get_device()
 class GaussianMixtureModel(nn.Module):
     """Concrete GMM for sub-distribution approximation.
     """
-    def __init__(self, num_components, init_weights, temperature=0.01, init_method="k-means"):
+    def __init__(self, num_components, init_weights, temperature=0.01, init_method="k-means", init_sigma=0.1):
         super(GaussianMixtureModel, self).__init__()
         self.num_components = num_components
         self.temperature = temperature
@@ -34,6 +34,8 @@ class GaussianMixtureModel(nn.Module):
         self.mask = (init_weights.abs()< 0.0).to(DEVICE)
         # print('GMM weight dim {}'.format(init_weights.shape))
         # print('Init Mask dim {}'.format(self.mask.shape))
+        if cfg.PRUNE:
+            self.init_sigma = init_sigma
 
     def params_initialization(self, init_weights, method='k-means'):
         if not cfg.PRUNE:
