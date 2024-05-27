@@ -18,7 +18,7 @@ def make_data_loader(args, **kwargs):
         test_loader = None
         num_class = _cifar100.num_class
 
-        print('num_class: {}\n'.format(num_class))
+        # print('num_class: {}\n'.format(num_class))
 
         return train_loader, val_loader, test_loader, num_class
 

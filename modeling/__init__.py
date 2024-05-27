@@ -30,11 +30,8 @@ class DGMSNet(ComposerModel):
     def forward(self, batch):
         cfg.IS_TRAIN = True
         inputs, _ = batch
-        out = self.network(inputs)
-        print('Target {}'.format(_))
-        print('Target Shape {}'.format(_.shape))
-        print('Out Shape {}'.format(out.shape))
-        return out
+        # out = self.network(inputs)
+        return self.network(inputs)
 
     def eval_forward(self, batch, outputs=None):
         cfg.IS_TRAIN = False
