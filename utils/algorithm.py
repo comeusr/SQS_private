@@ -45,13 +45,13 @@ class GMM_Pruning(Algorithm):
                     layer = m.sub_distribution
                     p = layer.pruning_parameter/cfg.PRUNE_SCALE
                     layer.pruning_parameter.grad.add_(torch.log(F.sigmoid(p)/(sp))*sigmoid_derivative(p))
-                    layer.pruning_parameter.grad.add_(torch.log((1-sp)/(1-F.sigmoid(p)))*sigmoid_derivative(p))
+                    # layer.pruning_parameter.grad.add_(torch.log((1-sp)/(1-F.sigmoid(p)))*sigmoid_derivative(p))
 
                     mu = layer.mu
-                    mu.grad.add_(mu/(layer.init_sigma ** 2))
+                    mu.grad.add_(F.sigmoid(p)*mu/(layer.init_sigma ** 2))
 
-                    # sigma = layer.sigma
-                    # sigma.grad.add_(sigma/(layer.init_sigma ** 2)- 1/sigma)
+                    sigma = layer.sigma
+                    sigma.grad.add_(F.sigmoid(p)*sigma/(layer.init_sigma ** 2)- 1/sigma)
                     
                     
                     # print('Pruning Gradients')
