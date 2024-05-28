@@ -19,7 +19,7 @@ DEVICE = get_device()
 class GaussianMixtureModel(nn.Module):
     """Concrete GMM for sub-distribution approximation.
     """
-    def __init__(self, num_components, init_weights, temperature=0.01, init_method="k-means", init_sigma=0.1):
+    def __init__(self, num_components, init_weights, temperature=0.01, init_method="k-means", init_sigma=1.5):
         super(GaussianMixtureModel, self).__init__()
         self.num_components = num_components
         self.temperature = temperature
