@@ -48,8 +48,8 @@ class GMM_Pruning(Algorithm):
                     mu = layer.mu
                     mu.grad.add_(mu/(layer.init_sigma ** 2))
 
-                    sigma = layer.sigma
-                    sigma.grad.add_(sigma/(layer.init_sigma ** 2)- 1/sigma)
+                    # sigma = layer.sigma
+                    # sigma.grad.add_(sigma/(layer.init_sigma ** 2)- 1/sigma)
                     
                     
                     # print('Pruning Gradients')
