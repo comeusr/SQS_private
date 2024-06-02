@@ -80,5 +80,7 @@ class EpochMonitor(Callback):
                     total_zero = check_total_zero(m.weight)
                     total_weight = check_total_weights(m.weight)
                     wandb.log({name+"_sparsity": total_zero/total_weight}, commit=False)
+        # elif event == event.BATCH_START and state.timestamp.batch.value % 5 == 0:
+            
 
 
