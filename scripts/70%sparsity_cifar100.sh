@@ -8,7 +8,7 @@ K=4
 LR=5e-5
 DATA_NAME="cifar100"
 MODEL_NAME="resnet18"
-EPOCHS="10ep"
+EPOCHS="11ep"
 FINAL_LR=0.01
 EVAL_INTERV='1ep'
 SEED=428
@@ -16,9 +16,9 @@ FREEZE="--freeze_weight"
 INIT_METHOD='k-means'
 INIT_SPARSITY=0.1
 FINAL_SPARSITY=0.75
-PRUNE_END='8ep'
+PRUNE_END='9ep'
 PRUNE_TEMP=0.02
-WARM_UP='0ep'
+WARM_UP='1ep'
 
 
 sbatch --time=01:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
