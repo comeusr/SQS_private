@@ -44,6 +44,7 @@ IS_EMP = False
 PRUNE = False
 TOT_TRAIN_STEP = 0
 PRUNE_END_STEP = 0
+PRUNE_START_STEP = 0
 
 # Training settings
 BATCH_SIZE = {

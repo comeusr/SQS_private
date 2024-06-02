@@ -69,8 +69,8 @@ class GMM_Pruning(Algorithm):
         return 
     
     def sparsity_scheduler(self, train_step):
-        if train_step <= cfg.PRUNE_END_STEP:
-            _frac = 1-(train_step)/(cfg.PRUNE_END_STEP)
+        if cfg.PRUNE_START_STEP < train_step <= cfg.PRUNE_END_STEP:
+            _frac = 1-(train_step-cfg.PRUNE_START_STEP)/(cfg.PRUNE_END_STEP-cfg.PRUNE_START_STEP)
             sparsity = self.final_sparsity + (self.init_sparsity-self.final_sparsity) * (_frac ** 3)
             self.cur_sparsity = sparsity
         else:

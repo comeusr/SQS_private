@@ -160,6 +160,8 @@ def main():
                         help="Initial LR for pruning parameters")
     parser.add_argument('--prune_f_lr', type=float, default=0.005,
                         help="finial")
+    parser.add_argument('--warm_up', type=str, default='2ep',
+                        help='Warm Up epoch before pruning')
 
     # args = parser.parse_args([
     #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
@@ -184,6 +186,7 @@ def main():
     epochs = int(args.duration.replace('ep', ''))
     cfg.TOT_TRAIN_STEP = len(train_loader)*epochs
     cfg.PRUNE_END_STEP = len(train_loader)*float(args.prune_end.replace('ep', ''))
+    cfg.PRUNE_START_STEP = len(train_loader)*float(args.warm_up.replace('ep', ''))
     
     if cfg.PRUNE:
         print("Pruning the model")
