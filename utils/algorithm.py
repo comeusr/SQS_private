@@ -113,7 +113,7 @@ class GMM_Pruning(Algorithm):
                 m.sub_distribution.pruning_parameter.detach().masked_fill_(mask, -0.1)
     
     def match(self, event, state):
-        return event in [Event.BEFORE_TRAIN_BATCH, Event.AFTER_BACKWARD]
+        return event in [Event.BEFORE_TRAIN_BATCH, Event.AFTER_BACKWARD, Event.BATCH_START]
     
     def apply(self, event, state, logger):
         train_step = state.timestamp.batch.value
