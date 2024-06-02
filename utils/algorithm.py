@@ -95,7 +95,7 @@ class GMM_Pruning(Algorithm):
         # Apply the KL-divergence gradients
         if event == Event.BEFORE_TRAIN_BATCH:
             # Prune the parameter according to the pruning parameters
-            if cfg.PRUNE:
+            if cfg.PRUNE and train_step > cfg.PRUNE_START_STEP:
             # First calculate the curr sparsity
                 self.sparsity_scheduler(train_step)
                 # Generate mask threshold and help dictionary 
@@ -110,7 +110,8 @@ class GMM_Pruning(Algorithm):
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
             # print("Apply Pruning Gradient")
-            self.apply_pruning_grad(state.model)
-
-            return
+            if cfg.PRUNE and train_step > cfg.PRUNE_START_STEP:
+                self.apply_pruning_grad(state.model)
+        
+        return
     
