@@ -24,7 +24,7 @@ from utils.algorithm import GMM_Pruning
 
 from composer import Trainer
 from composer.loggers import WandBLogger
-from composer.optim import DecoupledAdamW, LinearWithWarmupScheduler, LinearScheduler, CosineAnnealingWarmRestartsScheduler
+from composer.optim import DecoupledAdamW, LinearWithWarmupScheduler, LinearScheduler, CosineAnnealingWarmRestartsScheduler, MultiStepScheduler
 from composer.callbacks import LRMonitor, OptimizerMonitor, NaNMonitor
 from composer.core import Evaluator
 
@@ -255,10 +255,15 @@ def main():
     #     alpha_f=args.alpha_f,
     # )
 
-    lr_scheduler = CosineAnnealingWarmRestartsScheduler(
-        t_0=args.warm_up,
-        t_mult=1,
-        alpha_f=args.alpha_f,
+    # lr_scheduler = CosineAnnealingWarmRestartsScheduler(
+    #     t_0=args.warm_up,
+    #     t_mult=1,
+    #     alpha_f=args.alpha_f,
+    # )
+
+    lr_scheduler = MultiStepScheduler(
+        milestones=['12ep', '13ep', '14ep'],
+        gamma=0.5
     )
 
     trainer = Trainer(
