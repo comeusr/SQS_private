@@ -254,7 +254,8 @@ def main():
     #     alpha_i=1,
     #     alpha_f=args.alpha_f,
     # )
-    mult = float(args.prune_end.replace('ep', ''))/float(args.duration.replace('ep', ''))
+    prune_end = float(args.prune_end.replace('ep', ''))
+    mult = (epochs-prune_end)/prune_end
 
     lr_scheduler = CosineAnnealingWarmRestartsScheduler(
         t_0=args.prune_end,
