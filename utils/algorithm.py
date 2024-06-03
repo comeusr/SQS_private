@@ -13,6 +13,7 @@ class GMM_Pruning(Algorithm):
     def __init__(self, init_sparsity, final_sparsity):
         self.init_sparsity = init_sparsity
         self.final_sparsity = final_sparsity
+        self.cur_sparsity = 0
         # self.pruning_scaling = 
         
 
