@@ -262,8 +262,8 @@ def main():
     # )
 
     lr_scheduler = MultiStepScheduler(
-        milestones=['4ep', '12ep', '13ep', '14ep'],
-        gamma=2
+        milestones=['12ep', '13ep', '14ep'],
+        gamma=0.5
     )
 
     trainer = Trainer(
