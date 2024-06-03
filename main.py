@@ -256,6 +256,8 @@ def main():
     # )
 
     lr_scheduler = CosineAnnealingWarmRestartsScheduler(
+        t_0=args.warm_up,
+        t_mult=2,
         alpha_f=args.alpha_f,
     )
 
