@@ -147,7 +147,7 @@ class GMM_Pruning(Algorithm):
             elif cfg.PRUNE and (train_step <= cfg.PRUNE_START_STEP or train_step > cfg.PRUNE_END_STEP):
                 self.apply_mu_sigma_grad(state.model)
         elif event == event.BATCH_START:
-            logger.log_metrics({'sparsity': self.cur_sparsity}, commit=False)
+            logger.log_metrics({'sparsity': self.cur_sparsity})
 
         return
     
