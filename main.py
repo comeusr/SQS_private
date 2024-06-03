@@ -156,7 +156,7 @@ def main():
                         help='Pruning frequency (i.e. training steps between pruning)')
     parser.add_argument('--debug', action='store_true', default=False,
                         help='When debug skip initialization')
-    parser.add_argument('--prune_init_lr', type=float, default=0.0005,
+    parser.add_argument('--prune_init_lr', type=float, default=0.05,
                         help="Initial LR for pruning parameters")
     parser.add_argument('--prune_f_lr', type=float, default=0.005,
                         help="finial")
@@ -254,17 +254,18 @@ def main():
     #     alpha_i=1,
     #     alpha_f=args.alpha_f,
     # )
+    mult = float(args.prune_end.replace('ep', ''))/float(args.duration.replace('ep', ''))
 
-    # lr_scheduler = CosineAnnealingWarmRestartsScheduler(
-    #     t_0=args.warm_up,
-    #     t_mult=1,
-    #     alpha_f=args.alpha_f,
-    # )
-
-    lr_scheduler = MultiStepScheduler(
-        milestones=['12ep', '13ep', '14ep'],
-        gamma=0.5
+    lr_scheduler = CosineAnnealingWarmRestartsScheduler(
+        t_0=args.prune_end,
+        t_mult=mult,
+        alpha_f=args.alpha_f,
     )
+
+    # lr_scheduler = MultiStepScheduler(
+    #     milestones=['12ep', '13ep', '14ep'],
+    #     gamma=0.5
+    # )
 
     trainer = Trainer(
         model=model,
