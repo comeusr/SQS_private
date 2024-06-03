@@ -156,7 +156,7 @@ def main():
                         help='Pruning frequency (i.e. training steps between pruning)')
     parser.add_argument('--debug', action='store_true', default=False,
                         help='When debug skip initialization')
-    parser.add_argument('--prune_init_lr', type=float, default=0.05,
+    parser.add_argument('--prune_init_lr', type=float, default=0.005,
                         help="Initial LR for pruning parameters")
     parser.add_argument('--prune_f_lr', type=float, default=0.005,
                         help="finial")
@@ -262,8 +262,8 @@ def main():
     # )
 
     lr_scheduler = MultiStepScheduler(
-        milestones=['12ep', '13ep', '14ep'],
-        gamma=0.5
+        milestones=['4ep', '12ep', '13ep', '14ep'],
+        gamma=2
     )
 
     trainer = Trainer(
