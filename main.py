@@ -264,6 +264,7 @@ def main():
     # )
 
     lr_scheduler = CosineAnnealingScheduler(
+        t_max='0.5dur',
         alpha_f=args.alpha_f,
     )
 
