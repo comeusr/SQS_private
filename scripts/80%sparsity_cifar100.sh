@@ -3,7 +3,7 @@
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR100/train/ --val-dir /home/wang4538/DGMS-master/CIFAR100/val/ --num-classes 100"
 MODEL="--network resnet18 --mask"
 WD=0
-TEMP=0.001
+TEMP=0.0005
 K=4
 LR=5e-4
 DATA_NAME="cifar100"
@@ -19,7 +19,7 @@ FINAL_SPARSITY=0.9
 PRUNE_END='10ep'
 PRUNE_TEMP=0.01
 WARM_UP='1ep'
-PRUNE_INIT_LR=0.015
+PRUNE_INIT_LR=0.01
 
 
 sbatch --time=01:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
