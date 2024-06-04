@@ -267,7 +267,6 @@ def main():
         alpha_f=args.alpha_f,
     )
 
-
     trainer = Trainer(
         model=model,
         optimizers=optimizer,
