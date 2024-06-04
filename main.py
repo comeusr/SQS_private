@@ -24,7 +24,7 @@ from utils.algorithm import GMM_Pruning
 
 from composer import Trainer
 from composer.loggers import WandBLogger
-from composer.optim import DecoupledAdamW, LinearWithWarmupScheduler, LinearScheduler, CosineAnnealingWarmRestartsScheduler, MultiStepScheduler
+from composer.optim import DecoupledAdamW, LinearWithWarmupScheduler, LinearScheduler, CosineAnnealingWarmRestartsScheduler, MultiStepScheduler, CosineAnnealingScheduler
 from composer.callbacks import LRMonitor, OptimizerMonitor, NaNMonitor
 from composer.core import Evaluator
 
@@ -257,16 +257,16 @@ def main():
     prune_end = float(args.prune_end.replace('ep', ''))
     mult = (epochs-prune_end)/prune_end
 
-    lr_scheduler = CosineAnnealingWarmRestartsScheduler(
-        t_0=args.prune_end,
-        t_mult=mult,
+    # lr_scheduler = CosineAnnealingWarmRestartsScheduler(
+    #     t_0=args.prune_end,
+    #     t_mult=mult,
+    #     alpha_f=args.alpha_f,
+    # )
+
+    lr_scheduler = CosineAnnealingScheduler(
         alpha_f=args.alpha_f,
     )
 
-    # lr_scheduler = MultiStepScheduler(
-    #     milestones=['12ep', '13ep', '14ep'],
-    #     gamma=0.5
-    # )
 
     trainer = Trainer(
         model=model,
