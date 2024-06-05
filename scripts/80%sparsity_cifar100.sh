@@ -3,7 +3,7 @@
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR100/train/ --val-dir /home/wang4538/DGMS-master/CIFAR100/val/ --num-classes 100"
 MODEL="--network resnet18 --mask"
 WD=0
-TEMP=0.0005
+TEMP=0.001
 K=4
 LR=5e-4
 DATA_NAME="cifar100"
@@ -15,7 +15,7 @@ SEED=428
 FREEZE="--freeze_weight"
 INIT_METHOD='k-means'
 INIT_SPARSITY=0.0
-FINAL_SPARSITY=0.9
+FINAL_SPARSITY=0.7
 PRUNE_END='10ep'
 PRUNE_TEMP=0.01
 WARM_UP='1ep'
