@@ -3,13 +3,13 @@
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR100/train/ --val-dir /home/wang4538/DGMS-master/CIFAR100/val/ --num-classes 100"
 MODEL="--network resnet18 --mask"
 WD=0
-TEMP=0.001
+TEMP=0.0005
 K=4
 LR=5e-4
 DATA_NAME="cifar100"
 MODEL_NAME="resnet18"
 EPOCHS="20ep"
-FINAL_LR=0.15
+FINAL_LR=0.1
 EVAL_INTERV='1ep'
 SEED=428
 FREEZE="--freeze_weight"
