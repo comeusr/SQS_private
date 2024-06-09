@@ -115,11 +115,11 @@ class GMM_Pruning(Algorithm):
                 m.sub_distribution.pruning_parameter.detach().masked_fill_(mask, -0.1)
 
     def monitor_scheduler_step(self, state:State, logger):
-        optimzier = state.optimizers
-        print(optimzier)
-        # for i in len(optimzier.param_groups):
-        #     lr = optimzier.param_groups[i]['lr']
-        #     logger.log_metrics({'parameter_{}_lr'.format(i):lr})
+        optimzier = state.optimizers[0]
+        # print(optimzier)
+        for i in len(optimzier.param_groups):
+            lr = optimzier.param_groups[i]['lr']
+            logger.log_metrics({'parameter_{}_lr'.format(i):lr})
 
         return
     
