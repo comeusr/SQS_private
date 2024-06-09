@@ -1,5 +1,6 @@
 from composer.core import Algorithm, Event
 from composer.models import ComposerModel
+from composer import State
 from modeling.DGMS import DGMSConv
 import config as cfg
 import torch
@@ -112,6 +113,14 @@ class GMM_Pruning(Algorithm):
             if isinstance(m, DGMSConv):
                 mask = m.sub_distribution.mask
                 m.sub_distribution.pruning_parameter.detach().masked_fill_(mask, -0.1)
+
+    def monitor_scheduler_step(self, state:State, logger):
+        optimzier = state.optimizers
+        for i in len(optimzier.param_groups):
+            lr = optimzier.param_groups[i]['lr']
+            logger.log_metrics({'parameter_{}_lr'.format(i):lr})
+
+        return
     
     def match(self, event, state):
         return event in [Event.BEFORE_TRAIN_BATCH, Event.AFTER_BACKWARD, Event.BATCH_START]
@@ -138,6 +147,8 @@ class GMM_Pruning(Algorithm):
                 self.generate_mask(state.model, mask_threshold, is_dict)
                 #Prune with mask
                 self.prune_with_mask(state.model)
+            
+            self.monitor_scheduler_step(state, logger)
                             
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
