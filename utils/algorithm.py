@@ -116,9 +116,10 @@ class GMM_Pruning(Algorithm):
 
     def monitor_scheduler_step(self, state:State, logger):
         optimzier = state.optimizers
-        for i in len(optimzier.param_groups):
-            lr = optimzier.param_groups[i]['lr']
-            logger.log_metrics({'parameter_{}_lr'.format(i):lr})
+        print(optimzier)
+        # for i in len(optimzier.param_groups):
+        #     lr = optimzier.param_groups[i]['lr']
+        #     logger.log_metrics({'parameter_{}_lr'.format(i):lr})
 
         return
     
