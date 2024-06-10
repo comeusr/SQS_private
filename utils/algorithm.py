@@ -168,7 +168,7 @@ class GMM_Pruning(Algorithm):
             
             self.customize_lr_schduler(state, train_step)
 
-            self.monitor_scheduler_step(state, logger)
+            # self.monitor_scheduler_step(state, logger)
                             
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
