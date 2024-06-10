@@ -4,6 +4,7 @@ from composer import State
 from modeling.DGMS import DGMSConv
 import config as cfg
 import torch
+import math
 import torch.nn.functional as F
 
 def sigmoid_derivative(x):
@@ -11,10 +12,12 @@ def sigmoid_derivative(x):
 
 class GMM_Pruning(Algorithm):
     
-    def __init__(self, init_sparsity, final_sparsity):
+    def __init__(self, init_sparsity, final_sparsity, alpha_f):
         self.init_sparsity = init_sparsity
         self.final_sparsity = final_sparsity
         self.cur_sparsity = 0
+        self.f_alpha = 0.1
+        self.alpha_f = alpha_f
         # self.pruning_scaling = 
         
 
@@ -123,6 +126,20 @@ class GMM_Pruning(Algorithm):
 
         return
     
+    def customize_lr_schduler(self, state:State, step):
+
+        if step >= cfg.PRUNE_END_STEP:
+            
+            frac = (step-cfg.PRUNE_END_STEP)/(cfg.TOT_TRAIN_STEP-cfg.PRUNE_END_STEP)
+            scale = self.f_alpha + (1-self.f_alpha)*0.5*(1+math.cos(math.pi*frac))
+            
+            
+            optimizer = state.optimizers[0]
+            for group in optimizer:
+                group['lr'] = optimizer['init_lr']*self.alpha_f*scale
+
+        return
+    
     def match(self, event, state):
         return event in [Event.BEFORE_TRAIN_BATCH, Event.AFTER_BACKWARD, Event.BATCH_START]
     
@@ -149,6 +166,8 @@ class GMM_Pruning(Algorithm):
                 #Prune with mask
                 self.prune_with_mask(state.model)
             
+            self.customize_lr_schduler(state, train_step)
+
             self.monitor_scheduler_step(state, logger)
                             
         elif event == Event.AFTER_BACKWARD:
