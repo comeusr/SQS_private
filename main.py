@@ -243,7 +243,7 @@ def main():
     #     weight_decay=args.weight_decay
     # )
 
-    GMM_Pruner = GMM_Pruning(init_sparsity=args.init_sparsity, final_sparsity=args.final_sparsity)
+    GMM_Pruner = GMM_Pruning(init_sparsity=args.init_sparsity, final_sparsity=args.final_sparsity, alpha_f=args.alpha_f)
 
     # lr_scheduler = LinearWithWarmupScheduler(
     #     t_warmup=args.t_warmup,
