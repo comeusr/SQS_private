@@ -132,16 +132,16 @@ class GMM_Pruning(Algorithm):
         # for group in optimizer.param_groups:
         #     print(group)
         #     # group['lr'] = group['init_lr']*self.alpha_f*scale
-
-        if step >= cfg.PRUNE_END_STEP:
-            
-            frac = (step-cfg.PRUNE_END_STEP)/(cfg.TOT_TRAIN_STEP-cfg.PRUNE_END_STEP)
-            scale = self.f_alpha + (1-self.f_alpha)*0.5*(1+math.cos(math.pi*frac))
-            
-            
-            optimizer = state.optimizers[0]
-            for group in optimizer.param_groups:
-                group['lr'] = group['initial_lr']*self.alpha_f*scale
+        with torch.no_grad():
+            if step >= cfg.PRUNE_END_STEP:
+                
+                frac = (step-cfg.PRUNE_END_STEP)/(cfg.TOT_TRAIN_STEP-cfg.PRUNE_END_STEP)
+                scale = self.f_alpha + (1-self.f_alpha)*0.5*(1+math.cos(math.pi*frac))
+                
+                
+                optimizer = state.optimizers[0]
+                for group in optimizer.param_groups:
+                    group['lr'] = group['initial_lr']*self.alpha_f*scale
 
         return
     
@@ -172,7 +172,7 @@ class GMM_Pruning(Algorithm):
                 self.prune_with_mask(state.model)
             
             # with torch.no_grad():
-            #     self.customize_lr_schduler(state, train_step)
+            self.customize_lr_schduler(state, train_step)
 
             #     self.monitor_scheduler_step(state, logger)
                             
