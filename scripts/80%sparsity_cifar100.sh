@@ -3,9 +3,9 @@
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR100/train/ --val-dir /home/wang4538/DGMS-master/CIFAR100/val/ --num-classes 100"
 MODEL="--network resnet18 --mask"
 WD=0
-TEMP=0.001
+TEMP=0.005
 K=4
-LR=5e-3
+LR=5e-4
 DATA_NAME="cifar100"
 MODEL_NAME="resnet18"
 EPOCHS="20ep"
