@@ -134,6 +134,8 @@ class GMM_Pruning(Algorithm):
         #     # group['lr'] = group['init_lr']*self.alpha_f*scale
         with torch.no_grad():
             if step >= cfg.PRUNE_END_STEP:
+
+                print('Modify Optimizer Learning Rate.')
                 
                 frac = (step-cfg.PRUNE_END_STEP)/(cfg.TOT_TRAIN_STEP-cfg.PRUNE_END_STEP)
                 scale = self.f_alpha + (1-self.f_alpha)*0.5*(1+math.cos(math.pi*frac))
