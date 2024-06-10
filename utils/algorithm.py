@@ -128,6 +128,11 @@ class GMM_Pruning(Algorithm):
     
     def customize_lr_schduler(self, state:State, step):
 
+        optimizer = state.optimizers[0]
+        for group in optimizer.param_groups:
+            print(group)
+            # group['lr'] = group['init_lr']*self.alpha_f*scale
+
         if step >= cfg.PRUNE_END_STEP:
             
             frac = (step-cfg.PRUNE_END_STEP)/(cfg.TOT_TRAIN_STEP-cfg.PRUNE_END_STEP)
