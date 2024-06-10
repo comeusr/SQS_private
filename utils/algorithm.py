@@ -120,7 +120,7 @@ class GMM_Pruning(Algorithm):
     def monitor_scheduler_step(self, state:State, logger):
         optimzier = state.optimizers[0]
         # print(optimzier)
-        for i in len(optimzier.param_groups):
+        for i in range(len(optimzier.param_groups)):
             lr = optimzier.param_groups[i]['lr']
             logger.log_metrics({'parameter_{}_lr'.format(i):lr})
 
@@ -135,7 +135,7 @@ class GMM_Pruning(Algorithm):
             
             
             optimizer = state.optimizers[0]
-            for group in optimizer:
+            for group in optimizer.param_groups:
                 group['lr'] = optimizer['init_lr']*self.alpha_f*scale
 
         return
@@ -168,7 +168,7 @@ class GMM_Pruning(Algorithm):
             
             self.customize_lr_schduler(state, train_step)
 
-            # self.monitor_scheduler_step(state, logger)
+            self.monitor_scheduler_step(state, logger)
                             
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
