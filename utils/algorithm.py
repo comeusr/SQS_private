@@ -142,7 +142,7 @@ class GMM_Pruning(Algorithm):
                 scale = self.f_alpha + (1-self.f_alpha)*0.5*(1+math.cos(math.pi*frac))
                 
                 
-                optimizer = state.optimizers[0]
+                # optimizer = state.optimizers[0]
                 # for group in optimizer.param_groups:
                 #     group['lr'] = group['initial_lr']*self.alpha_f*scale
 
@@ -175,7 +175,7 @@ class GMM_Pruning(Algorithm):
                 self.prune_with_mask(state.model)
             
             # with torch.no_grad():
-            # self.customize_lr_schduler(state, train_step)
+            self.customize_lr_schduler(state, train_step)
 
             #     self.monitor_scheduler_step(state, logger)
                             
