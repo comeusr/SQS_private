@@ -136,7 +136,7 @@ class GMM_Pruning(Algorithm):
             
             optimizer = state.optimizers[0]
             for group in optimizer.param_groups:
-                group['lr'] = optimizer['init_lr']*self.alpha_f*scale
+                group['lr'] = group['init_lr']*self.alpha_f*scale
 
         return
     
