@@ -32,7 +32,7 @@ class GMM_Pruning(Algorithm):
                 # print("is_dict_{} {}".format(name, is_dict[name]))
         
         all_is = torch.cat([is_dict[name].view(-1) for name in is_dict])
-        print("Sparsity {}".format(sparsity))
+        # print("Sparsity {}".format(sparsity))
         # print("All IS {}".format(all_is))
         # print("all_is dimension {}".format(all_is.shape))
         # print("If kth less than total {}".format(int(sparsity*all_is.shape[0]) < all_is.shape[0]))
@@ -128,10 +128,10 @@ class GMM_Pruning(Algorithm):
     
     def customize_lr_schduler(self, state:State, step):
 
-        optimizer = state.optimizers[0]
-        for group in optimizer.param_groups:
-            print(group)
-            # group['lr'] = group['init_lr']*self.alpha_f*scale
+        # optimizer = state.optimizers[0]
+        # for group in optimizer.param_groups:
+        #     print(group)
+        #     # group['lr'] = group['init_lr']*self.alpha_f*scale
 
         if step >= cfg.PRUNE_END_STEP:
             
@@ -141,7 +141,7 @@ class GMM_Pruning(Algorithm):
             
             optimizer = state.optimizers[0]
             for group in optimizer.param_groups:
-                group['lr'] = group['init_lr']*self.alpha_f*scale
+                group['lr'] = group['initial_lr']*self.alpha_f*scale
 
         return
     
