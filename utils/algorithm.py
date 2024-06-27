@@ -176,7 +176,7 @@ class GMM_Pruning(Algorithm):
                 self.prune_with_mask(state.model)
             
             # with torch.no_grad():
-            self.customize_lr_schduler(state, train_step)
+            # self.customize_lr_schduler(state, train_step)
 
             #     self.monitor_scheduler_step(state, logger)
                             
