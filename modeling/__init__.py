@@ -65,7 +65,7 @@ class DGMSNet(ComposerModel):
     def weight_parameters(self):
         # get the origin network parameters
         parameters = []
-        for name, p in self.network.named_paramters():
+        for name, p in self.network.named_parameters():
             if 'sub_distribution' not in name and p.requires_grad:
                 parameters.append(p)
         
