@@ -232,7 +232,7 @@ def main():
     optimizer = DecoupledAdamW(
         [{'params': model.pruning_paramters(), 'lr':args.prune_init_lr},
          {'params':model.non_pruning_parameters()},
-         {'params':model.weight_parameters()}],
+         {'params':model.weight_parameters(), 'lr': 5e-5}],
         lr=args.lr,
         betas=(0.9, 0.999),
         eps=1e-8,
