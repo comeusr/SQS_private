@@ -226,6 +226,9 @@ def main():
 
     model.init_mask_params()
 
+    for name, p in model.named_parameters():
+        print(name)
+
     optimizer = DecoupledAdamW(
         [{'params': model.pruning_paramters(), 'lr':args.prune_init_lr},
          {'params':model.non_pruning_parameters()}],
