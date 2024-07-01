@@ -175,10 +175,6 @@ class GMM_Pruning(Algorithm):
                 #Prune with mask
                 self.prune_with_mask(state.model)
             
-            # with torch.no_grad():
-            # self.customize_lr_schduler(state, train_step)
-
-            #     self.monitor_scheduler_step(state, logger)
                             
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
