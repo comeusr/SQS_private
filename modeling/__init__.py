@@ -18,11 +18,11 @@ class DGMSNet(ComposerModel):
         self.train_accuracy = torchmetrics.classification.MulticlassAccuracy(num_classes=args.num_classes, average='micro')
         self.val_accuracy = torchmetrics.classification.MulticlassAccuracy(num_classes=args.num_classes, average='micro')
 
-    def init_mask_params(self):
+    def init_mask_params(self, sigma=0.5):
         print("--> Start to initialize sub-distribution parameters, this may take some time...")
         for name, m in self.network.named_modules():
             if isinstance(m, DGMSConv):
-                m.init_mask_params()
+                m.init_mask_params(sigma)
                 # m.weight.data.xavier_uniform()
 
         print("--> Sub-distribution parameters initialization finished!")
