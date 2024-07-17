@@ -51,7 +51,7 @@ class EpochMonitor(Callback):
                         S_weight_tot = check_total_weights(S_weight)
                         Origin_weight_zeros=check_total_zero(Origin_weight)
                         Origin_weight_tot=check_total_weights(Origin_weight)
-                        hist = np.histogram(data)
+                        # hist = np.histogram(data)
                         # print(hist)
                         tot_numel += P_weight_tot
                         tot_zero_numel += P_weight_zeros
