@@ -224,7 +224,7 @@ def main():
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     cfg.IS_NORMAL = False
 
-    model.init_mask_params(sigma=3)
+    model.init_mask_params()
 
     # for name, p in model.named_parameters():
     #     print
