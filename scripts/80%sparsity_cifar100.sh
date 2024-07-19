@@ -2,7 +2,7 @@
 
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR100/train/ --val-dir /home/wang4538/DGMS-master/CIFAR100/val/ --num-classes 100"
 MODEL="--network resnet18 --mask"
-WD=0
+WD=5e-5
 TEMP=0.0005
 K=4
 LR=1e-5
@@ -20,7 +20,7 @@ PRUNE_END='10ep'
 PRUNE_TEMP=0.01
 WARM_UP='1ep'
 PRUNE_INIT_LR=0.01
-SIGMA=15
+SIGMA=10
 
 # CIFAR100_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD}
 
