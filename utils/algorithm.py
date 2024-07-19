@@ -53,7 +53,7 @@ class GMM_Pruning(Algorithm):
                     # layer.pruning_parameter.grad.add_(torch.log((1-sp)/(1-F.sigmoid(p)))*sigmoid_derivative(p))
 
                     mu = layer.mu
-                    mu.grad.add_(mu/(layer.init_sigma ** 2))
+                    mu.grad.add_(mu, alpha=1/(layer.init_sigma ** 2))
 
                     # sigma = layer.sigma
                     # sigma.grad.add_(sigma/(layer.init_sigma ** 2)- 1/sigma)
