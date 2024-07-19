@@ -162,7 +162,7 @@ def main():
                         help="finial")
     parser.add_argument('--warm_up', type=str, default='2ep',
                         help='Warm Up epoch before pruning')
-    parser.add_argument('--prior_sigma', type=float, dufault=3,
+    parser.add_argument('--prior_sigma', type=float, default=3,
                         help='Prior Sigma for the KL divergence')
 
     # args = parser.parse_args([
