@@ -313,15 +313,15 @@ def main():
         batch_size=32,
     )
 
-    for i, item in enumerate(train_loader):
-        print(item)
+    # for i, item in enumerate(train_loader):
+    #     print(item)
 
     print('Print train_loader len {}'.format(len(train_loader)))
 
 
     val_loader = DataLoader(
         tokenized_valid_data,
-        collate_fn=default_data_collator,
+        collate_fn=customized_data_collator,
         batch_size=args.batch_size,
     )
 

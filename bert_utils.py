@@ -15,7 +15,7 @@ def InitBertModel(model:nn.Module, sigma):
             m.init_mask_params(sigma)
 
 
-def torch_default_data_collator(features: List[InputDataClass]) -> Dict[str, Any]:
+def torch_customized_data_collator(features: List[InputDataClass]) -> Dict[str, Any]:
 
     if not isinstance(features[0], Mapping):
         features = [vars(f) for f in features]
@@ -52,4 +52,4 @@ def torch_default_data_collator(features: List[InputDataClass]) -> Dict[str, Any
 
 def customized_data_collator(features: List[InputDataClass], return_tensors="pt") -> Dict[str, Any]:
     if  return_tensors=="pt":
-        return torch_default_data_collator(features)
+        return torch_customized_data_collator(features)
