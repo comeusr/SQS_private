@@ -16,11 +16,16 @@ def InitBertModel(model:nn.Module, sigma):
 
 
 def torch_customized_data_collator(features: List[InputDataClass]) -> Dict[str, Any]:
+    
+    print('Take a look at features first Time')
+    print(features)
 
     if not isinstance(features[0], Mapping):
         features = [vars(f) for f in features]
     first = features[0]
     batch = {}
+
+    
 
     # Special handling for labels.
     # Ensure that tensor is created with the correct type
@@ -38,6 +43,9 @@ def torch_customized_data_collator(features: List[InputDataClass]) -> Dict[str, 
 
     # Handling of all other possible keys.
     # Again, we will use the first element to figure out which key/values are not None for this model.
+    print('Take a look at features Second Time')
+    print(features)
+
     for k, v in first.items():
         if k not in ("label", "label_ids") and v is not None and not isinstance(v, str):
             if isinstance(v, torch.Tensor):
