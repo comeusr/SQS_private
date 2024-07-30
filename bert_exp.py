@@ -291,11 +291,12 @@ def main():
     # train_loader = j
 
     tokenized_train_data = raw_datasets['train'].map(prepare_train_features, 
-                                                     batched=True, 
+                                                    batched=True, 
                                                     remove_columns=raw_datasets['train'].column_names,
-                                                    load_from_cache_file=not args.overwrite_cache
+                                                    # load_from_cache_file=not args.overwrite_cache
                                                     )
 
+    print('Print tokenized_train_data len'.formart(len(tokenized_train_data['input_ids'])))
 
     tokenized_valid_data = raw_datasets['validation'].map(prepare_validation_features, 
                                                     batched=True, 
@@ -307,8 +308,11 @@ def main():
         tokenized_train_data,
         shuffle=True,
         collate_fn=default_data_collator,
-        batch_size=args.batch_size,
+        batch_size=32,
     )
+
+    print('Print train_loader len'.formart(len(train_loader)))
+
 
     val_loader = DataLoader(
         tokenized_valid_data,
