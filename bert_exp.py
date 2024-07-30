@@ -166,6 +166,8 @@ def main():
         # The offset mappings will give us a map from token to character position in the original context. This will
         # help us compute the start_positions and end_positions.
         offset_mapping = tokenized_examples.pop("offset_mapping")
+        print("Take look at offset_mapping")
+        print(offset_mapping)
 
         # Let's label those examples!
         tokenized_examples["start_positions"] = []
@@ -297,8 +299,6 @@ def main():
                                                     # load_from_cache_file=not args.overwrite_cache
                                                     )
     print(tokenized_train_data)
-    print(tokenized_train_data['token_type_ids'])
-
     # print('Print tokenized_train_data len'.format(len(tokenized_train_data['input_ids'])))
     # print('Print tokenized_train_data len {}'.format(len(tokenized_train_data)))
 
