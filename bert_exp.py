@@ -355,7 +355,7 @@ def main():
         loggers=[wandb_logger],
         save_overwrite=True,
         save_folder=args.save_folder,
-        ave_filename="ep{epoch}",
+        save_filename="ep{epoch}",
         run_name=args.run_name,
 
         seed=args.seed
