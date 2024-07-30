@@ -293,7 +293,7 @@ def main():
     # train_loader = j
     # print(len(raw_datasets))
 
-    tokenized_train_data = raw_datasets['train'].map(prepare_train_features, 
+    tokenized_train_data = raw_datasets['train'][:50].map(prepare_train_features, 
                                                     batched=True, 
                                                     remove_columns=raw_datasets['train'].column_names,
                                                     # load_from_cache_file=not args.overwrite_cache
