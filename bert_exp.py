@@ -353,7 +353,7 @@ def main():
 
         callbacks=[LRMonitor(), OptimizerMonitor()],
         loggers=[wandb_logger],
-        ave_overwrite=True,
+        save_overwrite=True,
         save_folder=args.save_folder,
         ave_filename="ep{epoch}",
         run_name=args.run_name,
