@@ -120,14 +120,14 @@ def main():
     
     
     args = parser.parse_args()
-    max_length = args.max_length
-    doc_stride = args.doc_stride
-
 
     # Load the pretrained model properly. 
     tokenizer = AutoTokenizer.from_pretrained("huggingface-course/bert-finetuned-squad")
     model = AutoModelForQuestionAnswering.from_pretrained("huggingface-course/bert-finetuned-squad")
     config = model.config
+
+    max_length = min(args.max_length, model.model_max_length)
+    doc_stride = args.doc_stride
 
     for name, module in tuple(model.named_modules()):
         if name:
@@ -312,6 +312,9 @@ def main():
         collate_fn=default_data_collator,
         batch_size=32,
     )
+
+    for item in train_loader:
+        print(item)
 
     print('Print train_loader len {}'.format(len(train_loader)))
 
