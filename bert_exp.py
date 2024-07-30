@@ -320,7 +320,7 @@ def main():
         model.parameters(),
         lr=args.lr,
         betas=(0.9, 0.999),
-        epsilon=1e-08,
+        eps=1e-08,
         weight_decay=args.weight_decay
     )
 
