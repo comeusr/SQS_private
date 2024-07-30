@@ -271,7 +271,7 @@ def main():
         ###################################
         #  Use cached dataset if possible #
         ###################################
-        raw_datasets = load_dataset(args.dataset_name, args.dataset_config_name)
+        raw_datasets = load_dataset(args.dataset_name, args.dataset_config_name, cache_dir="./cache")
     else:
         data_files = {}
         if args.train_file is not None:
@@ -289,7 +289,7 @@ def main():
     # tokenized_data=raw_datasets.map(preprocess_function, batched=True, remove_columns=raw_datasets["train"].column_names)
 
     # train_loader = j
-    print(len(raw_datasets))
+    # print(len(raw_datasets))
 
     tokenized_train_data = raw_datasets['train'].map(prepare_train_features, 
                                                     batched=True, 
@@ -297,7 +297,8 @@ def main():
                                                     # load_from_cache_file=not args.overwrite_cache
                                                     )
     print(tokenized_train_data)
-    print('Print tokenized_train_data len'.format(len(tokenized_train_data['input_ids'])))
+    # print('Print tokenized_train_data len'.format(len(tokenized_train_data['input_ids'])))
+    print('Print tokenized_train_data len {}'.format(len(tokenized_train_data)))
 
     tokenized_valid_data = raw_datasets['validation'].map(prepare_validation_features, 
                                                     batched=True, 
@@ -312,7 +313,7 @@ def main():
         batch_size=32,
     )
 
-    print('Print train_loader len'.format(len(train_loader)))
+    print('Print train_loader len {}'.format(len(train_loader)))
 
 
     val_loader = DataLoader(
