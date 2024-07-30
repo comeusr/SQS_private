@@ -309,7 +309,7 @@ def main():
     train_loader = DataLoader(
         tokenized_train_data,
         shuffle=True,
-        collate_fn=default_data_collator,
+        collate_fn=customized_data_collator,
         batch_size=32,
     )
 
