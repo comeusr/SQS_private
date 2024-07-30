@@ -54,6 +54,8 @@ def main():
                         help='Projct name used for wandb.')
     parser.add_argument('--dataset_name', type=str, default=None,
                         help='Dataset')
+    parser.add_argument('--autoresume', action='store_true', default=False,
+                        help="Auto Resume the training process.")
     parser.add_argument(
         "--dataset_config_name",
         type=str,
@@ -76,8 +78,13 @@ def main():
                     help='number of GMM components (default: 2^4=16)')
     parser.add_argument('--tau', type=float, default=0.01, metavar='TAU',
                         help='gumbel softmax temperature (default: 0.01)')
+    parser.add_argument('--init_method', type=str, default='k-means',
+                        choices=['k-means', 'quantile', 'empirical'],
+                        help='Choose Initialization Method for Mu')
     parser.add_argument('--prune', action='store_true', default=False,
                         help="Prune or Not")
+    parser.add_argument('--prune_scale', type=float, default=0.2,
+                        help='Scale the pruning parameter by 1/prune_scale')
     parser.add_argument('--debug', action='store_true', default=False,
                         help='When debug skip initialization')
     parser.add_argument('--freeze_weight', action='store_true', default=False,
@@ -90,6 +97,8 @@ def main():
                         metavar='M', help='w-decay (default: 5e-4)')
     parser.add_argument('--duration', type=str, default='20ep',
                         help="Number of Epochs")
+    parser.add_argument('--warm_up', type=str, default='2ep',
+                        help='Warm Up epoch before pruning')
     parser.add_argument('--prune_end', type=str, default='1ep',
                         help='Epoch when Stop the pruning process')
     parser.add_argument('--init_sparsity', type=float, default=0.0,
