@@ -134,7 +134,7 @@ def main():
             recursive_setattr(model, name, replace_attn_layer(module, config))
 
     
-    model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)
+    model = HuggingFaceModel(model, use_logits=True)
     
     InitBertModel(model, args.sigma)
 
@@ -166,8 +166,6 @@ def main():
         # The offset mappings will give us a map from token to character position in the original context. This will
         # help us compute the start_positions and end_positions.
         offset_mapping = tokenized_examples.pop("offset_mapping")
-        print("Take look at offset_mapping")
-        print(offset_mapping)
 
         # Let's label those examples!
         tokenized_examples["start_positions"] = []
@@ -293,7 +291,7 @@ def main():
     # train_loader = j
     # print(len(raw_datasets))
 
-    tokenized_train_data = raw_datasets['train'][:50].map(prepare_train_features, 
+    tokenized_train_data = raw_datasets['train'].map(prepare_train_features, 
                                                     batched=True, 
                                                     remove_columns=raw_datasets['train'].column_names,
                                                     # load_from_cache_file=not args.overwrite_cache
@@ -315,8 +313,8 @@ def main():
         batch_size=16,
     )
 
-    for i, item in enumerate(train_loader):
-        print(item['offset_mapping'])
+    # for i, item in enumerate(train_loader):
+    #     print(item['offset_mapping'])
 
     print('Print train_loader len {}'.format(len(train_loader)))
 

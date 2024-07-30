@@ -20,6 +20,7 @@ def torch_customized_data_collator(features: List[InputDataClass]) -> Dict[str, 
     print('Take a look at features first Time')
     print(features)
     print('-'*66)
+    
     if not isinstance(features[0], Mapping):
         features = [vars(f) for f in features]
     first = features[0]
