@@ -310,7 +310,7 @@ def main():
         tokenized_train_data,
         shuffle=True,
         collate_fn=customized_data_collator,
-        batch_size=32,
+        batch_size=16,
     )
 
     # for i, item in enumerate(train_loader):
