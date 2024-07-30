@@ -126,7 +126,7 @@ def main():
     model = AutoModelForQuestionAnswering.from_pretrained("huggingface-course/bert-finetuned-squad")
     config = model.config
 
-    max_length = min(args.max_length, model.model_max_length)
+    max_length = min(args.max_length, tokenizer.model_max_length)
     doc_stride = args.doc_stride
 
     for name, module in tuple(model.named_modules()):
