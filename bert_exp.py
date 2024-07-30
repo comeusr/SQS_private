@@ -15,7 +15,7 @@ from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 
 from transformers import AutoConfig, AutoModel, AutoModelForCausalLM
 from QuantAttention import CustomizeBertSelfAttention
-from transformers.models.bert.modeling_bert import BertSelfAttention, BertSdpaSelfAttention
+from transformers.models.bert.modeling_bert import BertSelfAttention
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 from bert_utils import *
