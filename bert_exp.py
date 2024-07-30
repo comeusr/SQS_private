@@ -271,7 +271,7 @@ def main():
         ###################################
         #  Use cached dataset if possible #
         ###################################
-        raw_datasets = load_dataset(args.dataset_name, args.dataset_config_name, cache_dir="./cache")
+        raw_datasets = load_dataset(args.dataset_name, args.dataset_config_name)
     else:
         data_files = {}
         if args.train_file is not None:
