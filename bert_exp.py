@@ -297,7 +297,7 @@ def main():
                                                     # load_from_cache_file=not args.overwrite_cache
                                                     )
     print(tokenized_train_data)
-    print(tokenized_train_data['offset_maapping'])
+    print(tokenized_train_data['token_type_ids'])
 
     # print('Print tokenized_train_data len'.format(len(tokenized_train_data['input_ids'])))
     # print('Print tokenized_train_data len {}'.format(len(tokenized_train_data)))
