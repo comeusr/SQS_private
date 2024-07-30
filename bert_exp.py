@@ -313,7 +313,7 @@ def main():
         batch_size=32,
     )
 
-    for item in train_loader:
+    for i, item in enumerate(train_loader):
         print(item)
 
     print('Print train_loader len {}'.format(len(train_loader)))
@@ -370,7 +370,7 @@ def main():
         seed=args.seed
 
     ) 
-    
+
     trainer.fit()
 
     trainer.close()
