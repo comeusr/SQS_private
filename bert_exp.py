@@ -289,13 +289,14 @@ def main():
     # tokenized_data=raw_datasets.map(preprocess_function, batched=True, remove_columns=raw_datasets["train"].column_names)
 
     # train_loader = j
+    print(len(raw_datasets))
 
     tokenized_train_data = raw_datasets['train'].map(prepare_train_features, 
                                                     batched=True, 
                                                     remove_columns=raw_datasets['train'].column_names,
                                                     # load_from_cache_file=not args.overwrite_cache
                                                     )
-
+    print(tokenized_train_data)
     print('Print tokenized_train_data len'.format(len(tokenized_train_data['input_ids'])))
 
     tokenized_valid_data = raw_datasets['validation'].map(prepare_validation_features, 
