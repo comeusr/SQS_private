@@ -296,7 +296,7 @@ def main():
                                                     # load_from_cache_file=not args.overwrite_cache
                                                     )
 
-    print('Print tokenized_train_data len'.formart(len(tokenized_train_data['input_ids'])))
+    print('Print tokenized_train_data len'.format(len(tokenized_train_data['input_ids'])))
 
     tokenized_valid_data = raw_datasets['validation'].map(prepare_validation_features, 
                                                     batched=True, 
@@ -311,7 +311,7 @@ def main():
         batch_size=32,
     )
 
-    print('Print train_loader len'.formart(len(train_loader)))
+    print('Print train_loader len'.format(len(train_loader)))
 
 
     val_loader = DataLoader(
