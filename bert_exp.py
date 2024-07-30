@@ -297,8 +297,10 @@ def main():
                                                     # load_from_cache_file=not args.overwrite_cache
                                                     )
     print(tokenized_train_data)
+    print(tokenized_train_data['offset_maapping'])
+
     # print('Print tokenized_train_data len'.format(len(tokenized_train_data['input_ids'])))
-    print('Print tokenized_train_data len {}'.format(len(tokenized_train_data)))
+    # print('Print tokenized_train_data len {}'.format(len(tokenized_train_data)))
 
     tokenized_valid_data = raw_datasets['validation'].map(prepare_validation_features, 
                                                     batched=True, 
@@ -313,8 +315,8 @@ def main():
         batch_size=16,
     )
 
-    # for i, item in enumerate(train_loader):
-    #     print(item)
+    for i, item in enumerate(train_loader):
+        print(item['offset_mapping'])
 
     print('Print train_loader len {}'.format(len(train_loader)))
 
