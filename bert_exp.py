@@ -20,6 +20,7 @@ from transformers.models.bert.modeling_bert import BertSelfAttention
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 from bert_utils import *
+from bert_watch import EpochMonitor
 
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
@@ -363,7 +364,7 @@ def main():
         eval_dataloader=val_loader,
         eval_interval=args.eval_interval,
 
-        callbacks=[LRMonitor(), OptimizerMonitor()],
+        callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
         loggers=[wandb_logger],
         save_overwrite=True,
         save_folder=args.save_folder,
