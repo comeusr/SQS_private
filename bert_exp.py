@@ -133,9 +133,9 @@ def main():
     max_length = min(args.max_length, tokenizer.model_max_length)
     doc_stride = args.doc_stride
 
-    # for name, module in tuple(model.named_modules()):
-    #     if name:
-    #         recursive_setattr(model, name, replace_attn_layer(module, config))
+    for name, module in tuple(model.named_modules()):
+        if name:
+            recursive_setattr(model, name, replace_attn_layer(module, config))
 
     
     model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)
