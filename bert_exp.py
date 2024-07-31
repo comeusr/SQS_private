@@ -2,6 +2,7 @@ import torch
 import math
 import re
 import warnings
+import config as cfg
 import argparse
 from copy import deepcopy
 from composer.core import Algorithm, Event
@@ -120,6 +121,8 @@ def main():
     
     
     args = parser.parse_args()
+
+    cfg.set_config(args=args)
 
     # Load the pretrained model properly. 
     tokenizer = AutoTokenizer.from_pretrained("huggingface-course/bert-finetuned-squad")
