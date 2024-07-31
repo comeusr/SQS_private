@@ -46,8 +46,8 @@ def torch_customized_data_collator(features: List[InputDataClass]) -> Dict[str, 
     # Again, we will use the first element to figure out which key/values are not None for this model.
 
 
-    print("First Feature")
-    print(features[0].keys())
+    # print("First Feature")
+    # print(features[0].keys())
 
     for k, v in first.items():
         if k not in ("label", "label_ids") and v is not None and not isinstance(v, str):
