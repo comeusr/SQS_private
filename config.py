@@ -106,6 +106,6 @@ def set_config(args):
     INIT_METHOD = args.init_method
     PRUNE = args.prune
     PRUNE_SCALE = args.prune_scale
-    PRUNE_FREQ = args.prune_freq
+    # PRUNE_FREQ = args.prune_freq
     DEBUG=args.debug
     
