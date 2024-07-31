@@ -295,10 +295,10 @@ def main():
                                                     batched=True, 
                                                     remove_columns=raw_datasets['train'].column_names,
                                                     )
-    print(tokenized_train_data)
+    # print(tokenized_train_data)
     # print('Print tokenized_train_data len {}'.format(len(tokenized_train_data)))
 
-    tokenized_valid_data = raw_datasets['validation'].map(prepare_validation_features, 
+    tokenized_valid_data = raw_datasets['validation'].map(prepare_train_features, 
                                                     batched=True, 
                                                     remove_columns=raw_datasets['validation'].column_names,
                                                     load_from_cache_file=not args.overwrite_cache
@@ -315,7 +315,7 @@ def main():
     #     print(item['offset_mapping'])
 
     # print('Print train_loader len {}'.format(len(train_loader)))
-    print('Valid Dataset {}'.format(tokenized_valid_data))
+    # print('Valid Dataset {}'.format(tokenized_valid_data))
 
 
     val_loader = DataLoader(

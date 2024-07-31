@@ -63,9 +63,9 @@ def torch_customized_data_collator(features: List[InputDataClass]) -> Dict[str, 
 
 def torch_customized_valid_data_collator(features: List[InputDataClass]) -> Dict[str, Any]:
     
-    print('Take a look at valid features first Time')
-    print(features)
-    print('-'*66)
+    # print('Take a look at valid features first Time')
+    # print(features)
+    # print('-'*66)
 
     if not isinstance(features[0], Mapping):
         features = [vars(f) for f in features]
@@ -92,8 +92,8 @@ def torch_customized_valid_data_collator(features: List[InputDataClass]) -> Dict
     # Again, we will use the first element to figure out which key/values are not None for this model.
 
 
-    print("First Valid Feature")
-    print(features[0].keys())
+    # print("First Valid Feature")
+    # print(features[0].keys())
 
     for k, v in first.items():
         if k not in ("label", "label_ids") and v is not None and not isinstance(v, str):
