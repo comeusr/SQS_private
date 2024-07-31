@@ -315,6 +315,7 @@ def main():
     #     print(item['offset_mapping'])
 
     # print('Print train_loader len {}'.format(len(train_loader)))
+    print('Valid Dataset {}'.format(tokenized_valid_data))
 
 
     val_loader = DataLoader(
@@ -322,6 +323,7 @@ def main():
         collate_fn=customized_valid_data_collator,
         batch_size=args.batch_size,
     )
+    
 
     optimizer = DecoupledAdamW(
         model.parameters(),
