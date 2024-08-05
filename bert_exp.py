@@ -361,7 +361,7 @@ def main():
         eps=1e-8
     )
 
-    accelerator = Accelerator(fp16=True)
+    accelerator = Accelerator(mixed_precision='fp16')
     model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
         model, optimizer, train_dataloader, eval_dataloader
     )
