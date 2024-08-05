@@ -108,8 +108,6 @@ class CustomizeBertSelfAttention(BertSelfAttention):
             key_layer = torch.cat([past_key_value[0], key_layer], dim=2)
             value_layer = torch.cat([past_key_value[1], value_layer], dim=2)
         else:
-            print('Debug encoder_hidden_states')
-            print(encoder_hidden_states)
             key_layer = self.transpose_for_scores(F.linear(hidden_states, key_weight))
             value_layer = self.transpose_for_scores(F.linear(hidden_states, value_weight))  
         
