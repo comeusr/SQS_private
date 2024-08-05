@@ -22,13 +22,15 @@ from transformers import default_data_collator
 from transformers.models.bert.modeling_bert import BertSelfAttention
 from transformers import AutoConfig, AutoModel, AutoModelForCausalLM
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering
-from transformers import get_scheduler
+from transformers import get_scheduler, EvalPrediction
+import evaluate
 from accelerate import Accelerator
 
 from QuantAttention import CustomizeBertSelfAttention
 from datasets import load_dataset
 from bert_utils import *
 from bert_watch import EpochMonitor
+from qa_utils import postprocess_qa_predictions
 
 from torch.utils.data import DataLoader
 
@@ -48,6 +50,7 @@ def recursive_setattr(obj, attr, value):
         setattr(obj, attr[0], value)
     else:
         recursive_setattr(getattr(obj, attr[0]), attr[1], value)
+
 
 
 def watch_quantize_weight(model):
@@ -303,8 +306,6 @@ def main():
 
         return tokenized_examples
     
-    
-
 
     if args.dataset_name is not None:
         # Downloading and loading a dataset from the hub.
@@ -326,6 +327,30 @@ def main():
             extension = args.test_file.split(".")[-1]
         raw_datasets = load_dataset(extension, data_files=data_files, field="data")
 
+    column_names = raw_datasets["train"].column_names
+
+    question_column_name = "question" if "question" in column_names else column_names[0]
+    context_column_name = "context" if "context" in column_names else column_names[1]
+    answer_column_name = "answers" if "answers" in column_names else column_names[2]
+
+
+    def post_processing_function(examples, features, predictions, stage="eval"):
+        # Post-processing: we match the start logits and end logits to answers in the original context.
+        predictions = postprocess_qa_predictions(
+            examples=examples,
+            features=features,
+            predictions=predictions,
+            version_2_with_negative=False,
+            n_best_size=n_best,
+            max_answer_length=max_answer_length,
+            prefix=stage,
+        )
+        # Format the result to the format the metric expects.
+        formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
+
+        references = [{"id": ex["id"], "answers": ex[answer_column_name]} for ex in examples]
+        return EvalPrediction(predictions=formatted_predictions, label_ids=references)
+    
         
     # tokenized_data=raw_datasets.map(preprocess_function, batched=True, remove_columns=raw_datasets["train"].column_names)
 
@@ -347,8 +372,8 @@ def main():
                                                         remove_columns=raw_datasets["validation"].column_names,
                                                         )
     
-    tokenized_validation_data=tokenized_validation_data.remove_columns(["example_id", "offset_mapping"])
-    tokenized_validation_data.set_format('torch')
+    validation_data_for_model=tokenized_validation_data.remove_columns(["example_id", "offset_mapping"])
+    validation_data_for_model.set_format('torch')
     
 
     train_dataloader = DataLoader(
@@ -359,12 +384,12 @@ def main():
     )
 
     eval_dataloader = DataLoader(
-        tokenized_validation_data,
+        validation_data_for_model,
         collate_fn=customized_valid_data_collator,
         batch_size=args.batch_size,
     )
 
-    print(tokenized_validation_data)
+    metric = evaluate.load('squad')
 
     num_train_epochs = args.duration
     num_update_steps_per_epoch = len(train_dataloader)
@@ -428,27 +453,41 @@ def main():
         # Evaluation
         model.eval()
         cfg.IS_TRAIN = False
-        start_logits = []
-        end_logits = []
+        all_start_logits = []
+        all_end_logits = []
         accelerator.print("Evaluation!")
         for batch in tqdm(eval_dataloader):
             with torch.no_grad():
                 outputs = model(**batch)
 
-            start_logits.append(accelerator.gather(outputs.start_logits).cpu().numpy())
-            end_logits.append(accelerator.gather(outputs.end_logits).cpu().numpy())
+            start_logits = outputs.start_logits
+            end_logits = outputs.end_logits
 
-        start_logits = np.concatenate(start_logits)
-        end_logits = np.concatenate(end_logits)
-        start_logits = start_logits[: len(eval_dataloader)]
-        end_logits = end_logits[: len(eval_dataloader)]
 
-        metrics = compute_squad_metrics(
-            start_logits, end_logits, eval_dataloader, raw_datasets["validation"]
-        )
+            if not args.pad_to_max_length:  # necessary to pad predictions and labels for being gathered
+                start_logits = accelerator.pad_across_processes(start_logits, dim=1, pad_index=-100)
+                end_logits = accelerator.pad_across_processes(end_logits, dim=1, pad_index=-100)
 
-        for key in metrics.keys():
-            wandb.log({'Validation'+str(key): metrics[key]})
+            all_start_logits.append(accelerator.gather_for_metrics(start_logits).cpu().numpy())
+            all_end_logits.append(accelerator.gather_for_metrics(end_logits).cpu().numpy())
+
+        max_len = max([x.shape[1] for x in all_start_logits])  # Get the max_length of the tensor
+
+        # concatenate the numpy array
+        start_logits_concat = create_and_fill_np_array(all_start_logits, tokenized_validation_data, max_len)
+        end_logits_concat = create_and_fill_np_array(all_end_logits, tokenized_validation_data, max_len)
+
+        # delete the list of numpy arrays
+        del all_start_logits
+        del all_end_logits
+
+        outputs_numpy = (start_logits_concat, end_logits_concat)
+        prediction = post_processing_function(raw_datasets['validation'], tokenized_validation_data, outputs_numpy)
+        eval_metric = metric.compute(predictions=prediction.predictions, references=prediction.label_ids)
+        # wandb.log({f"Evaluation metrics:" eval_metric}, commit=False)
+
+        for key in eval_metric.keys():
+            wandb.log({'Validation'+str(key): eval_metric[key]}, commit=False)
         
 
 

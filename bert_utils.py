@@ -7,6 +7,9 @@ from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, NewType, Optional, Tuple, Union
 from QuantAttention import CustomizeBertSelfAttention
 
+from transformers import EvalPrediction
+
+from qa_utils import postprocess_qa_predictions
 
 
 InputDataClass = NewType("InputDataClass", Any)
@@ -174,3 +177,36 @@ def compute_squad_metrics(start_logits, end_logits, features, examples):
 
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return squad_metric.compute(predictions=predicted_answers, references=theoretical_answers)
+
+
+def create_and_fill_np_array(start_or_end_logits, dataset, max_len):
+    """
+    Create and fill numpy array of size len_of_validation_data * max_length_of_output_tensor
+
+    Args:
+        start_or_end_logits(:obj:`tensor`):
+            This is the output predictions of the model. We can only enter either start or end logits.
+        eval_dataset: Evaluation dataset
+        max_len(:obj:`int`):
+            The maximum length of the output tensor. ( See the model.eval() part for more details )
+    """
+
+    step = 0
+    # create a numpy array and fill it with -100.
+    logits_concat = np.full((len(dataset), max_len), -100, dtype=np.float64)
+    # Now since we have create an array now we will populate it with the outputs gathered using accelerator.gather_for_metrics
+    for i, output_logit in enumerate(start_or_end_logits):  # populate columns
+        # We have to fill it such that we have to take the whole tensor and replace it on the newly created array
+        # And after every iteration we have to change the step
+
+        batch_size = output_logit.shape[0]
+        cols = output_logit.shape[1]
+
+        if step + batch_size < len(dataset):
+            logits_concat[step : step + batch_size, :cols] = output_logit
+        else:
+            logits_concat[step:, :cols] = output_logit[: len(dataset) - step]
+
+        step += batch_size
+
+    return logits_concat
