@@ -184,6 +184,8 @@ def main():
     
     InitBertModel(model, args.sigma)
 
+    print(model)
+
     pad_on_right = tokenizer.padding_side == "right"
         # Training preprocessing
     def prepare_train_features(examples):
