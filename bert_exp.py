@@ -436,6 +436,7 @@ def main():
 
     for epoch in range(num_train_epochs):
     # Training
+        watch_quantize_weight()
         model.train()
         wandb.log({'epoch': epoch}, commit=False)
         cfg.IS_TRAIN=True
@@ -489,7 +490,7 @@ def main():
         # wandb.log({f"Evaluation metrics:" eval_metric}, commit=False)
 
         for key in eval_metric.keys():
-            wandb.log({'Validation'+str(key): eval_metric[key]}, commit=False)
+            wandb.log({'Validation '+str(key): eval_metric[key]}, commit=False)
         
 
 
