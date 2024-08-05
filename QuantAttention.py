@@ -85,8 +85,8 @@ class CustomizeBertSelfAttention(BertSelfAttention):
                 output_attentions: bool | None = False) -> Tuple[torch.Tensor]:
 
         mixed_query_layer = F.linear(hidden_states, weight=query_weight)
-        print('Debug Key weight')
-        print(key_weight)
+        # print('Debug Key weight')
+        # print(key_weight)
 
         # If this is instantiated as a cross-attention module, the keys
         # and values come from an encoder; the attention mask needs to be
@@ -108,6 +108,8 @@ class CustomizeBertSelfAttention(BertSelfAttention):
             key_layer = torch.cat([past_key_value[0], key_layer], dim=2)
             value_layer = torch.cat([past_key_value[1], value_layer], dim=2)
         else:
+            print('Debug encoder_hidden_states')
+            print(encoder_hidden_states)
             key_layer = self.transpose_for_scores(F.linear(encoder_hidden_states, key_weight))
             value_layer = self.transpose_for_scores(F.linear(encoder_hidden_states, value_weight))  
         
