@@ -329,7 +329,7 @@ def main():
                                                         remove_columns=raw_datasets["validation"].column_names,
                                                         )
     
-    tokenized_validation_data.remove_columns(["example_id", "offset_mapping"])
+    tokenized_validation_data=tokenized_validation_data.remove_columns(["example_id", "offset_mapping"])
     tokenized_validation_data.set_format('torch')
     
 
