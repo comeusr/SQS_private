@@ -164,13 +164,13 @@ def main():
     wandb.init(project='Quantization_BERT_SQUAD', name=args.run_name)
 
     # Load the pretrained model properly. 
-    # tokenizer = AutoTokenizer.from_pretrained("huggingface-course/bert-finetuned-squad")
-    # model = AutoModelForQuestionAnswering.from_pretrained("huggingface-course/bert-finetuned-squad")
+    tokenizer = AutoTokenizer.from_pretrained("huggingface-course/bert-finetuned-squad")
+    model = AutoModelForQuestionAnswering.from_pretrained("huggingface-course/bert-finetuned-squad")
     # tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-large-uncased-whole-word-masking-finetuned-squad")
     # model = AutoModelForQuestionAnswering.from_pretrained("google-bert/bert-large-uncased-whole-word-masking-finetuned-squad")
-    model_checkpoint = "distilbert-base-uncased"
-    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-    model = AutoModelForQuestionAnswering.from_pretrained(model_checkpoint)
+    # model_checkpoint = "distilbert-base-uncased"
+    # tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+    # model = AutoModelForQuestionAnswering.from_pretrained(model_checkpoint)
     config = model.config
 
     max_length = min(args.max_length, tokenizer.model_max_length)
