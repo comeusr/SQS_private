@@ -50,6 +50,9 @@ def recursive_setattr(obj, attr, value):
         recursive_setattr(getattr(obj, attr[0]), attr[1], value)
 
 
+# def watch_lr(optimizer):
+
+
 def main():
     parser = argparse.ArgumentParser(description="Unify Pruning and Quantization via VI on BERT model",
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -135,7 +138,7 @@ def main():
 
     wandb.login()
 
-    wandb.init(project='Quantization_BERT_SQUAD')
+    wandb.init(project='Quantization_BERT_SQUAD', name=args.run_name)
 
     # Load the pretrained model properly. 
     # tokenizer = AutoTokenizer.from_pretrained("huggingface-course/bert-finetuned-squad")
@@ -337,11 +340,13 @@ def main():
         batch_size=16,
     )
 
-    val_dataloader = DataLoader(
+    eval_dataloader = DataLoader(
         tokenized_validation_data,
         collate_fn=customized_valid_data_collator,
         batch_size=args.batch_size,
     )
+
+    print(tokenized_validation_data)
 
     num_train_epochs = args.duration
     num_update_steps_per_epoch = len(train_dataloader)
@@ -363,7 +368,7 @@ def main():
 
     accelerator = Accelerator(mixed_precision='fp16')
     model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
-        model, optimizer, train_dataloader, val_dataloader
+        model, optimizer, train_dataloader, eval_dataloader
     )
 
     lr_scheduler = get_scheduler(
@@ -373,7 +378,7 @@ def main():
         num_training_steps=num_training_steps,
     )
 
-    wandb.watch(model, log='all')
+    # wandb.watch(model, log='all')
 
     # wandb_logger = WandBLogger(
     #     project=args.project_name,
