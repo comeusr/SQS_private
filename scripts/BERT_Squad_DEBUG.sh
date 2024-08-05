@@ -21,7 +21,7 @@ SIGMA=3
 # CIFAR100_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD}
 
 
-sbatch --time=02:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
+sbatch --time=04:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #!/bin/bash -l
 
 #SBATCH --output /home/wang4538/DGMS-master/out/%j.out
