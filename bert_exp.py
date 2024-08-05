@@ -363,7 +363,7 @@ def main():
 
     accelerator = Accelerator(mixed_precision='fp16')
     model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
-        model, optimizer, train_dataloader, eval_dataloader
+        model, optimizer, train_dataloader, val_dataloader
     )
 
     lr_scheduler = get_scheduler(
