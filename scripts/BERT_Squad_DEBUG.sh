@@ -28,7 +28,7 @@ sbatch --time=01:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #SBATCH --error /home/wang4538/DGMS-master/out/%j.out
 
 nvidia-smi
-python ../bert_exp.py $DATASET  --K ${K} --tau ${TEMP} --weight_decay ${WD} --debug \
+python ../bert_exp.py $DATASET  --K ${K} --tau ${TEMP} --weight_decay ${WD} \
        --lr ${LR} --duration ${EPOCHS} --alpha_f ${FINAL_LR} --seed ${SEED} --init_method ${INIT_METHOD} \
        --run_name nonF_Squad_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_LR${LR}_PRTEMP${PRUNE_TEMP}_WD${WD}_SIGMA${SIGMA}  \
        --autoresume --eval_interval ${EVAL_INTERV} --prune_scale ${PRUNE_TEMP} --warm_up ${WARM_UP} --sigma ${SIGMA} \
