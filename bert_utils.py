@@ -1,11 +1,20 @@
-import torch.nn as nn
-from QuantAttention import CustomizeBertSelfAttention
-import torch
-from collections.abc import Mapping
 import numpy as np
+import torch
+import torch.nn as nn
+import evaluate
+import collections
+from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, NewType, Optional, Tuple, Union
+from QuantAttention import CustomizeBertSelfAttention
+
+
 
 InputDataClass = NewType("InputDataClass", Any)
+
+squad_metric = evaluate.load('squad')
+
+n_best = 20
+max_answer_length = 30
 
 
 def InitBertModel(model:nn.Module, sigma):
@@ -114,3 +123,54 @@ def customized_data_collator(features: List[InputDataClass], return_tensors="pt"
 def customized_valid_data_collator(features: List[InputDataClass], return_tensors="pt") -> Dict[str, Any]:
     if  return_tensors=="pt":
         return torch_customized_valid_data_collator(features)
+    
+
+
+def compute_squad_metrics(start_logits, end_logits, features, examples):
+    example_to_features = collections.defaultdict(list)
+    for idx, feature in enumerate(features):
+        example_to_features[feature["example_id"]].append(idx)
+
+    predicted_answers = []
+    for example in examples:
+        example_id = example["id"]
+        context = example["context"]
+        answers = []
+
+        # Loop through all features associated with that example
+        for feature_index in example_to_features[example_id]:
+            start_logit = start_logits[feature_index]
+            end_logit = end_logits[feature_index]
+            offsets = features[feature_index]["offset_mapping"]
+
+            start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+            end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+            for start_index in start_indexes:
+                for end_index in end_indexes:
+                    # Skip answers that are not fully in the context
+                    if offsets[start_index] is None or offsets[end_index] is None:
+                        continue
+                    # Skip answers with a length that is either < 0 or > max_answer_length
+                    if (
+                        end_index < start_index
+                        or end_index - start_index + 1 > max_answer_length
+                    ):
+                        continue
+
+                    answer = {
+                        "text": context[offsets[start_index][0] : offsets[end_index][1]],
+                        "logit_score": start_logit[start_index] + end_logit[end_index],
+                    }
+                    answers.append(answer)
+
+        # Select the answer with the best score
+        if len(answers) > 0:
+            best_answer = max(answers, key=lambda x: x["logit_score"])
+            predicted_answers.append(
+                {"id": example_id, "prediction_text": best_answer["text"]}
+            )
+        else:
+            predicted_answers.append({"id": example_id, "prediction_text": ""})
+
+    theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
+    return squad_metric.compute(predictions=predicted_answers, references=theoretical_answers)

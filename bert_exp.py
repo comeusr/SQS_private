@@ -1,7 +1,11 @@
 import torch
+from torch.optim import AdamW
+
+import wandb
 import math
 import re
 import warnings
+from tqdm.auto import tqdm
 import config as cfg
 import argparse
 from copy import deepcopy
@@ -10,20 +14,23 @@ from composer import Trainer
 from composer.optim import DecoupledAdamW, CosineAnnealingScheduler
 from composer.models.huggingface import HuggingFaceModel
 from composer.callbacks import LRMonitor, OptimizerMonitor, NaNMonitor
-from composer.loggers import WandBLogger
+# from composer.loggers import WandBLogger
 
 from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 
-from transformers import AutoConfig, AutoModel, AutoModelForCausalLM
-from QuantAttention import CustomizeBertSelfAttention
+from transformers import default_data_collator
 from transformers.models.bert.modeling_bert import BertSelfAttention
-from datasets import load_dataset
+from transformers import AutoConfig, AutoModel, AutoModelForCausalLM
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering
+from transformers import get_scheduler
+from accelerate import Accelerator
+
+from QuantAttention import CustomizeBertSelfAttention
+from datasets import load_dataset
 from bert_utils import *
 from bert_watch import EpochMonitor
 
 from torch.utils.data import DataLoader
-from transformers import default_data_collator
 
 
 def replace_attn_layer(module, config):
@@ -97,7 +104,7 @@ def main():
                         help="Initial Learning rate.")
     parser.add_argument('--weight_decay', type=float, default=5e-4,
                         metavar='M', help='w-decay (default: 5e-4)')
-    parser.add_argument('--duration', type=str, default='20ep',
+    parser.add_argument('--duration', type=int, default=20,
                         help="Number of Epochs")
     parser.add_argument('--warm_up', type=str, default='2ep',
                         help='Warm Up epoch before pruning')
@@ -122,8 +129,13 @@ def main():
     
     
     args = parser.parse_args()
+    
 
     cfg.set_config(args=args)
+
+    wandb.login()
+
+    wandb.init(project='Quantization_BERT_SQUAD')
 
     # Load the pretrained model properly. 
     # tokenizer = AutoTokenizer.from_pretrained("huggingface-course/bert-finetuned-squad")
@@ -142,7 +154,7 @@ def main():
     #     if name:
     #         recursive_setattr(model, name, replace_attn_layer(module, config))
 
-    model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)
+    # model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)
     
     InitBertModel(model, args.sigma)
 
@@ -306,83 +318,115 @@ def main():
     # print(tokenized_train_data)
     # print('Print tokenized_train_data len {}'.format(len(tokenized_train_data)))
 
-    tokenized_valid_data = raw_datasets['validation'].map(prepare_train_features, 
-                                                    batched=True, 
-                                                    remove_columns=raw_datasets['validation'].column_names,
-                                                    load_from_cache_file=not args.overwrite_cache
-                                                    )
+    tokenized_train_data.set_format('torch')
 
-    train_loader = DataLoader(
+    tokenized_validation_data = raw_datasets["validation"].map(
+                                                        prepare_validation_features,
+                                                        batched=True,
+                                                        remove_columns=raw_datasets["validation"].column_names,
+                                                        )
+    
+    tokenized_validation_data.remove_columns(["example_id", "offset_mapping"])
+    tokenized_validation_data.set_format('torch')
+    
+
+    train_dataloader = DataLoader(
         tokenized_train_data,
         shuffle=True,
         collate_fn=customized_data_collator,
         batch_size=16,
     )
 
-    # for i, item in enumerate(train_loader):
-    #     print(item['offset_mapping'])
-
-    # print('Print train_loader len {}'.format(len(train_loader)))
-    # print('Valid Dataset {}'.format(tokenized_valid_data))
-
-
-    val_loader = DataLoader(
-        tokenized_valid_data,
+    val_dataloader = DataLoader(
+        tokenized_validation_data,
         collate_fn=customized_valid_data_collator,
         batch_size=args.batch_size,
     )
-    
 
-    optimizer = DecoupledAdamW(
+    num_train_epochs = args.duration
+    num_update_steps_per_epoch = len(train_dataloader)
+    num_training_steps = num_train_epochs * num_update_steps_per_epoch
+
+    # optimizer = DecoupledAdamW(
+    #     model.parameters(),
+    #     lr=args.lr,
+    #     betas=(0.9, 0.999),
+    #     eps=1e-08,
+    #     weight_decay=args.weight_decay
+    # )
+
+    optimizer = AdamW(
         model.parameters(),
         lr=args.lr,
-        betas=(0.9, 0.999),
-        eps=1e-08,
-        weight_decay=args.weight_decay
+        eps=1e-8
     )
 
-    lr_scheduler = CosineAnnealingScheduler(
-        t_max='0.5dur',
-        alpha_f=args.alpha_f,
+    accelerator = Accelerator(fp16=True)
+    model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
+        model, optimizer, train_dataloader, eval_dataloader
     )
 
-    wandb_logger = WandBLogger(
-        project=args.project_name,
-        name=args.run_name,
-        init_kwargs={'config': vars(args)}
+    lr_scheduler = get_scheduler(
+        'cosine',
+        optimizer=optimizer,
+        num_warmup_steps=0,
+        num_training_steps=num_training_steps,
     )
 
+    wandb.watch(model, log='all')
 
-    trainer = Trainer(
-        model=model,
-        optimizers=optimizer,
-        schedulers=lr_scheduler,
+    # wandb_logger = WandBLogger(
+    #     project=args.project_name,
+    #     name=args.run_name,
+    #     init_kwargs={'config': vars(args)}
+    # )
 
-        max_duration=args.duration,
-        device_train_microbatch_size= 'auto',
-        
-        train_dataloader=train_loader,
-        device="gpu" if torch.cuda.is_available() else "mps",
+
+    progress_bar = tqdm(range(num_training_steps))
+
+    for epoch in range(num_train_epochs):
+    # Training
+        model.train()
+        wandb.log({'epoch': epoch}, commit=False)
+        cfg.IS_TRAIN=True
+        for step, batch in enumerate(train_dataloader):
+            curr_step = len(train_dataloader)*epoch+step
+
+            outputs = model(**batch)
+            loss = outputs.loss
+            wandb.log({'Training Loss': loss})
+            accelerator.backward(loss)
+
+            optimizer.step()
+            lr_scheduler.step()
+            optimizer.zero_grad()
+            progress_bar.update(1)
 
         # Evaluation
-        eval_dataloader=val_loader,
-        eval_interval=args.eval_interval,
+        model.eval()
+        cfg.IS_TRAIN = False
+        start_logits = []
+        end_logits = []
+        accelerator.print("Evaluation!")
+        for batch in tqdm(eval_dataloader):
+            with torch.no_grad():
+                outputs = model(**batch)
 
-        callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
-        loggers=[wandb_logger],
-        save_overwrite=True,
-        save_folder=args.save_folder,
-        save_filename="ep{epoch}",
-        run_name=args.run_name,
+            start_logits.append(accelerator.gather(outputs.start_logits).cpu().numpy())
+            end_logits.append(accelerator.gather(outputs.end_logits).cpu().numpy())
 
-        seed=args.seed
+        start_logits = np.concatenate(start_logits)
+        end_logits = np.concatenate(end_logits)
+        start_logits = start_logits[: len(val_dataloader)]
+        end_logits = end_logits[: len(val_dataloader)]
 
-    ) 
+        metrics = compute_squad_metrics(
+            start_logits, end_logits, val_dataloader, raw_datasets["validation"]
+        )
 
-    trainer.fit()
-
-    trainer.close()
-    
+        for key in metrics.keys():
+            wandb.log({'Validation'+str(key): metrics[key]})
+        
 
 
 if __name__ == '__main__':
