@@ -103,15 +103,15 @@ class CustomizeBertSelfAttention(BertSelfAttention):
             value_layer = self.transpose_for_scores(F.linear(encoder_hidden_states, value_weight))
             attention_mask = encoder_attention_mask
         elif past_key_value is not None:
-            key_layer = self.transpose_for_scores(F.linear(encoder_hidden_states, key_weight))
-            value_layer = self.transpose_for_scores(F.linear(encoder_hidden_states, value_weight))
+            key_layer = self.transpose_for_scores(F.linear(hidden_states, key_weight))
+            value_layer = self.transpose_for_scores(F.linear(hidden_states, value_weight))
             key_layer = torch.cat([past_key_value[0], key_layer], dim=2)
             value_layer = torch.cat([past_key_value[1], value_layer], dim=2)
         else:
             print('Debug encoder_hidden_states')
             print(encoder_hidden_states)
-            key_layer = self.transpose_for_scores(F.linear(encoder_hidden_states, key_weight))
-            value_layer = self.transpose_for_scores(F.linear(encoder_hidden_states, value_weight))  
+            key_layer = self.transpose_for_scores(F.linear(hidden_states, key_weight))
+            value_layer = self.transpose_for_scores(F.linear(hidden_states, value_weight))  
         
         query_layer = self.transpose_for_scores(mixed_query_layer)
 
