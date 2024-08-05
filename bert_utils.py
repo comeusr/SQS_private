@@ -24,7 +24,7 @@ def InitBertModel(model:nn.Module, sigma):
 
     for name, m in model.named_modules():
         if isinstance(m, CustomizeBertSelfAttention):
-            print('CustomizeBertSelfAttention')
+            # print('CustomizeBertSelfAttention')
             m.init_mask_params(sigma)
 
 
