@@ -87,6 +87,8 @@ def main():
                         help='Projct name used for wandb.')
     parser.add_argument('--dataset_name', type=str, default=None,
                         help='Dataset')
+    parser.add_argument('--pad_to_max_length', action="store_true",
+                        help="If passed, pad all samples to `max_seq_length`. Otherwise, dynamic padding is used.")
     parser.add_argument('--autoresume', action='store_true', default=False,
                         help="Auto Resume the training process.")
     parser.add_argument(
