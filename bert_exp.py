@@ -180,7 +180,7 @@ def main():
         if name:
             recursive_setattr(model, name, replace_attn_layer(module, config))
 
-    model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)
+    # model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)
     
     InitBertModel(model, args.sigma)
 
