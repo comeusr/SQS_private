@@ -50,6 +50,24 @@ def recursive_setattr(obj, attr, value):
         recursive_setattr(getattr(obj, attr[0]), attr[1], value)
 
 
+def watch_quantize_weight(model):
+    
+    for name, m in model.named_modules():
+        if isinstance(m, CustomizeBertSelfAttention):
+            query_mu, key_mu,value_mu = m.getMu()
+            querySweight, keySweight, valueSweight = m.get_Sweight()
+            queryPweight, keyPweight, valuePweight = m.get_Pweight()
+
+            wandb.log({name+"_S_query": wandb.Histogram(querySweight.data.cpu().numpy())}, commit=False)
+            wandb.log({name+"_S_key": wandb.Histogram(keySweight.data.cpu().numpy())}, commit=False)
+            wandb.log({name+"_S_value": wandb.Histogram(valueSweight.data.cpu().numpy())}, commit=False)
+
+
+            wandb.log({name+"_Mu_query": wandb.Histogram(query_mu)}, commit=False)
+            wandb.log({name+"_Mu_key": wandb.Histogram(key_mu)}, commit=False)
+            wandb.log({name+"_Mu_value": wandb.Histogram(value_mu)}, commit=False)
+
+
 # def watch_lr(optimizer):
 
 
@@ -422,11 +440,11 @@ def main():
 
         start_logits = np.concatenate(start_logits)
         end_logits = np.concatenate(end_logits)
-        start_logits = start_logits[: len(val_dataloader)]
-        end_logits = end_logits[: len(val_dataloader)]
+        start_logits = start_logits[: len(eval_dataloader)]
+        end_logits = end_logits[: len(eval_dataloader)]
 
         metrics = compute_squad_metrics(
-            start_logits, end_logits, val_dataloader, raw_datasets["validation"]
+            start_logits, end_logits, eval_dataloader, raw_datasets["validation"]
         )
 
         for key in metrics.keys():
