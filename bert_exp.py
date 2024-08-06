@@ -86,6 +86,8 @@ def main():
                         help="Run name")
     parser.add_argument('--project_name', type=str,
                         help='Projct name used for wandb.')
+    parser.add_argument('--watch', action='store_true', default=False,
+                        help='Whether choose to watch the paremters of model.')
     parser.add_argument('--dataset_name', type=str, default=None,
                         help='Dataset')
     parser.add_argument('--pad_to_max_length', action="store_true",
