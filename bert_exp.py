@@ -511,7 +511,11 @@ def main():
 
         for key in eval_metric.keys():
             wandb.log({'Validation '+str(key): eval_metric[key]}, commit=False)
-        
+
+        accelerator.wait_for_everyone()
+        unwrapped_model = accelerator.unwrap_model(model)
+        unwrapped_model.save_pretrained(args.save_folder, save_function=accelerator.save)
+
 
 
 if __name__ == '__main__':
