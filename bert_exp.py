@@ -137,8 +137,6 @@ def main():
                         help="Number of Epochs")
     parser.add_argument('--warm_up', type=str, default='2ep',
                         help='Warm Up epoch before pruning')
-    parser.add_argument('--prune_end', type=str, default='1ep',
-                        help='Epoch when Stop the pruning process')
     parser.add_argument('--init_sparsity', type=float, default=0.0,
                         help='Begin with this intial step size.')
     parser.add_argument('--final_sparsity', type=float, default=0.7,
