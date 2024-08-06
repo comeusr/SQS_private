@@ -460,6 +460,7 @@ def main():
             curr_step = len(train_dataloader)*epoch+step
             pruner.prune(curr_step)
             pruner.log_sparsity()
+            pruner.monitor_scheduler_step(optimizer)
 
             outputs = model(**batch)
             loss = outputs.loss
