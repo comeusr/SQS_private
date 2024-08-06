@@ -153,7 +153,7 @@ def main():
                         help='The ratio between the final LR and initial LR.')
     parser.add_argument('--eval_interval', type=str, default='5ep',
                         help='Frequence of validation.')
-    parser.add_argument('--prune_end', type=int, default=3,
+    parser.add_argument('--prune_end', type=float, default=3,
                         help='End of the Pruning')
     parser.add_argument('--prune_start', type=float, default=1, 
                         help='Starting point of the pruning process.')
@@ -435,7 +435,7 @@ def main():
         'cosine',
         optimizer=optimizer,
         num_warmup_steps=0,
-        num_training_steps=num_training_steps,
+        num_training_steps=cfg.PRUNE_END_STEP,
     )
 
     # wandb.watch(model, log='all')

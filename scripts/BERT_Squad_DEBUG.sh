@@ -5,14 +5,14 @@ WD=5e-7
 TEMP=0.0005
 K=4
 LR=2e-5
-EPOCHS=20
+EPOCHS=3
 FINAL_LR=0.01
 EVAL_INTERV='1ep'
 SEED=428
 INIT_METHOD='k-means'
 INIT_SPARSITY=0.0
 FINAL_SPARSITY=0.75
-PRUNE_END=3
+PRUNE_END=2.5
 PRUNE_TEMP=0.01
 WARM_UP=0.5
 PRUNE_INIT_LR=0.01
@@ -28,7 +28,7 @@ sbatch --time=04:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #SBATCH --error /home/wang4538/DGMS-master/out/%j.out
 
 nvidia-smi
-python ../bert_exp.py $DATASET  --K ${K} --tau ${TEMP} --weight_decay ${WD} --prune --debug \
+python ../bert_exp.py $DATASET  --K ${K} --tau ${TEMP} --weight_decay ${WD} --prune \
        --lr ${LR} --duration ${EPOCHS} --alpha_f ${FINAL_LR} --seed ${SEED} --init_method ${INIT_METHOD} \
        --run_name nonF_Squad_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_LR${LR}_PRTEMP${PRUNE_TEMP}_WD${WD}_SIGMA${SIGMA}  \
        --autoresume --eval_interval ${EVAL_INTERV} --prune_scale ${PRUNE_TEMP} --prune_start ${WARM_UP} --sigma ${SIGMA} \
