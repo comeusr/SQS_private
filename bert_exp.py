@@ -17,6 +17,7 @@ from composer.callbacks import LRMonitor, OptimizerMonitor, NaNMonitor
 # from composer.loggers import WandBLogger
 
 from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
+from utils.bert_pruner_quantizer import BERT_PRUNER
 
 from transformers import default_data_collator
 from transformers.models.bert.modeling_bert import BertSelfAttention
@@ -152,6 +153,10 @@ def main():
                         help='The ratio between the final LR and initial LR.')
     parser.add_argument('--eval_interval', type=str, default='5ep',
                         help='Frequence of validation.')
+    parser.add_argument('--prune_end', type=int, defualt=3,
+                        help='End of the Pruning')
+    parser.add_argument('--prune_start', type=float, defualt=1, 
+                        help='Starting point of the pruning process.')
     
     
     args = parser.parse_args()
@@ -393,11 +398,17 @@ def main():
         batch_size=args.batch_size,
     )
 
+    # cfg.PRUNE_END_STEP = len(train_loader)*float(args.prune_end.replace('ep', ''))
+    # cfg.PRUNE_START_STEP = len(train_loader)*float(args.warm_up.replace('ep', ''))
+
     metric = evaluate.load('squad')
 
     num_train_epochs = args.duration
     num_update_steps_per_epoch = len(train_dataloader)
-    num_training_steps = num_train_epochs * num_update_steps_per_epoch
+    cfg.TOT_TRAIN_STEP = num_training_steps = num_train_epochs * num_update_steps_per_epoch
+    cfg.PRUNE_END_STEP = len(train_dataloader)*args.prune_end
+    cfg.PRUNE_START_STEP = len(train_dataloader)*args.prune_start
+
 
     # optimizer = DecoupledAdamW(
     #     model.parameters(),
@@ -417,6 +428,8 @@ def main():
     model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
         model, optimizer, train_dataloader, eval_dataloader
     )
+
+    pruner = BERT_PRUNER(model, init_sparsity=args.init_sparsity , final_sparsity=args.final_sparsity, alpha_f=0.1)
 
     lr_scheduler = get_scheduler(
         'cosine',
@@ -444,11 +457,14 @@ def main():
         cfg.IS_TRAIN=True
         for step, batch in enumerate(train_dataloader):
             curr_step = len(train_dataloader)*epoch+step
+            pruner.prune(curr_step)
+            pruner.log_sparsity()
 
             outputs = model(**batch)
             loss = outputs.loss
             wandb.log({'Training Loss': loss})
             accelerator.backward(loss)
+            pruner.apply_non_prune_gradient(step)
 
             optimizer.step()
             lr_scheduler.step()
