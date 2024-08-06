@@ -453,7 +453,8 @@ def main():
 
     for epoch in range(num_train_epochs):
     # Training
-        watch_quantize_weight(model)
+        if args.watch:
+            watch_quantize_weight(model)
         model.train()
         wandb.log({'epoch': epoch}, commit=False)
         cfg.IS_TRAIN=True
