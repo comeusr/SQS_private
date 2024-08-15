@@ -164,6 +164,8 @@ def main():
                         help='Warm Up epoch before pruning')
     parser.add_argument('--prior_sigma', type=float, default=3,
                         help='Prior Sigma for the KL divergence')
+    parser.add_argument('--sample', action='store_true', default=False,
+                        help="Whether sample quantization weights or take the maximum")
 
     # args = parser.parse_args([
     #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",

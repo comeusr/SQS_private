@@ -85,6 +85,7 @@ INIT_METHOD = ""
 PRUNE_SCALE = 0.1
 PRUNE_FREQ = 10
 DEBUG = False
+SAMPLE = False
 
 def set_status(flag):
     global IS_TRAIN
@@ -108,4 +109,5 @@ def set_config(args):
     PRUNE_SCALE = args.prune_scale
     # PRUNE_FREQ = args.prune_freq
     DEBUG=args.debug
+    SAMPLE=args.sample
     

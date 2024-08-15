@@ -18,6 +18,8 @@ from transformers.models.bert.modeling_bert import load_tf_weights_in_bert, \
     BertSelfAttention, BertSelfOutput, BertAttention, \
     BertIntermediate, BertOutput, BertLayer, BertPooler, BertPredictionHeadTransform, BertLMPredictionHead, \
     BertOnlyMLMHead, BertOnlyNSPHead, BertPreTrainingHeads
+from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
+from transformers.cache_utils import Cache, HybridCache
 
 
 
@@ -207,6 +209,164 @@ class CustomizeBertSelfAttention(BertSelfAttention):
                                 past_key_value, 
                                 output_attentions)
     
+
+class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
+
+    def __init__(self, config, is_cross_attention=False, layer_idx=None):
+        super().__init__(config, is_cross_attention, layer_idx)
+
+        self.is_normal = cfg.IS_NORMAL
+
+        self.k_level = cfg.K_LEVEL
+        self.temperature = cfg.TAU
+
+    
+    def init_mask_params(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+        self.c_attn.sub_distribution = gmm_approximation(self.k_level, self.c_attn.weight, self.temperature, init_method, sigma)
+        self.c_proj.sub_distribution = gmm_approximation(self.k_level, self.c_proj.weight, self.temperature, init_method, sigma)
+
+    def get_Sweight(self):
+        # soft quantized weights during training
+        with torch.no_grad():
+            return (self.c_attn.sub_distribution(weights=self.c_attn.weight, train=True),
+                    self.c_proj.sub_distribution(weights=self.c_proj.weight, train=True))
+    
+    def QuantizedWeights(self):
+        if cfg.IS_TRAIN:
+            c_attn_weights = self.c_attn.sub_distribution(weights=self.c_attn.weight, train=True)
+            c_proj_weights = self.c_proj.sub_distribution(weights=self.c_proj.weight, train=True)
+        else:
+            c_attn_weights = self.c_attn.sub_distribution(weights=self.c_attn.weight, train=True)
+            c_proj_weights = self.c_proj.sub_distribution(weights=self.c_proj.weight, train=True)
+        
+        return c_attn_weights, c_proj_weights
+        
+
+    def softforward(
+        self,
+        c_attn_weights,
+        c_proj_weights,
+        hidden_states: Optional[Tuple[torch.FloatTensor]],
+        layer_past: Optional[Tuple[torch.Tensor]] = None,
+        attention_mask: Optional[torch.FloatTensor] = None,
+        head_mask: Optional[torch.FloatTensor] = None,
+        encoder_hidden_states: Optional[torch.Tensor] = None,
+        encoder_attention_mask: Optional[torch.FloatTensor] = None,
+        use_cache: Optional[bool] = False,
+        output_attentions: Optional[bool] = False,
+    ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor]], ...]:
+        
+        bsz, q_len, _ = hidden_states.size()
+
+        # Initial attention projections
+        is_cross_attention = encoder_hidden_states is not None
+        if is_cross_attention:
+            if not hasattr(self, "q_attn"):
+                raise ValueError(
+                    "If class is used as cross attention, the weights `q_attn` have to be defined. "
+                    "Please make sure to instantiate class with `GPT2SdpaAttention(..., is_cross_attention=True)`."
+                )
+
+            query = self.q_attn(hidden_states)
+            key, value = self.c_attn(encoder_hidden_states).split(self.split_size, dim=2)
+            attention_mask = encoder_attention_mask
+        else:
+            query, key, value = F.conv1d(hidden_states, c_attn_weights).split(self.split_size, dim=2)
+
+        query = self._split_heads(query, self.num_heads, self.head_dim)
+        key = self._split_heads(key, self.num_heads, self.head_dim)
+        value = self._split_heads(value, self.num_heads, self.head_dim)
+
+        # Optional kv caching
+        if layer_past is not None:
+            past_key = layer_past[0]
+            past_value = layer_past[1]
+            key = torch.cat((past_key, key), dim=-2)
+            value = torch.cat((past_value, value), dim=-2)
+
+        present = None
+        if use_cache is True:
+            present = (key, value)
+
+        # Avoid torch==2.1.2 specific bug for the memory-efficient backend in SDPA
+        if self.require_contiguous_qkv and query.device.type == "cuda" and attention_mask is not None:
+            query = query.contiguous()
+            key = key.contiguous()
+            value = value.contiguous()
+
+        # We dispatch to SDPA's Flash Attention or Efficient kernels via this `is_causal` if statement instead of an inline conditional assignment
+        # in SDPA to support both torch.compile's dynamic shapes and full graph options. An inline conditional prevents dynamic shapes from compiling.
+        is_causal = True if attention_mask is None and q_len > 1 and not is_cross_attention else False
+
+        attn_output = torch.nn.functional.scaled_dot_product_attention(
+            query,
+            key,
+            value,
+            attn_mask=attention_mask,
+            dropout_p=self.attn_dropout.p if self.training else 0.0,
+            is_causal=is_causal,
+        )
+
+        # Reshape outputs
+        attn_output = attn_output.transpose(1, 2).contiguous()
+        attn_output = attn_output.view(bsz, q_len, self.embed_dim)
+
+        # Final projection
+        attn_output = F.conv1d(attn_output, c_proj_weights)
+        attn_output = self.resid_dropout(attn_output)
+
+        return attn_output, present, None
+    
+    def forward(
+        self,
+        hidden_states: Optional[Tuple[torch.FloatTensor]],
+        layer_past: Optional[Tuple[torch.Tensor]] = None,
+        attention_mask: Optional[torch.FloatTensor] = None,
+        head_mask: Optional[torch.FloatTensor] = None,
+        encoder_hidden_states: Optional[torch.Tensor] = None,
+        encoder_attention_mask: Optional[torch.FloatTensor] = None,
+        use_cache: Optional[bool] = False,
+        output_attentions: Optional[bool] = False,
+    ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor]], ...]:
+        
+        if self.is_normal:
+            return super().forward(
+                hidden_states=hidden_states,
+                layer_past=layer_past,
+                attention_mask=attention_mask,
+                head_mask=head_mask,
+                encoder_hidden_states=encoder_hidden_states,
+                encoder_attention_mask=encoder_attention_mask,
+                use_cache=use_cache,
+                output_attentions=output_attentions
+            )
+        else:
+            c_attn_weights, c_proj_weioghts = self.QuantizedWeights()
+            return self.softforward(
+                c_attn_weights=c_attn_weights,
+                c_proj_weights=c_proj_weioghts,
+                hidden_states=hidden_states,
+                layer_past=layer_past,
+                attention_mask=attention_mask,
+                head_mask=head_mask,
+                encoder_hidden_states=encoder_hidden_states,
+                encoder_attention_mask=encoder_attention_mask,
+                use_cache=use_cache,
+                output_attentions=output_attentions
+            )
+    
+
+
+        
+        
+
+
+
+
+
+
+        
 
 # class BertLayer():
 #     def __init__(self, config):

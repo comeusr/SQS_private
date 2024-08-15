@@ -178,6 +178,9 @@ def main():
     # model = AutoModelForQuestionAnswering.from_pretrained(model_checkpoint)
     config = model.config
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+
     max_length = min(args.max_length, tokenizer.model_max_length)
     doc_stride = args.doc_stride
 
@@ -188,8 +191,6 @@ def main():
     # model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)
     
     InitBertModel(model, args.sigma)
-
-    print(model)
 
     pad_on_right = tokenizer.padding_side == "right"
         # Training preprocessing
