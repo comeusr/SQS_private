@@ -4,7 +4,6 @@ from modeling.DGMS import DGMSConv
 import torch.nn as nn
 import torch
 import numpy as np
-from ..bert_utils import CustomizeBertSelfAttention
 
 
 def check_total_zero(x):
@@ -76,12 +75,6 @@ class EpochMonitor(Callback):
                         #     print("Region Belonging first row zero numel {}".format(m.sub_distribution.region_belonging[0].eq(0.0).sum()))
                         #     print("Region Belonging second row zero numel {}".format(m.sub_distribution.region_belonging[1].eq(0.0).sum()))
                     wandb.log({'Total Sparsity': tot_zero_numel/tot_numel}, commit=False)
-                elif isinstance(m, CustomizeBertSelfAttention):
-                    with torch.no_grad():
-                        query_mu, key_mu,value_mu = m.getMu()
-                        querySweight, keySweight, valueSweight = m.get_Sweight()
-                        queryPweight, keyPweight, valuePweight = m.get_Pweight()
-
 
                     
 
