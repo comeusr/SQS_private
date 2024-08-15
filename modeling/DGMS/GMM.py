@@ -152,6 +152,7 @@ class GaussianMixtureModel(nn.Module):
                     max_index = self.region_belonging.multinomial
                 else:
                     max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
+                print("Print the max_index shape {}".format(max_index.shape))
                 mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
                 # print('Pweight before mask {}'.format(Pweight))
