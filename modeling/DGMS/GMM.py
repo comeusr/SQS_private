@@ -139,7 +139,7 @@ class GaussianMixtureModel(nn.Module):
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
                 # print("torch.mul(self.region_belonging[0], 0.) {}".format(torch.mul(self.region_belonging[0], 0.)))
                 # print("torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()) {}".format(torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())))
-                print("Printing the region_belong shape {}".format(self.region_belonging.shape))                
+                # print("Printing the region_belong shape {}".format(self.region_belonging.shape))               
                 Sweight = torch.mul(self.region_belonging[0], 0.) \
                         + torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
                 # print('Pruning Scaler {}'.format(F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)))
