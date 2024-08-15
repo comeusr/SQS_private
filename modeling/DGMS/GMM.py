@@ -123,13 +123,13 @@ class GaussianMixtureModel(nn.Module):
             if train:
                 # soft mask generalized pruning during training
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-                print("Printing the region_belong shape {}".format(self.region_belonging.shape))
+                # print("Printing the region_belong shape {}".format(self.region_belonging.shape))
                 Sweight = torch.mul(self.region_belonging[0], 0.) \
                         + torch.mul(self.region_belonging[1:], self.mu.unsqueeze(1)).sum(dim=0)
                 return Sweight.view(weights.size())
             else:
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-                print("Printing the region_belong shape {}".format(self.region_belonging.shape))
+                # print("Printing the region_belong shape {}".format(self.region_belonging.shape))
                 max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
                 mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 Pweight = torch.mul(mask_w[1:], self.mu.unsqueeze(1)).sum(dim=0)
@@ -146,13 +146,13 @@ class GaussianMixtureModel(nn.Module):
                 return Sweight.view(weights.size())
             else:
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-                print("Printing the region_belong shape {}".format(self.region_belonging.shape))               
+                # print("Printing the region_belong shape {}".format(self.region_belonging.shape))               
                 if cfg.SAMPLE:
                     # max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
-                    max_index = self.region_belonging.multinomial
+                    max_index = self.region_belonging.transpose(0, 1).multinomial(num_samples=1).transpose(0, 1)
                 else:
                     max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
-                print("Print the max_index shape {}".format(max_index.shape))
+                # print("Print the max_index shape {}".format(max_index.shape))
                 mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
                 # print('Pweight before mask {}'.format(Pweight))
