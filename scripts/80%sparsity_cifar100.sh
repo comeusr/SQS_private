@@ -32,9 +32,9 @@ sbatch --time=04:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #SBATCH --error /home/wang4538/DGMS-master/out/%j.out
 
 nvidia-smi
-python ../main.py $DATASET $MODEL $RESUME $GPU --K ${K} --tau ${TEMP} --dataset ${DATA_NAME} --weight_decay ${WD} \
+python ../main.py $DATASET $MODEL $RESUME $GPU --K ${K} --tau ${TEMP} --dataset ${DATA_NAME} --weight_decay ${WD} --sample \
        --lr ${LR} --duration ${EPOCHS} --t_warmup "5ep" --alpha_f ${FINAL_LR} --seed ${SEED} --init_method ${INIT_METHOD} \
-       --run_name nonF_CIFAR100_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_LR${LR}_PRTEMP${PRUNE_TEMP}_WD${WD}_SIGMA${SIGMA} --prune_init_lr ${PRUNE_INIT_LR} \
+       --run_name nonF_sample_CIFAR100_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_LR${LR}_PRTEMP${PRUNE_TEMP}_WD${WD}_SIGMA${SIGMA} --prune_init_lr ${PRUNE_INIT_LR} \
        --autoresume --eval_interval ${EVAL_INTERV} --prune_scale ${PRUNE_TEMP} --warm_up ${WARM_UP} --prior_sigma ${SIGMA} \
        --init_sparsity ${INIT_SPARSITY} --final_sparsity ${FINAL_SPARSITY} --prune_end ${PRUNE_END} --prune \
        --save_folder /scratch/gilbreth/wang4538/DGMS/Run/SAMPLE_${INIT_METHOD}${DATA_NAME}_${MODEL_NAME}/K${K}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD}
