@@ -267,7 +267,7 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
             key, value = self.c_attn(encoder_hidden_states).split(self.split_size, dim=2)
             attention_mask = encoder_attention_mask
         else:
-            query, key, value = F.conv1d(hidden_states, c_attn_weights).split(self.split_size, dim=2)
+            query, key, value = F.conv1d(hidden_states, c_attn_weights.view(self.c_attn.out_channels, -1, self.c_attn.kernel_size)).split(self.split_size, dim=2)
 
         query = self._split_heads(query, self.num_heads, self.head_dim)
         key = self._split_heads(key, self.num_heads, self.head_dim)
@@ -308,7 +308,7 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
         attn_output = attn_output.view(bsz, q_len, self.embed_dim)
 
         # Final projection
-        attn_output = F.conv1d(attn_output, c_proj_weights)
+        attn_output = F.conv1d(attn_output, c_proj_weights.view(self.c_proj.out_channels, -1, self.c_proj.kernel_size))
         attn_output = self.resid_dropout(attn_output)
 
         return attn_output, present, None
