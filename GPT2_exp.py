@@ -1,7 +1,7 @@
 import argparse
 from copy import deepcopy
 
-from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
+from transformers.models.gpt2.modeling_gpt2 import *
 
 from QuantAttention import CustomizGPT2SdpaAttention
 from utils.GPT2_pruner_quantizer import GPT2_PRUNER
