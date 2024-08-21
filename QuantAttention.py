@@ -19,7 +19,6 @@ from transformers.models.bert.modeling_bert import load_tf_weights_in_bert, \
     BertIntermediate, BertOutput, BertLayer, BertPooler, BertPredictionHeadTransform, BertLMPredictionHead, \
     BertOnlyMLMHead, BertOnlyNSPHead, BertPreTrainingHeads
 from transformers.models.gpt2.modeling_gpt2 import *
-from transformers.cache_utils import Cache, HybridCache
 
 
 
