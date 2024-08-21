@@ -217,6 +217,9 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
         self.c_attn.sub_distribution = gmm_approximation(self.k_level, self.c_attn.weight, self.temperature, init_method, sigma)
         self.c_proj.sub_distribution = gmm_approximation(self.k_level, self.c_proj.weight, self.temperature, init_method, sigma)
 
+        # self.c_attn = nn.Conv1d(in_channels, out_channels)
+
+
     def get_Sweight(self):
         # soft quantized weights during training
         with torch.no_grad():
@@ -250,6 +253,10 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
         
         bsz, q_len, _ = hidden_states.size()
 
+        print("Original c_attn weight shape {}".format(self.c_attn.weight.shape))
+        print("Customize c_attn weight shape {}".format(c_attn_weights.shape))
+
+
         # Initial attention projections
         is_cross_attention = encoder_hidden_states is not None
         if is_cross_attention:
@@ -264,6 +271,9 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
             attention_mask = encoder_attention_mask
         else:
             query, key, value = F.conv1d(hidden_states, c_attn_weights, self.c_attn.bias).split(self.split_size, dim=2)
+
+        # self.c_attn.weight
+        # self.c_attn(hidden_states)
 
         query = self._split_heads(query, self.num_heads, self.head_dim)
         key = self._split_heads(key, self.num_heads, self.head_dim)
