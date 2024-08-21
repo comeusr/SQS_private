@@ -110,7 +110,7 @@ class GPT2_PRUNER():
                     attnSigma = attnLayer.sigma
                     attnSigma.grad.add_(attnSigma/(attnLayer.init_sigma ** 2)- 1/attnSigma)
 
-                    projLayer = m.proj.sub_distribution
+                    projLayer = m.c_proj.sub_distribution
 
                     projMu = projLayer.mu
                     projMu.grad.add_(projMu/(projLayer.init_sigma ** 2))
