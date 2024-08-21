@@ -255,7 +255,7 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
 
         print("Original c_attn weight shape {}".format(self.c_attn.weight.shape))
         print("Customize c_attn weight shape {}".format(c_attn_weights.shape))
-        
+
         # Initial attention projections
         is_cross_attention = encoder_hidden_states is not None
         if is_cross_attention:
@@ -269,7 +269,7 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
             key, value = self.c_attn(encoder_hidden_states).split(self.split_size, dim=2)
             attention_mask = encoder_attention_mask
         else:
-            query, key, value = F.conv1d(hidden_states, c_attn_weights, self.c_attn.bias).split(self.split_size, dim=2)
+            query, key, value = F.linear(hidden_states, c_attn_weights, self.c_attn.bias).split(self.split_size, dim=2)
 
         # self.c_attn.weight
         # self.c_attn(hidden_states)
@@ -313,7 +313,7 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
         attn_output = attn_output.view(bsz, q_len, self.embed_dim)
 
         # Final projection
-        attn_output = F.conv1d(attn_output, c_proj_weights, self.c_proj.bias)
+        attn_output = F.linear(attn_output, c_proj_weights, self.c_proj.bias)
         attn_output = self.resid_dropout(attn_output)
 
         return attn_output, present, None
