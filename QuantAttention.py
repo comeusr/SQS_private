@@ -248,6 +248,10 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
         output_attentions: Optional[bool] = False,
     ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor]], ...]:
         
+        print("Original c_attn weights shape {}".format(self.c_attn.weight.shape))
+        print("Original soft c_attn weights shape {}".format(c_attn_weights))
+
+
         bsz, q_len, _ = hidden_states.size()
 
         # Initial attention projections
