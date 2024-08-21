@@ -233,14 +233,14 @@ def main():
         tokenized_train_data,
         shuffle=True,
         collate_fn=data_collator,
-        batch_size=16
+        batch_size=8
     )
 
     eval_dataloader = DataLoader(
         tokenized_validation_data,
         shuffle=True,
         collate_fn=data_collator,
-        batch_size=32
+        batch_size=8
     )
 
 
