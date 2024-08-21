@@ -249,7 +249,7 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
     ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor]], ...]:
         
         print("Original c_attn weights shape {}".format(self.c_attn.weight.shape))
-        print("Original soft c_attn weights shape {}".format(c_attn_weights))
+        print("Original soft c_attn weights shape {}".format(c_attn_weights.shape))
 
 
         bsz, q_len, _ = hidden_states.size()
