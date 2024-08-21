@@ -236,7 +236,7 @@ def main():
         batch_size=16
     )
 
-    validation_dataloader = DataLoader(
+    eval_dataloader = DataLoader(
         tokenized_validation_data,
         shuffle=True,
         collate_fn=data_collator,
@@ -318,7 +318,7 @@ def main():
         
         model.eval()
         cfg.IS_TRAIN = False
-        eval_loss, eval_ppl = evaluate(model, validation_dataloader)
+        eval_loss, eval_ppl = evaluate(model, eval_dataloader)
 
         wandb.log({'Validation Loss': eval_loss}, commit=False)
         wandb.log({'Validation PPL': eval_ppl}, commit=False)
