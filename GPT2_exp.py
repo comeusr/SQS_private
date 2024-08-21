@@ -149,6 +149,8 @@ def main():
                         help='End of the Pruning')
     parser.add_argument('--prune_start', type=float, default=1, 
                         help='Starting point of the pruning process.')
+    parser.add_argument('--sample', action='store_true', default=False,
+                        help = "Use Bayesian Sample or Not")
 
     args = parser.parse_args()
     
