@@ -1,6 +1,8 @@
 import argparse
 from copy import deepcopy
 
+from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
+
 from QuantAttention import CustomizGPT2SdpaAttention
 from utils.GPT2_pruner_quantizer import GPT2_PRUNER
 
@@ -17,7 +19,6 @@ import config as cfg
 
 #Huggingface
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
 from transformers import DataCollatorForLanguageModeling
 from transformers import get_scheduler, EvalPrediction
 
@@ -327,4 +328,5 @@ def main():
 
 
 if __name__ == "__main__":
+    from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
     main()
