@@ -328,8 +328,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
-    # main()
-    model = AutoModelForCausalLM.from_pretrained("openai-community/gpt2")
-    print(model)
+    main()
 
