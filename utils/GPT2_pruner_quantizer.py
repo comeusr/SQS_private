@@ -11,7 +11,7 @@ from composer.core import Algorithm
 def sigmoid_derivative(x):
     return F.sigmoid(x)*(1-F.sigmoid(x))
 
-class GPT2_PRUNER(Algorithm):
+class GPT2_PRUNER():
 
     def __init__(self, model, init_sparsity, final_sparsity, alpha_f):
         self.init_sparsity = init_sparsity
