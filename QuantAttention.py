@@ -1,10 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
-
 import torch
 from torch import nn
-from torch.nn import CrossEntropyLoss, MSELoss
 import torch.nn.functional as F
 from torch.distributions.bernoulli import Bernoulli
 import config as cfg
@@ -12,15 +9,9 @@ from modeling.DGMS.GMM import *
 
 from typing import List, Optional, Tuple, Union
 
-from transformers.modeling_utils import PreTrainedModel, prune_linear_layer
-from transformers.models.bert.configuration_bert import BertConfig
 from transformers.models.bert.modeling_bert import load_tf_weights_in_bert, \
-    BertSelfAttention, BertSelfOutput, BertAttention, \
-    BertIntermediate, BertOutput, BertLayer, BertPooler, BertPredictionHeadTransform, BertLMPredictionHead, \
-    BertOnlyMLMHead, BertOnlyNSPHead, BertPreTrainingHeads
-from transformers.models.gpt2.modeling_gpt2 import *
-from transformers.cache_utils import *
-
+    BertSelfAttention
+from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
 
 
 class CustomizeBertSelfAttention(BertSelfAttention):

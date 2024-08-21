@@ -1,7 +1,7 @@
 import argparse
 from copy import deepcopy
 
-from transformers.models.gpt2.modeling_gpt2 import *
+from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
 
 from QuantAttention import CustomizGPT2SdpaAttention
 from utils.GPT2_pruner_quantizer import GPT2_PRUNER
@@ -329,4 +329,7 @@ def main():
 
 if __name__ == "__main__":
     # from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
-    main()
+    # main()
+    model = AutoModelForCausalLM.from_pretrained("openai-community/gpt2")
+    print(model)
+
