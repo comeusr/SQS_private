@@ -281,6 +281,8 @@ def main():
             with torch.no_grad():
                 outputs = model(batch["input_ids"], labels=batch["input_ids"])
 
+            print("Eval losses {}".format(outputs.loss.item()))
+
             losses.append(accelerator.gather(outputs.loss))
         loss = torch.mean(torch.cat(losses))
         try:
@@ -307,7 +309,7 @@ def main():
 
             outputs = model(**batch)
             loss = outputs.loss
-            wandb.log({'Training Loss': loss})
+            wandb.log({'Training Loss': loss.item()})
             accelerator.backward(loss)
             pruner.apply_non_prune_gradient(step)
 
