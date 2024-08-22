@@ -283,7 +283,7 @@ def main():
 
             # print("Eval losses {}".format(outputs.loss.item()))
 
-            losses.append(accelerator.gather(outputs.loss.item().reshape(1)))
+            losses.append(accelerator.gather(outputs.loss).reshape(1))
         
         print(losses)
         loss = torch.mean(torch.cat(losses))
