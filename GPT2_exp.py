@@ -318,10 +318,10 @@ def main():
             optimizer.zero_grad()
             progress_bar.update(1)
             
-            break
         
         model.eval()
         cfg.IS_TRAIN = False
+        # Evaluate Model on validation dataset. 
         eval_loss, eval_ppl = evaluate(model, eval_dataloader)
 
         wandb.log({'Validation Loss': eval_loss}, commit=False)
