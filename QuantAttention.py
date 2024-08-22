@@ -253,8 +253,8 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
         
         bsz, q_len, _ = hidden_states.size()
 
-        print("Original c_attn weight shape {}".format(self.c_attn.weight.shape))
-        print("Customize c_attn weight shape {}".format(c_attn_weights.shape))
+        # print("Original c_attn weight shape {}".format(self.c_attn.weight.shape))
+        # print("Customize c_attn weight shape {}".format(c_attn_weights.shape))
 
         # Initial attention projections
         is_cross_attention = encoder_hidden_states is not None

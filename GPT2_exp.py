@@ -315,6 +315,8 @@ def main():
             lr_scheduler.step()
             optimizer.zero_grad()
             progress_bar.update(1)
+            
+            break
         
         model.eval()
         cfg.IS_TRAIN = False
