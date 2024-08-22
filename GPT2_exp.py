@@ -281,9 +281,9 @@ def main():
             with torch.no_grad():
                 outputs = model(batch["input_ids"], labels=batch["input_ids"])
 
-            print("Eval losses {}".format(outputs.loss.item()))
+            # print("Eval losses {}".format(outputs.loss.item()))
 
-            losses.append(accelerator.gather(outputs.loss))
+            losses.append(accelerator.gather(outputs.loss.item().reshape(1)))
         
         print(losses)
         loss = torch.mean(torch.cat(losses))
