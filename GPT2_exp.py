@@ -284,6 +284,8 @@ def main():
             print("Eval losses {}".format(outputs.loss.item()))
 
             losses.append(accelerator.gather(outputs.loss))
+        
+        print(losses)
         loss = torch.mean(torch.cat(losses))
         try:
             perplexity = torch.exp(loss)
