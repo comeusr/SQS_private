@@ -335,16 +335,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    tokenizer = AutoTokenizer.from_pretrained("openai-community/gpt2")
-    model = AutoModelForCausalLM.from_pretrained("openai-community/gpt2")
-
-    model.to('mps')
-
-    config = model.config
-
-    for name, module in tuple(model.named_modules()):
-        if name:
-            recursive_setattr(model, name, replace_attn_layer(module, config))
-
+    main()
 
