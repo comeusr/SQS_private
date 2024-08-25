@@ -31,6 +31,7 @@ def replace_attn_layer(module, config):
         target_state_dict   = deepcopy(module.state_dict())
         new_module          = CustomizGPT2SdpaAttention(config, is_cross_attention=module.is_cross_attention, )
         new_module.load_state_dict(target_state_dict)
+        print("Replace with Customize Attention Layer.")
         return new_module
     else:
         return module
@@ -334,5 +335,16 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    tokenizer = AutoTokenizer.from_pretrained("openai-community/gpt2")
+    model = AutoModelForCausalLM.from_pretrained("openai-community/gpt2")
+
+    model.to('mps')
+
+    config = model.config
+
+    for name, module in tuple(model.named_modules()):
+        if name:
+            recursive_setattr(model, name, replace_attn_layer(module, config))
+
 
