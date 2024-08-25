@@ -203,7 +203,7 @@ class GPT2_PRUNER():
                 self.apply_pruning_grad(self.model)
             elif cfg.PRUNE and (step <= cfg.PRUNE_START_STEP or step > cfg.PRUNE_END_STEP):
                 self.apply_mu_sigma_grad(self.model)
-        except AttributeError:
+        except:
             prune_in_progress = cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP
             if prune_in_progress:
                 print("Pruning in progress.")
