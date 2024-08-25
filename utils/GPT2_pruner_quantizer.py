@@ -182,7 +182,7 @@ class GPT2_PRUNER():
     def prune(self, step):
 
         if cfg.PRUNE and (step <= cfg.PRUNE_START_STEP or step > cfg.PRUNE_END_STEP):
-                self.pruning_grad_false(self.model)
+            self.pruning_grad_false(self.model)
         elif cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP:
             # Set Pruning parameter trainable
             self.pruning_grad_true(self.model)

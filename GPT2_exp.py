@@ -247,8 +247,8 @@ def main():
     num_train_epochs = args.duration
     num_update_steps_per_epoch = len(train_dataloader)
     cfg.TOT_TRAIN_STEP = num_training_steps = num_train_epochs * num_update_steps_per_epoch
-    cfg.PRUNE_END_STEP = len(train_dataloader)*args.prune_end
-    cfg.PRUNE_START_STEP = len(train_dataloader)*args.prune_start
+    cfg.PRUNE_END_STEP = int(len(train_dataloader)*args.prune_end)
+    cfg.PRUNE_START_STEP = int(len(train_dataloader)*args.prune_start)
 
     optimizer = AdamW(
         model.parameters(),
