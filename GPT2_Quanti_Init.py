@@ -141,6 +141,8 @@ def save_init_model():
 
     model = AutoModelForCausalLM.from_pretrained("openai-community/gpt2")
 
+    config = model.config
+
     for name, module in tuple(model.named_modules()):
         if name:
             recursive_setattr(model, name, replace_attn_layer(module, config))
