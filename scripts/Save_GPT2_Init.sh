@@ -1,6 +1,7 @@
 #!/bin/bash -l
 
 DATASET="--dataset_name ptb_text_only"
+
 WD=5e-7
 TEMP=0.00001
 K=3
