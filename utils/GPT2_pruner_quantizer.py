@@ -198,10 +198,23 @@ class GPT2_PRUNER():
             self.prune_with_mask(self.model)
     
     def apply_non_prune_gradient(self, step):
-        if cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP:
-            self.apply_pruning_grad(self.model)
-        elif cfg.PRUNE and (step <= cfg.PRUNE_START_STEP or step > cfg.PRUNE_END_STEP):
-            self.apply_mu_sigma_grad(self.model)
+        try:
+            if cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP:
+                self.apply_pruning_grad(self.model)
+            elif cfg.PRUNE and (step <= cfg.PRUNE_START_STEP or step > cfg.PRUNE_END_STEP):
+                self.apply_mu_sigma_grad(self.model)
+        except AttributeError:
+            prune_in_progress = cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP
+            if prune_in_progress:
+                print("Pruning in progress.")
+            else:
+                print("Not in Pruning.")
+            
+            print("Attention Require Grad or Not")
+            for name, m in self.model.named_modules():
+                if isinstance(m, CustomizGPT2SdpaAttention):
+                    print(m.c_attn.sub_distribution.pruning_parameter.requires_grad)
+
     
     def log_sparsity(self):
         wandb.log({'Sparsity': self.cur_sparsity}, commit=False)
