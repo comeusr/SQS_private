@@ -35,5 +35,5 @@ python ../GPT2_Quanti_Init.py $DATASET  --K ${K} --tau ${TEMP} --weight_decay ${
        --autoresume --eval_interval ${EVAL_INTERV} --prune_scale ${PRUNE_TEMP} --prune_start ${WARM_UP} --sigma ${SIGMA} \
        --init_sparsity ${INIT_SPARSITY} --final_sparsity ${FINAL_SPARSITY} --prune_end ${PRUNE_END} \
        --save_folder /scratch/gilbreth/wang4538/DGMS/Run/${INIT_METHOD}${DATA_NAME}_GPT2/K${K}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD}
-       --save_pretrain_path 
+       --save_pretrain_path /scratch/gilbreth/wang4538/DGMS/pretrained/GPT2_K${K}_Init
 EOT
