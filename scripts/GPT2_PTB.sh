@@ -4,7 +4,7 @@ DATASET="--dataset_name ptb_text_only"
 SAVE_PATH="--save_pretrain_path /scratch/gilbreth/wang4538/DGMS/pretrained/"
 WD=5e-7
 TEMP=0.00001
-K=10
+K=20
 LR=2e-5
 EPOCHS=5
 FINAL_LR=0.01
@@ -26,7 +26,7 @@ sbatch --time=04:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #!/bin/bash -l
 
 #SBATCH --output /home/wang4538/DGMS-master/out/%j.out
-#SBATCH --error /home/wang4538/DGMS-master/out/%j.outs
+#SBATCH --error /home/wang4538/DGMS-master/out/%j.out
 
 nvidia-smi
 python ../GPT2_exp.py $DATASET  --K ${K} --tau ${TEMP} --weight_decay ${WD} --sample \
