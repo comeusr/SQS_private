@@ -150,15 +150,24 @@ def save_init_model():
         if name:
             recursive_setattr(model, name, replace_attn_layer(module, config))
 
+    print()
+
 
     # InitGPT2Model(model, args.sigma)
 
     # model.save_pretrained(args.save_pretrain_path, from_pt=True) 
 
-    model = AutoModelForCausalLM.from_pretrained(args.pretrain_path)
+    # model = AutoModelForCausalLM.from_pretrained(args.pretrain_path)
 
 if __name__ == "__main__":
-    save_init_model()
+    # save_init_model()
+    model = AutoModelForCausalLM.from_pretrained("openai-community/gpt2")
+    config = model.config
+    for name, module in tuple(model.named_modules()):
+        if name:
+            recursive_setattr(model, name, replace_attn_layer(module, config))
+    
+    AutoModel.register
 
 
 
