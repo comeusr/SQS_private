@@ -313,7 +313,8 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
         attn_output = attn_output.view(bsz, q_len, self.embed_dim)
 
         # Final projection
-        attn_output = F.linear(attn_output, c_proj_weights.transpose(0,1), self.c_proj.bias)
+        attn_output = self.c_proj(attn_output)
+        # attn_output = F.linear(attn_output, c_proj_weights.transpose(0,1), self.c_proj.bias)
         attn_output = self.resid_dropout(attn_output)
 
         return attn_output, present, None

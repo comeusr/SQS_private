@@ -50,21 +50,21 @@ class GPT2_PRUNER():
                     # print("Applying sparsisty Gradients")
                     sp=0.01
                     attnLayer = m.c_attn.sub_distribution
-                    projLayer = m.c_proj.sub_distribution
+                    # projLayer = m.c_proj.sub_distribution
 
                     attnP = attnLayer.pruning_parameter/cfg.PRUNE_SCALE
                     attnLayer.pruning_parameter.grad.add_(torch.log(F.sigmoid(attnP)/(sp))*sigmoid_derivative(attnP))
 
-                    projP = projLayer.pruning_parameter/cfg.PRUNE_SCALE
-                    projLayer.pruning_parameter.grad.add_(torch.log(F.sigmoid(projP)/(sp))*sigmoid_derivative(projP))
+                    # projP = projLayer.pruning_parameter/cfg.PRUNE_SCALE
+                    # projLayer.pruning_parameter.grad.add_(torch.log(F.sigmoid(projP)/(sp))*sigmoid_derivative(projP))
 
                     # layer.pruning_parameter.grad.add_(torch.log((1-sp)/(1-F.sigmoid(p)))*sigmoid_derivative(p))
 
                     attnMu = attnLayer.mu
                     attnMu.grad.add_(attnMu, alpha=1/(attnLayer.init_sigma ** 2))
 
-                    projMu = projLayer.mu
-                    projMu.grad.add_(projMu, alpha=1/(projLayer.init_sigma ** 2))
+                    # projMu = projLayer.mu
+                    # projMu.grad.add_(projMu, alpha=1/(projLayer.init_sigma ** 2))
 
 
                     # sigma = layer.sigma
@@ -110,13 +110,13 @@ class GPT2_PRUNER():
                     attnSigma = attnLayer.sigma
                     attnSigma.grad.add_(attnSigma/(attnLayer.init_sigma ** 2)- 1/attnSigma)
 
-                    projLayer = m.c_proj.sub_distribution
+                    # projLayer = m.c_proj.sub_distribution
 
-                    projMu = projLayer.mu
-                    projMu.grad.add_(projMu/(projLayer.init_sigma ** 2))
+                    # projMu = projLayer.mu
+                    # projMu.grad.add_(projMu/(projLayer.init_sigma ** 2))
 
-                    projSigma = projLayer.sigma
-                    projSigma.grad.add_(projSigma/(projLayer.init_sigma ** 2)- 1/projSigma)
+                    # projSigma = projLayer.sigma
+                    # projSigma.grad.add_(projSigma/(projLayer.init_sigma ** 2)- 1/projSigma)
 
 
     
