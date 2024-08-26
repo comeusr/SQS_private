@@ -21,7 +21,7 @@ import config as cfg
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import DataCollatorForLanguageModeling
 from transformers import get_scheduler, EvalPrediction
-
+from transformers import AutoModel
 
 from datasets import load_dataset
 from accelerate import Accelerator
@@ -134,6 +134,9 @@ def save_init_model():
                         help = "Use Bayesian Sample or Not")
     parser.add_argument('--save_pretrain_path', type=str, default=None,
                         help="Path to save the pretrained model.")
+    parser.add_argument('--pretrain_path', type=str, default=None,
+                        help="Path to load pretrained model.")
+
 
     args = parser.parse_args()
     
@@ -148,9 +151,11 @@ def save_init_model():
             recursive_setattr(model, name, replace_attn_layer(module, config))
 
 
-    InitGPT2Model(model, args.sigma)
+    # InitGPT2Model(model, args.sigma)
 
-    model.save_pretrained(args.save_pretrain_path, from_pt=True) 
+    # model.save_pretrained(args.save_pretrain_path, from_pt=True) 
+
+    model = AutoModelForCausalLM.from_pretrained(args.pretrain_path)
 
 if __name__ == "__main__":
     save_init_model()
