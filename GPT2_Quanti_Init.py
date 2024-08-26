@@ -148,7 +148,7 @@ def save_init_model():
             recursive_setattr(model, name, replace_attn_layer(module, config))
 
 
-    InitGPT2Model(model, args.sigma)
+    # InitGPT2Model(model, args.sigma)
 
     model.save_pretrained(args.save_pretrain_path, from_pt=True) 
 
