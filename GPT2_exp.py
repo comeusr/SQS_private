@@ -106,7 +106,7 @@ def main():
     parser.add_argument('--normal', action='store_true', default=False,
                         help='whether train noramlly (default: False)')
     parser.add_argument('--K', type=int, default=4, metavar='K',
-                    help='number of GMM components (default: 2^4=16)')
+                    help='number of GMM components')
     parser.add_argument('--tau', type=float, default=0.01, metavar='TAU',
                         help='gumbel softmax temperature (default: 0.01)')
     parser.add_argument('--init_method', type=str, default='k-means',
@@ -152,6 +152,8 @@ def main():
                         help='Starting point of the pruning process.')
     parser.add_argument('--sample', action='store_true', default=False,
                         help = "Use Bayesian Sample or Not")
+    parser.add_argument('--pretrain_path', type=str, default=None,
+                        help="Path to load pretrained model.")
 
     args = parser.parse_args()
     
@@ -181,7 +183,10 @@ def main():
         if name:
             recursive_setattr(model, name, replace_attn_layer(module, config))
 
-    InitGPT2Model(model, args.sigma)
+    if not args.pretrain_path:
+        InitGPT2Model(model, args.sigma)
+    else:
+        model.from_pretrained(args.pretrain_path)
 
     if args.dataset_name is not None:
             # Downloading and loading a dataset from the hub.
