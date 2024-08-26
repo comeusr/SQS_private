@@ -4,7 +4,7 @@ DATASET="--dataset_name ptb_text_only"
 
 WD=5e-7
 TEMP=0.00001
-K=2
+K=12
 LR=2e-5
 EPOCHS=5
 FINAL_LR=0.01
