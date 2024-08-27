@@ -299,6 +299,13 @@ def main():
     
     progress_bar = tqdm(range(num_training_steps))
 
+    # Evaluate before Train
+    model.eval()
+    cfg.IS_TRAIN = False
+    eval_loss, eval_ppl = evaluate(model, eval_dataloader)
+    wandb.log({'Validation Loss': eval_loss}, commit=False)
+    wandb.log({'Validation PPL': eval_ppl}, commit=False)
+
     for epoch in range(num_train_epochs):
 
         # if args.watch:
