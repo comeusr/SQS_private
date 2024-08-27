@@ -285,7 +285,7 @@ def main():
         losses = []
         for step, batch in enumerate(eval_dataloader):
             with torch.no_grad():
-                outputs = model(batch["input_ids"], labels=batch["input_ids"])
+                outputs = model(**batch)
 
 
             losses.append(accelerator.gather(outputs.loss).reshape(1))
