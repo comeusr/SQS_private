@@ -178,10 +178,10 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
 
-
-    for name, module in tuple(model.named_modules()):
-        if name:
-            recursive_setattr(model, name, replace_attn_layer(module, config))
+    if not args.normal:
+        for name, module in tuple(model.named_modules()):
+            if name:
+                recursive_setattr(model, name, replace_attn_layer(module, config))
 
     if not args.pretrain_path:
         InitGPT2Model(model, args.sigma)
