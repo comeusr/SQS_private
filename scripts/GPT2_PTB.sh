@@ -13,9 +13,9 @@ SEED=428
 INIT_METHOD='k-means'
 INIT_SPARSITY=0.0
 FINAL_SPARSITY=0.75
-PRUNE_END=5
+PRUNE_END=3
 PRUNE_TEMP=0.01
-WARM_UP=0
+WARM_UP=1
 PRUNE_INIT_LR=0.01
 SIGMA=3
 
@@ -29,7 +29,7 @@ sbatch --time=04:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #SBATCH --error /home/wang4538/DGMS-master/out/%j.out
 
 nvidia-smi
-python ../GPT2_exp.py $DATASET  --K ${K} --tau ${TEMP} --weight_decay ${WD} --sample --normal \
+python ../GPT2_exp.py $DATASET  --K ${K} --tau ${TEMP} --weight_decay ${WD} --sample --prune \
        --lr ${LR} --duration ${EPOCHS} --alpha_f ${FINAL_LR} --seed ${SEED} --init_method ${INIT_METHOD} \
        --run_name GPT2_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_LR${LR}_PRTEMP${PRUNE_TEMP}_WD${WD}_SIGMA${SIGMA}  \
        --autoresume --eval_interval ${EVAL_INTERV} --prune_scale ${PRUNE_TEMP} --prune_start ${WARM_UP} --sigma ${SIGMA} \
