@@ -179,7 +179,7 @@ class GMM_Pruning(Algorithm):
         elif event == Event.AFTER_BACKWARD:
             # Add the gradients of KL divergence to pruning parameters
             # print("Apply Pruning Gradient")
-            if cfg.PRUNE and cfg.PRUNE_START_STEP < train_step <= cfg.PRUNE_END_STEP:
+            if cfg.PRUNE and train_step <= cfg.PRUNE_END_STEP:
                 self.apply_pruning_grad(state.model)
             elif cfg.PRUNE and (train_step <= cfg.PRUNE_START_STEP or train_step > cfg.PRUNE_END_STEP):
                 self.apply_mu_sigma_grad(state.model)
