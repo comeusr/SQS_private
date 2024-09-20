@@ -8,8 +8,6 @@ import math
 import wandb
 import torch.nn as nn
 import config as cfg
-import detectors
-import timm
 import copy
 
 from mypath import Path
