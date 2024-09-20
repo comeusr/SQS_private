@@ -19,7 +19,7 @@ FINAL_SPARSITY=0.75
 PRUNE_END='10ep'
 PRUNE_TEMP=0.02
 WARM_UP='1ep'
-PRUNE_INIT_LR=0.001
+PRUNE_INIT_LR=0.05
 
 sbatch --time=01:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #!/bin/bash -l

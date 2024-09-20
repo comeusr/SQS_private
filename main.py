@@ -249,23 +249,21 @@ def main():
     #     alpha_f=args.alpha_f
     # )
 
-    # lr_scheduler  = LinearScheduler(
-    #     alpha_i=1,
-    #     alpha_f=args.alpha_f,
-    # )
+
     prune_end = float(args.prune_end.replace('ep', ''))
     mult = (epochs-prune_end)/prune_end
 
-    # lr_scheduler = CosineAnnealingWarmRestartsScheduler(
-    #     t_0=args.prune_end,
-    #     t_mult=mult,
-    #     alpha_f=args.alpha_f,
-    # )
-
-    lr_scheduler = CosineAnnealingScheduler(
-        t_max='0.5dur',
-        alpha_f=args.alpha_f,
-    )
+    if args.dataset == 'cifar10':
+        lr_scheduler  = LinearScheduler(
+            alpha_i=1,
+            alpha_f=args.alpha_f,
+            t_max='0.5dur'
+        )
+    else:
+        lr_scheduler = CosineAnnealingScheduler(
+            t_max='0.5dur',
+            alpha_f=args.alpha_f,
+        )
 
     trainer = Trainer(
         model=model,
