@@ -16,10 +16,10 @@ FREEZE="--freeze_weight"
 INIT_METHOD='k-means'
 INIT_SPARSITY=0.0
 FINAL_SPARSITY=0.75
-PRUNE_END='8ep'
-PRUNE_TEMP=0.01
+PRUNE_END='10ep'
+PRUNE_TEMP=0.02
 WARM_UP='1ep'
-PRUNE_INIT_LR=0.01
+PRUNE_INIT_LR=0.05
 SIGMA=5
 
 sbatch --time=01:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
