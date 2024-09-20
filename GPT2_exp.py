@@ -194,7 +194,10 @@ def main():
             ###################################
             #  Use cached dataset if possible #
             ###################################
-        raw_dataset = load_dataset(args.dataset_name, args.dataset_config_name, cache_dir="./cache")
+        if args.dataset_name == "wikitext-103-v1":
+            raw_dataset = load_dataset("Salesforce/wikitext", "wikitext-103-v1", cache_dir="./cache")
+        else:
+            raw_dataset = load_dataset(args.dataset_name, args.dataset_config_name, cache_dir="./cache")
     else:
         data_files = {}
         if args.train_file is not None:
@@ -212,8 +215,12 @@ def main():
 
 
     def tokenize_function(example):
+        if args.dataset_name == "ptb_text_only":
+            example = example['sentence']
+        elif args.dataset_name == "wikitext-103-v1":
+            example = example['text']
         
-        return tokenizer(example['sentence'], 
+        return tokenizer(example, 
                          max_length=max_length,
                          return_special_tokens_mask=False, 
                          padding="max_length",

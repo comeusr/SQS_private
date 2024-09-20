@@ -199,10 +199,14 @@ def main():
 
     # Load Pretrain Data
     if args.dataset == 'cifar10':
-        model = timm.create_model("resnet18_cifar10", pretrained=True)
+        # model = timm.create_model("resnet18_cifar10", pretrained=True)
+        model_id = "cifar10_{}".format(args.network)
+        model = torch.hub.load("chenyaofo/pytorch-cifar-models", model_id, pretrained=True)
     elif args.dataset == 'cifar100':
         # print('Loading model Resnet18 trained with cifar100')
-        model = timm.create_model("resnet18_cifar100", pretrained=True)
+        # model = timm.create_model("resnet18_cifar100", pretrained=True)
+        model_id = "cifar100_{}".format(args.network)
+        model = torch.hub.liad("chenyaofo/pytorch-cifar-models", model_id, pretrained=True)
 
     model = DGMSNet(model, args, args.freeze_bn)
 
