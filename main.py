@@ -6,6 +6,7 @@ import os
 import sys
 import math
 import wandb
+import detectors
 import timm
 import torch.nn as nn
 import config as cfg
