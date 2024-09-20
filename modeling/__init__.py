@@ -52,21 +52,12 @@ class DGMSNet(ComposerModel):
                 parameters.append(p)
         
         return parameters
-    
-    def non_pruning_parameters(self):
-        # get the non pruning probability parameters
-        parameters = []
-        for name, p in self.network.named_parameters():
-            if 'pruning_parameter' not in name and 'sub_distribution' in name and p.requires_grad:
-                parameters.append(p)
-        
-        return parameters
 
     def weight_parameters(self):
         # get the origin network parameters
         parameters = []
         for name, p in self.network.named_parameters():
-            if 'sub_distribution' not in name and p.requires_grad:
+            if 'pruning_parameter' not in name and p.requires_grad:
                 parameters.append(p)
         
         return parameters

@@ -165,16 +165,6 @@ def main():
     parser.add_argument('--sample', action='store_true', default=False,
                         help="Whether sample quantization weights or take the maximum")
 
-    # args = parser.parse_args([
-    #     "--train-dir", "/home/wang4538/DGMS-master/CIFAR10/train/", "--val-dir", "/home/wang4538/DGMS-master/CIFAR10/val/", "-d", "cifar10",
-    #     "--num-classes", "10", "--lr", "2e-5",  "--base-size", "32", "--crop-size", "32",
-    #     "--network", "resnet18", "--mask", "--K", "4", "--weight_decay", "5e-4",
-    #     "--empirical", "True", "--tau", "0.01", '--normal', '--freeze_weight',
-    #     "--show-info", "--wandb_watch", "--t_warmup", "1ep", "--alpha_f", "0.001", '--eval_interval', '1ep',
-    #     "--duration", "2ep", "--save_folder", "/scratch/gilbreth/wang4538/DGMS/debug/cifar10", "--autoresume", '--run_name', 'debug',
-    #     '--freeze_weight'
-    # ])
-
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     # saver = Saver(args)
@@ -236,8 +226,7 @@ def main():
     #     print
 
     optimizer = DecoupledAdamW(
-        [{'params': model.pruning_paramters(), 'lr':args.prune_init_lr},
-         {'params':model.non_pruning_parameters()},
+        [{'params':model.pruning_paramters(), 'lr':args.prune_init_lr},
          {'params':model.weight_parameters()}],
         lr=args.lr,
         betas=(0.9, 0.999),
