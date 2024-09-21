@@ -2,14 +2,14 @@
 
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR10/train/ --val-dir /home/wang4538/DGMS-master/CIFAR10/val/ --num-classes 10"
 MODEL="--network resnet20 --mask"
-WD=0
+WD=5e-5
 TEMP=0.001
 K=16
 LR=5e-5
 DATA_NAME="cifar10"
 MODEL_NAME="resnet20"
 EPOCHS="20ep"
-FINAL_LR=0.01
+FINAL_LR=0.0085
 EVAL_INTERV='1ep'
 SEED=428
 FREEZE="--freeze_weight"
@@ -19,7 +19,7 @@ FINAL_SPARSITY=0.50
 PRUNE_END='15ep'
 PRUNE_TEMP=0.035
 WARM_UP='1ep'
-PRUNE_INIT_LR=0.02
+PRUNE_INIT_LR=0.015
 
 sbatch --time=01:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #!/bin/bash -l
