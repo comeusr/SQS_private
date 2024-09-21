@@ -9,7 +9,7 @@ LR=5e-5
 DATA_NAME="cifar10"
 MODEL_NAME="resnet20"
 EPOCHS="25ep"
-FINAL_LR=0.005
+FINAL_LR=0.007
 EVAL_INTERV='1ep'
 SEED=428
 FREEZE="--freeze_weight"
@@ -33,6 +33,6 @@ python ../main.py $DATASET $MODEL $RESUME $GPU --K ${K} --tau ${TEMP} --dataset 
        --run_name sample_${DATA_NAME}_${MODEL_NAME}_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_prtemp${PRUNE_TEMP}_LR${LR}_prLR${PRUNE_INIT_LR}_F${FINAL_LR}_WD${WD} \
        --autoresume --eval_interval ${EVAL_INTERV} --prune_scale ${PRUNE_TEMP} --prune_init_lr ${PRUNE_INIT_LR} \
        --init_sparsity ${INIT_SPARSITY} --final_sparsity ${FINAL_SPARSITY} --prune_end ${PRUNE_END} --prune \
-       --save_folder /scratch/gilbreth/wang4538/DGMS/Run/${INIT_METHOD}${DATA_NAME}_${MODEL_NAME}/K${K}_temp${TEMP}_LR${LR}_prLR${PRUNE_INIT_LR}_F${FINAL_LR}_WD${WD}
+       --save_folder /scratch/gilbreth/wang4538/DGMS/Run/${INIT_METHOD}${DATA_NAME}_${MODEL_NAME}/K${K}_temp${TEMP}_LR${LR}_prLR${PRUNE_INIT_LR}_F${FINAL_LR}_WD${WD}_2
 
 EOT
