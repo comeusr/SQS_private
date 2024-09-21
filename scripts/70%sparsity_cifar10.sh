@@ -1,13 +1,13 @@
 #!/bin/bash -l
 
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR10/train/ --val-dir /home/wang4538/DGMS-master/CIFAR10/val/ --num-classes 10"
-MODEL="--network resnet32 --mask"
+MODEL="--network resnet20 --mask"
 WD=1e-4
 TEMP=0.002
 K=4
 LR=5e-5
 DATA_NAME="cifar10"
-MODEL_NAME="resnet32"
+MODEL_NAME="resnet20"
 EPOCHS="25ep"
 FINAL_LR=0.007
 EVAL_INTERV='1ep'
