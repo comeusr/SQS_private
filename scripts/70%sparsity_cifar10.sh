@@ -17,7 +17,7 @@ INIT_METHOD='k-means'
 INIT_SPARSITY=0.0
 FINAL_SPARSITY=0.50
 PRUNE_END='10ep'
-PRUNE_TEMP=0.05
+PRUNE_TEMP=0.025
 WARM_UP='1ep'
 PRUNE_INIT_LR=0.01
 
@@ -28,7 +28,7 @@ sbatch --time=01:00:00 --nodes=1 --gpus-per-node=1 --mem-per-gpu=40g <<EOT
 #SBATCH --error /home/wang4538/DGMS-master/out/%j.out
 
 nvidia-smi
-python ../main.py $DATASET $MODEL $RESUME $GPU --K ${K} --tau ${TEMP} --dataset ${DATA_NAME} --weight_decay ${WD} \
+python ../main.py $DATASET $MODEL $RESUME $GPU --K ${K} --tau ${TEMP} --dataset ${DATA_NAME} --weight_decay ${WD} --sample \
        --lr ${LR} --duration ${EPOCHS} --t_warmup WARM_UP --alpha_f ${FINAL_LR} --seed ${SEED} --init_method ${INIT_METHOD} \
        --run_name sample_${DATA_NAME}_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_prtemp${PRUNE_TEMP}_LR${LR}_F${FINAL_LR}_WD${WD} \
        --autoresume --eval_interval ${EVAL_INTERV} --prune_scale ${PRUNE_TEMP} --prune_init_lr ${PRUNE_INIT_LR} \
