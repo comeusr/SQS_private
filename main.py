@@ -255,15 +255,15 @@ def main():
     mult = (epochs-prune_end)/prune_end
 
     if args.dataset == 'cifar10':
-        # lr_scheduler  = LinearScheduler(
-        #     alpha_i=1,
-        #     alpha_f=args.alpha_f,
-        #     t_max='0.5dur'
-        # )
-        lr_scheduler = CosineAnnealingScheduler(
-            t_max='0.5dur',
+        lr_scheduler  = LinearScheduler(
+            alpha_i=1,
             alpha_f=args.alpha_f,
+            t_max='0.5dur'
         )
+        # lr_scheduler = CosineAnnealingScheduler(
+        #     t_max='0.5dur',
+        #     alpha_f=args.alpha_f,
+        # )
 
     else:
         lr_scheduler = CosineAnnealingScheduler(
