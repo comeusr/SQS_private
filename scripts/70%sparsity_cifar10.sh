@@ -1,10 +1,10 @@
 #!/bin/bash -l
 
 DATASET="--train-dir /home/wang4538/DGMS-master/CIFAR10/train/ --val-dir /home/wang4538/DGMS-master/CIFAR10/val/ --num-classes 10"
-MODEL="--network resnet32 --mask"
+MODEL="--network resnet20 --mask"
 WD=5e-5
 TEMP=0.001
-K=16
+K=4
 LR=5e-5
 DATA_NAME="cifar10"
 MODEL_NAME="resnet20"
@@ -17,7 +17,7 @@ INIT_METHOD='k-means'
 INIT_SPARSITY=0.0
 FINAL_SPARSITY=0.50
 PRUNE_END='15ep'
-PRUNE_TEMP=0.02
+PRUNE_TEMP=0.035
 WARM_UP='1ep'
 PRUNE_INIT_LR=0.015
 
