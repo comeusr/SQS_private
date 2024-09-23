@@ -11,6 +11,7 @@ import timm
 import torch.nn as nn
 import config as cfg
 import copy
+import torchvision
 
 from mypath import Path
 from dataloader import make_data_loader
@@ -196,6 +197,8 @@ def main():
         # model = timm.create_model("resnet18_cifar100", pretrained=True)
         model_id = "cifar100_{}".format(args.network)
         model = torch.hub.liad("chenyaofo/pytorch-cifar-models", model_id, pretrained=True)
+    elif args.dataset == 'imagenet':
+        model = torchvision.models.resnet18(weights="IMAGENET1K_V1")
 
     model = DGMSNet(model, args, args.freeze_bn)
 
