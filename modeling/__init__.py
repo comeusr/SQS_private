@@ -39,7 +39,7 @@ class DGMSNet(ComposerModel):
         if outputs != None:
             return outputs
         
-        if cfg.SAMLE and cfg.USE_AVERAGE:
+        if cfg.SAMPLE and cfg.USE_AVERAGE:
             logits_list = []
             for i in range(self.args.average_num):
                 logits = self.network(inputs)
