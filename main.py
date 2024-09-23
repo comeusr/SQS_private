@@ -168,7 +168,7 @@ def main():
                         help="Whether sample quantization weights or take the maximum")
     parser.add_argument('--average', action='store_true', default=False,
                         help="Whether use Bayesian Average to ensemble model.")
-    parser.add_argument('--average_num', type=int, defualt=10,
+    parser.add_argument('--average_num', type=int, default=10,
                         help="Number of Models for Bayesian Average.")
 
     args = parser.parse_args()
