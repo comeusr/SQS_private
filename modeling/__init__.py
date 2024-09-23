@@ -35,10 +35,19 @@ class DGMSNet(ComposerModel):
 
     def eval_forward(self, batch, outputs=None):
         cfg.IS_TRAIN = False
+        inputs, _ = batch
         if outputs != None:
             return outputs
-        inputs, _ = batch
-        return self.network(inputs)
+        
+        if cfg.SAMLE and cfg.USE_AVERAGE:
+            logits_list = []
+            for i in range(self.args.average_num):
+                logits = self.network(inputs)
+                logits_list.append(logits)
+            res = sum(logits_list)/len(logits_list)
+        else:
+            res = self.network(inputs)
+        return res
     
     def update_metric(self, batch, outputs, metric):
         _, targets = batch

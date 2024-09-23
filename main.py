@@ -166,6 +166,10 @@ def main():
                         help='Prior Sigma for the KL divergence')
     parser.add_argument('--sample', action='store_true', default=False,
                         help="Whether sample quantization weights or take the maximum")
+    parser.add_argument('--average', action='store_true', default=False,
+                        help="Whether use Bayesian Average to ensemble model.")
+    parser.add_argument('--average_num', type=int, defualt=10,
+                        help="Number of Models for Bayesian Average.")
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
