@@ -198,11 +198,15 @@ def main():
         model = torch.hub.load("chenyaofo/pytorch-cifar-models", model_id, pretrained=True)
     elif args.dataset == 'cifar100':
         # print('Loading model Resnet18 trained with cifar100')
-        model = timm.create_model("resnet18_cifar100", pretrained=True)
+        if args.network == 'resnet18':
+            model = timm.create_model("resnet18_cifar100", pretrained=True)
+        elif args.network == 'resnet50':
+            model = timm.create_model("resnet50_cifar100", pretrained=True)
         # model_id = "cifar100_{}".format(args.network)
         # model = torch.hub.load("chenyaofo/pytorch-cifar-models", model_id, pretrained=True)
     elif args.dataset == 'imagenet':
         model = torchvision.models.resnet18(weights="IMAGENET1K_V1")
+    
 
     model = DGMSNet(model, args, args.freeze_bn)
 
