@@ -188,10 +188,8 @@ def main():
         if name:
             recursive_setattr(model, name, replace_attn_layer(module, config))
 
-    # model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)
+    # model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)    
     
-    InitBertModel(model, args.sigma)
-
     pad_on_right = tokenizer.padding_side == "right"
         # Training preprocessing
     def prepare_train_features(examples):
@@ -447,6 +445,50 @@ def main():
     #     init_kwargs={'config': vars(args)}
     # )
 
+    # Report the unquantized full-precision model
+    model.eval()
+    cfg.IS_TRAIN = False
+    all_start_logits = []
+    all_end_logits = []
+    accelerator.print("Evaluation!")
+    for batch in tqdm(eval_dataloader):
+        with torch.no_grad():
+            outputs = model(**batch)
+
+        start_logits = outputs.start_logits
+        end_logits = outputs.end_logits
+
+
+        if not args.pad_to_max_length:  # necessary to pad predictions and labels for being gathered
+            start_logits = accelerator.pad_across_processes(start_logits, dim=1, pad_index=-100)
+            end_logits = accelerator.pad_across_processes(end_logits, dim=1, pad_index=-100)
+
+        all_start_logits.append(accelerator.gather_for_metrics(start_logits).cpu().numpy())
+        all_end_logits.append(accelerator.gather_for_metrics(end_logits).cpu().numpy())
+
+    max_len = max([x.shape[1] for x in all_start_logits])  # Get the max_length of the tensor
+
+    # concatenate the numpy array
+    start_logits_concat = create_and_fill_np_array(all_start_logits, tokenized_validation_data, max_len)
+    end_logits_concat = create_and_fill_np_array(all_end_logits, tokenized_validation_data, max_len)
+
+    # delete the list of numpy arrays
+    del all_start_logits
+    del all_end_logits
+
+    outputs_numpy = (start_logits_concat, end_logits_concat)
+    prediction = post_processing_function(raw_datasets['validation'], tokenized_validation_data, outputs_numpy)
+    eval_metric = metric.compute(predictions=prediction.predictions, references=prediction.label_ids)
+    # wandb.log({f"Evaluation metrics:" eval_metric}, commit=False)
+
+    for key in eval_metric.keys():
+        wandb.log({'Oringinal Validation '+str(key): eval_metric[key]}, commit=False)
+
+    accelerator.wait_for_everyone()
+
+
+
+    InitBertModel(model, args.sigma)
 
     progress_bar = tqdm(range(num_training_steps))
 
