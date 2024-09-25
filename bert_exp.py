@@ -157,6 +157,10 @@ def main():
                         help='End of the Pruning')
     parser.add_argument('--prune_start', type=float, default=1, 
                         help='Starting point of the pruning process.')
+    parser.add_argument('--sample', action='store_true', default=False,
+                        help="Whether sample quantization weights or take the maximum")
+    parser.add_argument('--average', action='store_true', default=False,
+                        help="Whether use Bayesian Average to ensemble model.")
     
     
     args = parser.parse_args()
