@@ -16,7 +16,7 @@ from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
 
 class CustomizeBertSelfOutput(BertSelfOutput):
     def __init__(self, config):
-        super.__init__(config)
+        super().__init__(config)
 
         self.is_normal = cfg.IS_NORMAL
 
