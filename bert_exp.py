@@ -20,14 +20,14 @@ from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 from utils.bert_pruner_quantizer import BERT_PRUNER
 
 from transformers import default_data_collator
-from transformers.models.bert.modeling_bert import BertSelfAttention
+from transformers.models.bert.modeling_bert import BertSelfAttention, BertSelfOutput
 from transformers import AutoConfig, AutoModel, AutoModelForCausalLM
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 from transformers import get_scheduler, EvalPrediction
 import evaluate
 from accelerate import Accelerator
 
-from QuantAttention import CustomizeBertSelfAttention
+from QuantAttention import CustomizeBertSelfAttention, CustomizeBertSelfOutput
 from datasets import load_dataset
 from bert_utils import *
 from bert_watch import EpochMonitor
@@ -40,6 +40,11 @@ def replace_attn_layer(module, config):
     if isinstance(module, BertSelfAttention):
         target_state_dict   = deepcopy(module.state_dict())
         new_module          = CustomizeBertSelfAttention(config, position_embedding_type=module.position_embedding_type)
+        new_module.load_state_dict(target_state_dict)
+        return new_module
+    elif isinstance(module, BertSelfOutput):
+        target_state_dict   = deepcopy(module.state_dict())
+        new_module          = CustomizeBertSelfOutput(config, position_embedding_type=module.position_embedding_type)
         new_module.load_state_dict(target_state_dict)
         return new_module
     else:

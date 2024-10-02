@@ -5,7 +5,7 @@ import evaluate
 import collections
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, NewType, Optional, Tuple, Union
-from QuantAttention import CustomizeBertSelfAttention
+from QuantAttention import CustomizeBertSelfAttention, CustomizeBertSelfOutput
 
 from transformers import EvalPrediction
 
@@ -25,6 +25,8 @@ def InitBertModel(model:nn.Module, sigma):
     for name, m in model.named_modules():
         if isinstance(m, CustomizeBertSelfAttention):
             # print('CustomizeBertSelfAttention')
+            m.init_mask_params(sigma)
+        elif isinstance(m, CustomizeBertSelfOutput):
             m.init_mask_params(sigma)
 
 

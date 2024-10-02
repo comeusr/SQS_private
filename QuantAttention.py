@@ -10,9 +10,50 @@ from modeling.DGMS.GMM import *
 from typing import List, Optional, Tuple, Union
 
 from transformers.models.bert.modeling_bert import load_tf_weights_in_bert, \
-    BertSelfAttention
+    BertSelfAttention, BertSelfOutput
 from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
 
+
+class CustomizeBertSelfOutput(BertSelfOutput):
+    def __init__(self, config):
+        super.__init__(config)
+
+        self.is_normal = cfg.IS_NORMAL
+
+        self.k_level = cfg.K_LEVEL
+        self.temperature = cfg.TAU
+    
+    def init_mask_params(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+        self.dense.sub_distribution = gmm_approximation(self.k_level, self.dense.weight, self.temperature, init_method, sigma)
+
+    def QuantizedWeights(self):
+        # Quantized weight from the given sub distribution.
+
+        if cfg.IS_TRAIN:
+            _weight = self.dense.sub_distribution(weights=self.dense.weight, train=True)
+        else:
+            _weight = self.dense.sub_distribution(weights=self.dense.weight, train=False)
+        
+        return _weight
+
+    def softforward(self, _weight:torch.Tensor, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
+        hidden_states = F.linear(hidden_states, _weight)
+        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor)
+        return hidden_states
+
+    def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
+        if cfg.IS_NORMAL:
+            return super().forward(hidden_states, 
+                                   input_tensor)
+        else:
+            _weight = self.QuantizedWeights()
+            return self.softforward(_weight,
+                                    hidden_states,
+                                    input_tensor)
+    
+        
 
 class CustomizeBertSelfAttention(BertSelfAttention):
     def __init__(self, config, position_embedding_type=None):
@@ -47,9 +88,9 @@ class CustomizeBertSelfAttention(BertSelfAttention):
     def get_Pweight(self):
         # hard quantized weights during inference
         with torch.no_grad():
-            return (self.query.sub_distribution(weights=self.query.weight, train=True),
-                    self.key.sub_distribution(weights=self.key.weight, train=True),
-                    self.value.sub_distribution(weights=self.value.weight, train=True))
+            return (self.query.sub_distribution(weights=self.query.weight, train=False),
+                    self.key.sub_distribution(weights=self.key.weight, train=False),
+                    self.value.sub_distribution(weights=self.value.weight, train=False))
         
     def QuantizedWeights(self):
         # Quantized weight from the given sub distribution.

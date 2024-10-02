@@ -7,7 +7,7 @@ import torch
 import math
 import torch.nn.functional as F
 
-from QuantAttention import CustomizeBertSelfAttention
+from QuantAttention import CustomizeBertSelfAttention, CustomizeBertSelfOutput
 
 def sigmoid_derivative(x):
     return F.sigmoid(x)*(1-F.sigmoid(x))
@@ -34,8 +34,9 @@ class BERT_PRUNER(Algorithm):
                 is_dict[name+'.query'] = m.query.sub_distribution.pruning_parameter.detach()
                 is_dict[name+'.key'] = m.key.sub_distribution.pruning_parameter.detach()
                 is_dict[name+'.value'] = m.value.sub_distribution.pruning_parameter.detach()
+            elif isinstance(m, CustomizeBertSelfOutput):
+                is_dict[name+'.dense'] = m.dense.sub_distribution.pruning_parameter.detach()
 
-                # print("is_dict_{} {}".format(name, is_dict[name]))
         
         all_is = torch.cat([is_dict[name].view(-1) for name in is_dict])
         # print("Sparsity {}".format(sparsity))
@@ -76,15 +77,11 @@ class BERT_PRUNER(Algorithm):
 
                     valueMu = valueLayer.mu
                     valueMu.grad.add_(valueMu, alpha=1/(valueLayer.init_sigma ** 2))
-
-                    # sigma = layer.sigma
-                    # sigma.grad.add_(sigma/(layer.init_sigma ** 2)- 1/sigma)
-                    
-                    
-                    # print('Pruning Gradients')
-                    # print(m.sub_distribution.pruning_parameter.grad)
-                    # print('Pruning Parameters')
-                    # print(m.sub_distribution.pruning_parameter)
+                elif isinstance(m, CustomizeBertSelfOutput):
+                    sp=0.01
+                    outputLayer = m.dense.sub_distribution
+                    outputp = outputLayer.pruning_parameter/cfg.PRUNE_SCALE
+                    outputLayer.pruning_parameter.grad.add_(torch.log(F.sigmoid(outputp)/(sp))*sigmoid_derivative(outputp))
         return      
     
     def generate_mask(self, model, mask_thresh, is_dict):
@@ -93,8 +90,9 @@ class BERT_PRUNER(Algorithm):
                 m.query.sub_distribution.mask = (is_dict[name+'.query'] < mask_thresh)
                 m.key.sub_distribution.mask = (is_dict[name+'.key'] < mask_thresh)
                 m.value.sub_distribution.mask = (is_dict[name+'.value'] < mask_thresh)
-                # print("Threshold {}".format(mask_thresh))
-                # print(m.sub_distribution.mask)
+            elif isinstance(m, CustomizeBertSelfOutput):
+                m.dense.sub_distribution.mask = (is_dict[name+'.dense'] < mask_thresh)
+
         return 
     
     def sparsity_scheduler(self, train_step):
@@ -136,6 +134,12 @@ class BERT_PRUNER(Algorithm):
 
                     valueSigma = valueLayer.sigma
                     valueSigma.grad.add_(valueSigma/(valueLayer.init_sigma ** 2)- 1/valueSigma)
+                elif isinstance(m, CustomizeBertSelfOutput):
+                    outputLayer = m.dense.sub_distribution
+
+                    queryMu = queryLayer.mu
+                    queryMu.grad.add_(queryMu/(queryLayer.init_sigma ** 2))
+
 
 
     
@@ -146,6 +150,8 @@ class BERT_PRUNER(Algorithm):
                 m.query.sub_distribution.pruning_parameter.requires_grad=True
                 m.value.sub_distribution.pruning_parameter.requires_grad=True
                 m.key.sub_distribution.pruning_parameter.requires_grad=True
+            elif isinstance(m, CustomizeBertSelfOutput):
+                m.dense.sub_distribution.pruning_parameter.requires_grad=True
 
     
     def pruning_grad_false(self, model):
@@ -155,6 +161,8 @@ class BERT_PRUNER(Algorithm):
                 m.query.sub_distribution.pruning_parameter.requires_grad=False
                 m.value.sub_distribution.pruning_parameter.requires_grad=False
                 m.key.sub_distribution.pruning_parameter.requires_grad=False
+            elif isinstance(m, CustomizeBertSelfOutput):
+                m.dense.sub_distribution.pruning_parameter.requires_grad=False
 
     def prune_with_mask(self, model):
         for name, m in model.named_modules():
@@ -165,6 +173,9 @@ class BERT_PRUNER(Algorithm):
                 m.key.sub_distribution.pruning_parameter.detach().masked_fill_(keyMask, -0.1)
                 valueMask = m.value.sub_distribution.mask
                 m.value.sub_distribution.pruning_parameter.detach().masked_fill_(valueMask, -0.1)
+            elif isinstance(m, CustomizeBertSelfOutput):
+                _Mask = m.dense.sub_distribution.mask
+                m.dense.sub_distribution.pruning_parameter.detach().masked_fill_(_Mask, -0.1)
 
 
     def monitor_scheduler_step(self, optimizer):
@@ -175,27 +186,6 @@ class BERT_PRUNER(Algorithm):
 
         return
     
-    def customize_lr_schduler(self, step):
-
-        # optimizer = state.optimizers[0]
-        # for group in optimizer.param_groups:
-        #     print(group)
-        #     # group['lr'] = group['init_lr']*self.alpha_f*scale
-        with torch.no_grad():
-            print('Do Nothing')
-            # if step >= cfg.PRUNE_END_STEP:
-
-            #     print('Modify Optimizer Learning Rate.')
-                
-            #     frac = (step-cfg.PRUNE_END_STEP)/(cfg.TOT_TRAIN_STEP-cfg.PRUNE_END_STEP)
-            #     scale = self.f_alpha + (1-self.f_alpha)*0.5*(1+math.cos(math.pi*frac))
-                
-                
-                # optimizer = state.optimizers[0]
-                # for group in optimizer.param_groups:
-                #     group['lr'] = group['initial_lr']*self.alpha_f*scale
-
-        return
     
     def match(self, event, state):
         return event in [Event.BEFORE_TRAIN_BATCH, Event.AFTER_BACKWARD, Event.BATCH_START]
