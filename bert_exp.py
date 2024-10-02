@@ -394,7 +394,7 @@ def main():
         tokenized_train_data,
         shuffle=True,
         collate_fn=customized_data_collator,
-        batch_size=8,
+        batch_size=12,
     )
 
     eval_dataloader = DataLoader(
