@@ -44,7 +44,7 @@ def replace_attn_layer(module, config):
         return new_module
     elif isinstance(module, BertSelfOutput):
         target_state_dict   = deepcopy(module.state_dict())
-        new_module          = CustomizeBertSelfOutput(config, position_embedding_type=module.position_embedding_type)
+        new_module          = CustomizeBertSelfOutput(config)
         new_module.load_state_dict(target_state_dict)
         return new_module
     else:
