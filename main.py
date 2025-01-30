@@ -170,6 +170,9 @@ def main():
                         help="Whether use Bayesian Average to ensemble model.")
     parser.add_argument('--average_num', type=int, default=10,
                         help="Number of Models for Bayesian Average.")
+    parser.add_argument('--prior', type=str, default="spike_slab",
+                        choices=['spike_slab', 'normal'],
+                        help='Choose Prior for the KL divergence')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()

@@ -11,7 +11,14 @@ from typing import List, Optional, Tuple, Union
 
 from transformers.models.bert.modeling_bert import load_tf_weights_in_bert, \
     BertSelfAttention, BertSelfOutput
-from transformers.models.gpt2.modeling_gpt2 import GPT2SdpaAttention
+from transformers.models.gpt2.modeling_gpt2 import GPT2Attention, GPT2Attention
+from transformers.models.opt.modeling_opt import OptFlashAttention2
+from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention, apply_rotary_pos_emb, repeat_kv, Qwen2RotaryEmbedding
+from transformers.modeling_flash_attention_utils import _flash_attention_forward
+from transformers.utils import logging
+from transformers.cache_utils import Cache
+
+logger = logging.get_logger(__name__)
 
 
 class CustomizeBertSelfOutput(BertSelfOutput):
@@ -242,7 +249,7 @@ class CustomizeBertSelfAttention(BertSelfAttention):
                                 output_attentions)
     
 
-class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
+class CustomizGPT2Attention(GPT2Attention):
 
     def __init__(self, config, is_cross_attention=False, layer_idx=None):
         super().__init__(config, is_cross_attention, layer_idx)
@@ -303,7 +310,7 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
             if not hasattr(self, "q_attn"):
                 raise ValueError(
                     "If class is used as cross attention, the weights `q_attn` have to be defined. "
-                    "Please make sure to instantiate class with `GPT2SdpaAttention(..., is_cross_attention=True)`."
+                    "Please make sure to instantiate class with `GPT2Attention(..., is_cross_attention=True)`."
                 )
 
             query = self.q_attn(hidden_states)
@@ -398,4 +405,408 @@ class CustomizGPT2SdpaAttention(GPT2SdpaAttention):
                 output_attentions=output_attentions
             )
     
+
+class CustomizedOPTFlashAttention2(OptFlashAttention2):
+    def __init__(self, config, is_decoder=False):
+        super().__init__(config=config, is_decoder=is_decoder)
+
+        self.is_normal = cfg.IS_NORMAL
+        self.k_level = cfg.K_LEVEL
+        self.temperature = cfg.TAU
+    
+    def init_mask_params(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+        self.k_proj.sub_distribution = gmm_approximation(self.k_level, self.k_proj.weight, self.temperature, init_method, sigma)    
+        self.v_proj.sub_distribution = gmm_approximation(self.k_level, self.v_proj.weight, self.temperature, init_method, sigma)    
+        self.q_proj.sub_distribution = gmm_approximation(self.k_level, self.q_proj.weight, self.temperature, init_method, sigma)    
+        self.out_proj.sub_distribution = gmm_approximation(self.k_level, self.out_proj.weight, self.temperature, init_method, sigma)    
+    
+    def get_Sweight(self):
+        with torch.no_grad():
+            return (self.k_proj.sub_distribution(weights=self.k_proj.weight, train=True),
+                    self.v_proj.sub_distribution(weights=self.v_proj.weight, train=True),
+                    self.q_proj.sub_distribution(weights=self.q_proj.weight, train=True),
+                    self.out_proj.sub_distribution(weights=self.out_proj.weight, train=True))
+    
+    def QuantizedWeights(self):
+        if cfg.IS_TRAIN:
+            k_weights = self.k_proj.sub_distribution(weights=self.k_proj.weight, train=True)
+            v_weights = self.v_proj.sub_distribution(weights=self.v_proj.weight, train=True)
+            q_weights = self.q_proj.sub_distribution(weights=self.q_proj.weight, train=True)
+            out_weights = self.out_proj.sub_distribution(weights=self.out_proj.weight, train=True)
+        else:
+            k_weights = self.k_proj.sub_distribution(weights=self.k_proj.weight, train=False)
+            v_weights = self.v_proj.sub_distribution(weights=self.v_proj.weight, train=False)
+            q_weights = self.q_proj.sub_distribution(weights=self.q_proj.weight, train=False)
+            out_weights = self.out_proj.sub_distribution(weights=self.out_proj.weight, train=False)
+
+        return k_weights, v_weights, q_weights, out_weights
+    
+    def softforward(self, 
+                    k_weights, 
+                    v_weights, 
+                    q_weights, 
+                    out_weights, 
+                    hidden_states: torch.Tensor,
+                    key_value_states: Optional[torch.Tensor] = None,
+                    past_key_value: Optional[Tuple[torch.Tensor]] = None,
+                    attention_mask: Optional[torch.Tensor] = None,
+                    layer_head_mask: Optional[torch.Tensor] = None,
+                    output_attentions: bool = False,
+                    position_ids: Optional[torch.Tensor] = None,
+                    ):
+        is_cross_attention = key_value_states is not None
+
+        bsz, _, _ = hidden_states.size()
+
+        # get query proj
+        query_states = F.linear(hidden_states, q_weights, self.q_proj.bias)
+        # get key, value proj
+        if is_cross_attention and past_key_value is not None:
+            # reuse k,v, cross_attentions
+            key_states = past_key_value[0]
+            value_states = past_key_value[1]
+        elif is_cross_attention:
+            # cross_attentions
+            key_states = self._shape(F.linear(key_value_states, k_weights, self.k_proj.bias), -1, bsz)
+            value_states = self._shape(F.linear(key_value_states, v_weights, self.v_proj.bias), -1, bsz)
+        elif past_key_value is not None:
+            # reuse k, v, self_attention
+            key_states = self._shape(F.linear(hidden_states, k_weights, self.k_proj.bias), -1, bsz)
+            value_states = self._shape(F.linear(hidden_states, v_weights, self.v_proj.bias), -1, bsz)
+            key_states = torch.cat([past_key_value[0], key_states], dim=2)
+            value_states = torch.cat([past_key_value[1], value_states], dim=2)
+        else:
+            # self_attention
+            key_states = self._shape(F.linear(hidden_states, k_weights, self.k_proj.bias), -1, bsz)
+            value_states = self._shape(F.linear(hidden_states, v_weights, self.v_proj.bias), -1, bsz)
+
+        if self.is_decoder:
+            # if cross_attention save Tuple(torch.Tensor, torch.Tensor) of all cross attention key/value_states.
+            # Further calls to cross_attention layer can then reuse all cross-attention
+            # key/value_states (first "if" case)
+            # if uni-directional self-attention (decoder) save Tuple(torch.Tensor, torch.Tensor) of
+            # all previous decoder key/value_states. Further calls to uni-directional self-attention
+            # can concat previous decoder key/value_states to current projected key/value_states (third "elif" case)
+            # if encoder bi-directional self-attention `past_key_value` is always `None`
+            past_key_value = (key_states, value_states)
+
+        query_length = query_states.shape[1]
+        tgt_len = key_states.shape[-2]
+
+        # Flash attention requires the input to have the shape
+        # batch_size x seq_length x head_dim x hidden_dim
+        query_states = query_states.view(bsz, query_length, self.num_heads, self.head_dim)
+        key_states = key_states.transpose(1, 2).view(bsz, tgt_len, self.num_heads, self.head_dim)
+        value_states = value_states.transpose(1, 2).view(bsz, tgt_len, self.num_heads, self.head_dim)
+
+        attn_dropout = self.dropout if self.training else 0.0
+
+        # In PEFT, usually we cast the layer norms in float32 for training stability reasons
+        # therefore the input hidden states gets silently casted in float32. Hence, we need
+        # cast them back in float16 just to be sure everything works as expected.
+        input_dtype = query_states.dtype
+        if input_dtype == torch.float32:
+            if torch.is_autocast_enabled():
+                target_dtype = torch.get_autocast_gpu_dtype()
+            # Handle the case where the model is quantized
+            elif hasattr(self.config, "_pre_quantization_dtype"):
+                target_dtype = self.config._pre_quantization_dtype
+            else:
+                target_dtype = self.q_proj.weight.dtype
+
+            logger.warning_once(
+                f"The input hidden states seems to be silently casted in float32, this might be related to"
+                f" the fact you have upcasted embedding or layer norm layers in float32. We will cast back the input in"
+                f" {target_dtype}."
+            )
+
+            query_states = query_states.to(target_dtype)
+            key_states = key_states.to(target_dtype)
+            value_states = value_states.to(target_dtype)
+
+        attn_output = _flash_attention_forward(
+            query_states,
+            key_states,
+            value_states,
+            attention_mask,
+            query_length,
+            position_ids=position_ids,
+            dropout=attn_dropout,
+            is_causal=self.is_causal,
+            use_top_left_mask=self._flash_attn_uses_top_left_mask,
+        )
+
+        attn_weights_reshaped = attn_output.reshape(bsz, query_length, self.num_heads * self.head_dim)
+        # attn_output = self.out_proj(attn_weights_reshaped)
+        attn_output = F.linear(attn_weights_reshaped, out_weights, self.out_proj.bias)
+
+        if not output_attentions:
+            attn_weights_reshaped = None
+
+        return attn_output, attn_weights_reshaped, past_key_value
+
+
+    def forward(self,
+        hidden_states: torch.Tensor,
+        key_value_states: Optional[torch.Tensor] = None,
+        past_key_value: Optional[Tuple[torch.Tensor]] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        layer_head_mask: Optional[torch.Tensor] = None,
+        output_attentions: bool = False,
+        position_ids: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        if self.is_normal:
+            return super().forward(hidden_states, key_value_states, past_key_value, attention_mask, layer_head_mask, output_attentions, position_ids)
+        else:
+            k_weights, v_weights, q_weights, out_weights = self.QuantizedWeights()
+            return self.softforward(k_weights, v_weights, q_weights, out_weights, hidden_states, key_value_states, past_key_value, attention_mask, layer_head_mask, output_attentions, position_ids)
+
+
+class CustomizedQwenFlashAttention2(Qwen2Attention):
+
+    def __init__(self, config, layer_idx=False):
+        super().__init__(config=config, layer_idx=layer_idx)
+
+        self.is_normal = cfg.IS_NORMAL
+        self.k_level = cfg.K_LEVEL
+        self.temperature = cfg.TAU
+
+        # self.rotary_emb = Qwen2RotaryEmbedding(config=self.config)
+    
+    def init_mask_params(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+        if torch.isnan(self.k_proj.weight).any():
+            print("Original k_proj weight is nan")
+        if torch.isnan(self.v_proj.weight).any():
+            print("Original v_proj weight is nan")
+        if torch.isnan(self.q_proj.weight).any():
+            print("Original q_proj weight is nan")
+        if torch.isnan(self.o_proj.weight).any():
+            print("Original o_proj weight is nan")
+        self.k_proj.sub_distribution = gmm_approximation(self.k_level, self.k_proj.weight, self.temperature, init_method, sigma)    
+        self.v_proj.sub_distribution = gmm_approximation(self.k_level, self.v_proj.weight, self.temperature, init_method, sigma)    
+        self.q_proj.sub_distribution = gmm_approximation(self.k_level, self.q_proj.weight, self.temperature, init_method, sigma)    
+        self.o_proj.sub_distribution = gmm_approximation(self.k_level, self.o_proj.weight, self.temperature, init_method, sigma)    
+    
+    def get_Sweight(self):
+        with torch.no_grad():
+            return (self.k_proj.sub_distribution(weights=self.k_proj.weight, train=True),
+                    self.v_proj.sub_distribution(weights=self.v_proj.weight, train=True),
+                    self.q_proj.sub_distribution(weights=self.q_proj.weight, train=True),
+                    self.o_proj.sub_distribution(weights=self.o_proj.weight, train=True))
+    
+    def QuantizedWeights(self):
+        if cfg.IS_TRAIN:
+            if torch.isnan(self.k_proj.weight).any():
+                print("Original k_proj weight is nan")
+            if torch.isnan(self.v_proj.weight).any():
+                print("Original v_proj weight is nan")
+            if torch.isnan(self.q_proj.weight).any():
+                print("Original q_proj weight is nan")
+            if torch.isnan(self.o_proj.weight).any():
+                print("Original o_proj weight is nan")
+            
+            k_weights = self.k_proj.sub_distribution(weights=self.k_proj.weight, train=True)
+            v_weights = self.v_proj.sub_distribution(weights=self.v_proj.weight, train=True)
+            q_weights = self.q_proj.sub_distribution(weights=self.q_proj.weight, train=True)
+            o_weights = self.o_proj.sub_distribution(weights=self.o_proj.weight, train=True)
+        else:
+            if torch.isnan(self.k_proj.weight).any():
+                print("Original k_proj weight is nan")
+            if torch.isnan(self.v_proj.weight).any():
+                print("Originalv_proj weight is nan")
+            if torch.isnan(self.q_proj.weight).any():
+                print("Original q_proj weight is nan")
+            if torch.isnan(self.o_proj.weight).any():
+                print("Original o_proj weight is nan")
+            k_weights = self.k_proj.sub_distribution(weights=self.k_proj.weight, train=False)
+            v_weights = self.v_proj.sub_distribution(weights=self.v_proj.weight, train=False)
+            q_weights = self.q_proj.sub_distribution(weights=self.q_proj.weight, train=False)
+            o_weights = self.o_proj.sub_distribution(weights=self.o_proj.weight, train=False)
+
+        return k_weights, v_weights, q_weights, o_weights
+
+    def softforward(
+        self,
+        k_weights, 
+        v_weights, 
+        q_weights, 
+        o_weights, 
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Cache] = None,
+        output_attentions: bool = False,
+        use_cache: bool = False,
+        cache_position: Optional[torch.LongTensor] = None,
+    ):
+        bsz, q_len, _ = hidden_states.size()
+
+        query_states = F.linear(hidden_states, q_weights, self.q_proj.bias)
+        key_states = F.linear(hidden_states, k_weights, self.k_proj.bias)
+        value_states = F.linear(hidden_states, v_weights, self.v_proj.bias)
+
+        query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
+        key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+        value_states = value_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+
+        kv_seq_len = key_states.shape[-2]
+        if past_key_value is not None:
+            if self.layer_idx is None:
+                raise ValueError(
+                    f"The cache structure has changed since version v4.36. If you are using {self.__class__.__name__} "
+                    "for auto-regressive decoding with k/v caching, please make sure to initialize the attention class "
+                    "with a layer index."
+                )
+            kv_seq_len += past_key_value.get_usable_length(kv_seq_len, self.layer_idx)
+
+        # Because the input can be padded, the absolute sequence length depends on the max position id.
+        rotary_seq_len = (
+            max(kv_seq_len, position_ids[:, -1].max().item() + 1) if position_ids is not None else kv_seq_len
+        )
+
+        cos, sin = self.rotary_emb(value_states, seq_len=rotary_seq_len)
+
+        query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin, position_ids)
+
+        if past_key_value is not None:
+            # Activate slicing cache only if the config has a value `sliding_windows` attribute
+            cache_has_contents = past_key_value.get_seq_length(self.layer_idx) > 0
+            if (
+                getattr(self.config, "sliding_window", None) is not None
+                and kv_seq_len > self.config.sliding_window
+                and cache_has_contents
+            ):
+                slicing_tokens = 1 - self.config.sliding_window
+
+                past_key = past_key_value[self.layer_idx][0]
+                past_value = past_key_value[self.layer_idx][1]
+
+                past_key = past_key[:, :, slicing_tokens:, :].contiguous()
+                past_value = past_value[:, :, slicing_tokens:, :].contiguous()
+
+                if past_key.shape[-2] != self.config.sliding_window - 1:
+                    raise ValueError(
+                        f"past key must have a shape of (`batch_size, num_heads, self.config.sliding_window-1, head_dim`), got"
+                        f" {past_key.shape}"
+                    )
+
+                if attention_mask is not None:
+                    attention_mask = attention_mask[:, slicing_tokens:]
+                    attention_mask = torch.cat([attention_mask, torch.ones_like(attention_mask[:, -1:])], dim=-1)
+
+            cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}  # Specific to RoPE models
+            key_states, value_states = past_key_value.update(key_states, value_states, self.layer_idx, cache_kwargs)
+
+        # repeat k/v heads if n_kv_heads < n_heads
+        key_states = repeat_kv(key_states, self.num_key_value_groups)
+        value_states = repeat_kv(value_states, self.num_key_value_groups)
+        dropout_rate = 0.0 if not self.training else self.attention_dropout
+
+        # In PEFT, usually we cast the layer norms in float32 for training stability reasons
+        # therefore the input hidden states gets silently casted in float32. Hence, we need
+        # cast them back in float16 just to be sure everything works as expected.
+        input_dtype = query_states.dtype
+        if input_dtype == torch.float32:
+            if torch.is_autocast_enabled():
+                target_dtype = torch.get_autocast_gpu_dtype()
+            # Handle the case where the model is quantized
+            elif hasattr(self.config, "_pre_quantization_dtype"):
+                target_dtype = self.config._pre_quantization_dtype
+            else:
+                target_dtype = self.q_proj.weight.dtype
+
+            logger.warning_once(
+                f"The input hidden states seems to be silently casted in float32, this might be related to"
+                f" the fact you have upcasted embedding or layer norm layers in float32. We will cast back the input in"
+                f" {target_dtype}."
+            )
+
+            query_states = query_states.to(target_dtype)
+            key_states = key_states.to(target_dtype)
+            value_states = value_states.to(target_dtype)
+
+        # Reashape to the expected shape for Flash Attention
+        query_states = query_states.transpose(1, 2)
+        key_states = key_states.transpose(1, 2)
+        value_states = value_states.transpose(1, 2)
+
+        if (
+            self.config.use_sliding_window
+            and getattr(self.config, "sliding_window", None) is not None
+            and self.layer_idx >= self.config.max_window_layers
+        ):
+            sliding_window = self.config.sliding_window
+        else:
+            sliding_window = None
+
+        attn_output = _flash_attention_forward(
+            query_states,
+            key_states,
+            value_states,
+            attention_mask,
+            q_len,
+            position_ids=position_ids,
+            dropout=dropout_rate,
+            sliding_window=sliding_window,
+            is_causal=self.is_causal,
+            use_top_left_mask=self._flash_attn_uses_top_left_mask,
+        )
+
+        attn_output = attn_output.reshape(bsz, q_len, self.hidden_size).contiguous()
+        attn_output = F.linear(attn_output, o_weights)
+
+        if not output_attentions:
+            attn_weights = None
+
+        return attn_output, attn_weights, past_key_value
+
+    
+    def forward(self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Cache] = None,
+        output_attentions: bool = False,
+        use_cache: bool = False,
+        cache_position: Optional[torch.LongTensor] = None,
+    ):
+        if self.is_normal:
+            return super().forward(
+                hidden_states,
+                attention_mask,
+                position_ids,
+                past_key_value,
+                output_attentions,
+                use_cache,
+                cache_position
+            )
+        else:
+            k_weights, v_weights, q_weights, o_weights = self.QuantizedWeights()
+            temp = self.softforward(
+                k_weights, 
+                v_weights, 
+                q_weights, 
+                o_weights, 
+                hidden_states,
+                attention_mask,
+                position_ids,
+                past_key_value,
+                output_attentions,
+                use_cache,
+                cache_position
+            )
+
+            # print('-'*50+"Temp requires_grad: ", temp[0].requires_grad, "-"*50)
+            if temp[0].isnan().any():
+                print("Temp is nan")
+            elif temp[0].isinf().any():
+                print("Temp is inf")
+
+            # temp[0].requires_grad = True
+            # print('-'*50+"Temp requires_grad: ", temp[0].requires_grad, "-"*50)
+
+            return temp
+
 

@@ -49,8 +49,9 @@ class GMM_Pruning(Algorithm):
                     sp=0.01
                     layer = m.sub_distribution
                     p = layer.pruning_parameter/cfg.PRUNE_SCALE
-                    layer.pruning_parameter.grad.add_(torch.log(F.sigmoid(p)/(sp))*sigmoid_derivative(p))
-                    # layer.pruning_parameter.grad.add_(torch.log((1-sp)/(1-F.sigmoid(p)))*sigmoid_derivative(p))
+                    if cfg.PRIOR == "spike_slab":
+                        layer.pruning_parameter.grad.add_(torch.log(F.sigmoid(p)/(sp))*sigmoid_derivative(p))
+
 
                     mu = layer.mu
                     mu.grad.add_(mu, alpha=1/(layer.init_sigma ** 2))
@@ -94,8 +95,8 @@ class GMM_Pruning(Algorithm):
                     mu = layer.mu
                     mu.grad.add_(mu/(layer.init_sigma ** 2))
 
-                    sigma = layer.sigma
-                    sigma.grad.add_(sigma/(layer.init_sigma ** 2)- 1/sigma)
+                    # sigma = layer.sigma
+                    # sigma.grad.add_(sigma/(layer.init_sigma ** 2)- 1/sigma)
 
 
     

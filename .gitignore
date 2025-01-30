@@ -6,3 +6,16 @@ __pycache__/
 
 # Checkpoint files
 *.pth.tar
+
+# Ignore the DATA Folder, Logs, Wandb Caches
+CIFAR10/
+CIFAR100/
+out/
+scripts/cache/
+scripts/wandb/
+wandb/
+err/
+
+.err
+.out
+

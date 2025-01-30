@@ -12,6 +12,8 @@ from utils.misc import cluster_weights, get_device, cluster_weights_sparsity
 
 DEVICE = get_device()
 
+def print_grad(grad):
+    print("Gradient for mu:", grad)
 
 class GaussianMixtureModel(nn.Module):
     """Concrete GMM for sub-distribution approximation.
@@ -20,12 +22,8 @@ class GaussianMixtureModel(nn.Module):
         super(GaussianMixtureModel, self).__init__()
         self.num_components = num_components
         self.temperature = temperature
-        if torch.cuda.is_available():
-            self.device = torch.device('cuda')
-        elif torch.backends.mps.is_available():
-            self.device = torch.device('mps')
-        else:
-            self.device = torch.device('cpu')
+
+        # print("Initializing GMM Parameters.")
         self.params_initialization(init_weights, init_method)
         self.prune = cfg.PRUNE
         self.mask = (init_weights.abs()< 0.0).to(DEVICE)
@@ -37,12 +35,13 @@ class GaussianMixtureModel(nn.Module):
     def params_initialization(self, init_weights, method='k-means'):
         if not cfg.PRUNE:
             """ Initialization of GMM parameters using k-means algorithm. """
-            self.mu_zero = torch.tensor([0.0], device=self.device).float()
+            self.mu_zero = torch.tensor([0.0], device=DEVICE).float()
             self.pi_k, self.mu, self.sigma = \
-                    torch.ones(self.num_components-1, device=self.device), \
-                    torch.ones(self.num_components-1, device=self.device), \
-                    torch.ones(self.num_components-1, device=self.device)
+                    torch.ones(self.num_components-1, device=DEVICE), \
+                    torch.ones(self.num_components-1, device=DEVICE), \
+                    torch.ones(self.num_components-1, device=DEVICE)
             if method == 'k-means':
+                print("Using k-means for GMM initialization")
                 initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
             elif method == "quantile":
                 initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
@@ -51,19 +50,21 @@ class GaussianMixtureModel(nn.Module):
                 sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
             self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
             self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
-            self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).to(DEVICE).float()
-            self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=self.device)).float()
+            self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=DEVICE)).to(DEVICE).float()
+            self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=DEVICE)).float()
             self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
-            self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device), requires_grad=False)
+            self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=DEVICE), requires_grad=False)
         else:
             """ Intialization of GMM + Pruning parameters using k-means"""
-            self.mu_zero = torch.tensor([0.0], device=self.device).float()
+            self.mu_zero = torch.tensor([0.0], device=DEVICE).float()
             self.pi_k, self.mu, self.sigma = \
-                    torch.ones(self.num_components, device=self.device), \
-                    torch.ones(self.num_components, device=self.device), \
-                    torch.ones(self.num_components, device=self.device)
+                    torch.ones(self.num_components, device=DEVICE), \
+                    torch.ones(self.num_components, device=DEVICE), \
+                    torch.ones(self.num_components, device=DEVICE)
             if method == 'k-means':
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
+                # sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
+                # print("Initial Sigma contains zero {}".format(sigma_init.eq(0.0).any()))
             elif method == "quantile":
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
             elif method == 'empirical':
@@ -71,14 +72,44 @@ class GaussianMixtureModel(nn.Module):
                 sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
                 # sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
             
+            # if sigma_init.eq(0.0).any():
+            #     sigma_init = torch.where(sigma_init!=0.0, sigma_init, torch.min(sigma_init[torch.nonzero(sigma_init, as_tuple=True)]))
+            # if sigma_init.isnan().any():
+            #     sigma_init = torch.where(sigma_init!=0.0, sigma_init, torch.min(sigma_init[torch.nonzero(sigma_init, as_tuple=True)]))
+
+            if sigma_init.isnan().any() or sigma_init.eq(0.0).any():
+                print('-'*50+"Sigma init is nan or zero"+"-"*50)
+                print('-'*50+"Old Sigma init {}".format(sigma_init)+"-"*50)
+                # Create a mask for valid elements (nonzero and non-NaN)
+                valid_mask = (sigma_init != 0) & (~torch.isnan(sigma_init)) & (torch.isfinite(sigma_init))
+
+                # Extract valid elements
+                valid_elements = sigma_init[valid_mask]
+                
+
+                smallest_valid = torch.min(valid_elements)
+                largest_valid = torch.max(valid_elements)
+
+                # Replace zeros and NaNs with the smallest valid elements
+                sigma_init[sigma_init == 0] = smallest_valid
+                sigma_init[torch.isnan(sigma_init)] = smallest_valid
+                sigma_init[~torch.isfinite(sigma_init)] = largest_valid
+                print('-'*50+"New Sigma init {}".format(sigma_init)+"-"*50)
             # initial_region_saliency = pi_init = sigma_init = torch.ones_like(self.mu, device='cuda')
+            # temp = F.normalize(sigma_init, dim=-1)
+            # if temp.eq(0.0).any():
+            #     print('-'*50+"Normalized Sigma init {}".format(temp)+"-"*50)
+            #     print('-'*50+"Sigma init {}".format(sigma_init)+"-"*50)
             self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
             self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
-            # self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=self.device)).to(DEVICE).float()
-            # self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=self.device)).float()
+            # self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=DEVICE)).to(DEVICE).float()
+            # self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=DEVICE)).float()
             self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
-            self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=self.device), requires_grad=False)
-            self.pruning_parameter = nn.Parameter(data=5*cfg.PRUNE_SCALE*torch.ones_like(init_weights, device=self.device))
+            # print("Initial Self Sigma contains zero {}".format(self.sigma.eq(0.0).any()))
+            self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=DEVICE), requires_grad=False)
+            self.pruning_parameter = nn.Parameter(data=5*cfg.PRUNE_SCALE*torch.ones_like(init_weights, device=DEVICE))
+            
+
 
     def gaussian_mixing_regularization(self):
         # pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
@@ -93,15 +124,36 @@ class GaussianMixtureModel(nn.Module):
 
     def Normal_pdf(self, x, _pi, mu, sigma):
         """ Standard Normal Distribution PDF. """
-        return torch.mul(torch.reciprocal(torch.sqrt(torch.mul( \
-               torch.tensor([2 * math.pi], device=self.device), sigma**2))), \
-               torch.exp(-torch.div((x - mu)**2, 2 * sigma**2))).mul(_pi)
+        
+        pow2 = torch.pow(x - mu, 2)
+        # pow2 = F.normalize(torch.pow(x - mu, 2), dim=-1)
+        pdf = torch.mul(torch.reciprocal(torch.sqrt(torch.mul( \
+                torch.tensor([2 * math.pi], device=DEVICE), (sigma**2)))), \
+                    torch.exp(-torch.div(pow2, 2 * sigma**2))).mul(_pi)
+        if pdf.isnan().any():
+            temp = torch.exp(-torch.div(pow2, 2 * sigma**2)-torch.log(torch.sqrt(2*math.pi*sigma**2)))
+            # print("Temp all zero {}".format(temp.sum() == 0))
+            temp_1 = torch.div(pow2, 2 * sigma**2)
+            temp_2 = torch.log(torch.sqrt(2*math.pi*sigma**2))
+            # print("X-mu Squared {}".format(torch.pow(x - mu, 2)))
+            # print("Sigma Squared {}".format(sigma**2))
+            
+            print("Pow 2 {}".format(pow2))
+            print("Sigma Squared {}".format(sigma**2))
+            # print("Temp 1{}".format(temp_1))
+            # print("Temp 2{}".format(temp_2))
+        
+
+            # print("Sigma inside {} ".format(sigma))
+        
+        return pdf
+
 
     def GMM_region_responsibility(self, weights):
         if not cfg.PRUNE:
             """" Region responsibility of GMM. """
             pi_normalized = self.gaussian_mixing_regularization().cuda()
-            responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
+            responsibility = torch.zeros([self.num_components, weights.size(0)], device=DEVICE)
             responsibility[0] = self.Normal_pdf(weights.cuda(), pi_normalized[0], 0.0, self.sigma_zero.cuda())
             for k in range(self.num_components-1):
                 responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k].cuda(), self.sigma[k].cuda())
@@ -110,12 +162,31 @@ class GaussianMixtureModel(nn.Module):
         else:
             """" Region responsibility of GMM. """
             pi_normalized = self.gaussian_mixing_regularization().to(DEVICE)
-            responsibility = torch.zeros([self.num_components, weights.size(0)], device=self.device)
+            responsibility = torch.zeros([self.num_components, weights.size(0)], device=DEVICE)
             # responsibility[0] = self.Normal_pdf(weights.to(DEVICE), pi_normalized[0], 0.0, self.sigma_zero.to(DEVICE))
+            # print("Self Sigma contains zero {}".format(self.sigma.eq(0.0).any()))
             for k in range(self.num_components):
-                responsibility[k] = self.Normal_pdf(weights, pi_normalized[k], self.mu[k].to(DEVICE), self.sigma[k].to(DEVICE))
+                # print("Sigma {}".format(self.sigma[k]))
+                responsibility[k] = self.Normal_pdf(weights, pi_normalized[k], self.mu[k], self.sigma[k])
+            # if responsibility.isnan().any():
+            #         print("-"*50+"responsibility is nan after Normal PDF"+"-"*50)
             responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
-            return F.softmax(responsibility / self.temperature, dim=0)
+            # print("responsibility {}".format(responsibility))
+            temp = F.softmax(responsibility / self.temperature, dim=0)
+
+            if temp.isnan().any():
+                print('-'*50+"Found nan in the soft weights"+"-"*50)
+                if responsibility.isnan().any():
+                    print("-"*50+"responsibility is nan"+"-"*50)
+                if pi_normalized.isnan().any():
+                    print("-"*50+"pi_normalized is nan"+"-"*50)
+                if weights.isnan().any():
+                    print("-"*50+"weights is nan"+"-"*50)
+                if self.mu.isnan().any():
+                    print('-'*50+"Mu is nan"+"-"*50)
+
+
+            return temp
 
 
     def forward(self, weights, train=True):
@@ -137,16 +208,19 @@ class GaussianMixtureModel(nn.Module):
         else:
             if train:
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-                # print("torch.mul(self.region_belonging[0], 0.) {}".format(torch.mul(self.region_belonging[0], 0.)))
-                # print("torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()) {}".format(torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten())))
-                # print("Printing the region_belong shape {}".format(self.region_belonging.shape))               
-                Sweight = torch.mul(self.region_belonging[0], 0.) \
-                        + torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
-                # print('Pruning Scaler {}'.format(F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)))
+                
+                if cfg.PRIOR == 'spike_slab':
+
+                    Sweight =  torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0) * F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
+                else:
+                    Sweight = torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE) \
+                            + (1-F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE))*torch.randn_like(weights.flatten())
+
                 return Sweight.view(weights.size())
             else:
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-                # print("Printing the region_belong shape {}".format(self.region_belonging.shape))               
+                # print("Printing the region_belong shape {}".format(self.region_belonging.shape))  
+           
                 if cfg.SAMPLE:
                     # max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
                     max_index = self.region_belonging.transpose(0, 1).multinomial(num_samples=1).transpose(0, 1)
@@ -157,8 +231,7 @@ class GaussianMixtureModel(nn.Module):
                 Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
                 # print('Pweight before mask {}'.format(Pweight))
                 Pweight = Pweight.view(weights.size())
-                # print("Mask Shape {}".format(self.mask.shape))
-                # print("Masked size {}".format(self.mask.sum()))
+
                 Pweight.detach().masked_fill_(self.mask, 0.0)
                 return Pweight
 

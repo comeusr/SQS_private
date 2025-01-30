@@ -77,7 +77,7 @@ LAYER = {
 
 L_CNT = 0
 LAYER_NUM = 20
-EPS = 1e-11
+EPS = 1e-8
 KEEP = True
 DEBUG = False
 SKIPPED_LAYERS = []
@@ -87,6 +87,7 @@ PRUNE_FREQ = 10
 DEBUG = False
 SAMPLE = False
 USE_AVERAGE = False
+PRIOR = "spike_slab"
 
 def set_status(flag):
     global IS_TRAIN
@@ -98,7 +99,7 @@ def count_layer():
 
 
 def set_config(args):
-    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS, INIT_METHOD, PRUNE, PRUNE_SCALE, PRUNE_FREQ, DEBUG, SAMPLE, USE_AVERAGE
+    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS, INIT_METHOD, PRUNE, PRUNE_SCALE, PRUNE_FREQ, DEBUG, SAMPLE, USE_AVERAGE, PRIOR
     IS_EMP = args.empirical
     IS_NORMAL = args.normal
     TAU = args.tau
@@ -112,4 +113,5 @@ def set_config(args):
     DEBUG=args.debug
     SAMPLE=args.sample
     USE_AVERAGE=args.average
+    PRIOR = args.prior
     
