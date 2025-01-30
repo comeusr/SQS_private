@@ -1,0 +1,10 @@
+# Ignore Python files
+*.pyc
+__pycache__/
+
+# Ignore logs and system files
+scripts/
+tools/
+wandb/
+
+
