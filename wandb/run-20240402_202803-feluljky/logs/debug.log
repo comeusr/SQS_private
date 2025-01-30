@@ -1,0 +1,41 @@
+2024-04-02 20:28:03,973 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Current SDK version is 0.15.4
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Configure stats pid to 123228
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Loading settings from /home/wang4538/.config/wandb/settings
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Loading settings from /home/wang4538/DGMS-master/wandb/settings
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'main.py', 'program': '/home/wang4538/DGMS-master/main.py'}
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_init.py:_log_setup():507] Logging user logs to /home/wang4538/DGMS-master/wandb/run-20240402_202803-feluljky/logs/debug.log
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_init.py:_log_setup():508] Logging internal logs to /home/wang4538/DGMS-master/wandb/run-20240402_202803-feluljky/logs/debug-internal.log
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_init.py:init():547] calling init triggers
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_init.py:init():554] wandb.init called with sweep_config: {}
+config: {}
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_init.py:init():596] starting backend
+2024-04-02 20:28:03,974 INFO    MainThread:123228 [wandb_init.py:init():600] setting up manager
+2024-04-02 20:28:03,977 INFO    MainThread:123228 [backend.py:_multiprocessing_setup():106] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2024-04-02 20:28:03,979 INFO    MainThread:123228 [wandb_init.py:init():606] backend started and connected
+2024-04-02 20:28:03,985 INFO    MainThread:123228 [wandb_init.py:init():703] updated telemetry
+2024-04-02 20:28:03,993 INFO    MainThread:123228 [wandb_init.py:init():736] communicating run to backend with 60.0 second timeout
+2024-04-02 20:28:04,247 INFO    MainThread:123228 [wandb_run.py:_on_init():2176] communicating current version
+2024-04-02 20:28:04,345 INFO    MainThread:123228 [wandb_run.py:_on_init():2185] got version response upgrade_message: "wandb version 0.16.5 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2024-04-02 20:28:04,345 INFO    MainThread:123228 [wandb_init.py:init():787] starting run threads in backend
+2024-04-02 20:28:07,386 INFO    MainThread:123228 [wandb_run.py:_console_start():2155] atexit reg
+2024-04-02 20:28:07,387 INFO    MainThread:123228 [wandb_run.py:_redirect():2010] redirect: 3
+2024-04-02 20:28:07,387 INFO    MainThread:123228 [wandb_run.py:_redirect():2075] Wrapping output streams.
+2024-04-02 20:28:07,387 INFO    MainThread:123228 [wandb_run.py:_redirect():2100] Redirects installed.
+2024-04-02 20:28:07,388 INFO    MainThread:123228 [wandb_init.py:init():828] run started, returning control to user process
+2024-04-02 20:28:08,135 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Current SDK version is 0.15.4
+2024-04-02 20:28:08,135 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Configure stats pid to 123228
+2024-04-02 20:28:08,135 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Loading settings from /home/wang4538/.config/wandb/settings
+2024-04-02 20:28:08,135 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Loading settings from /home/wang4538/DGMS-master/wandb/settings
+2024-04-02 20:28:08,135 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2024-04-02 20:28:08,135 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-04-02 20:28:08,135 INFO    MainThread:123228 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'main.py', 'program': '/home/wang4538/DGMS-master/main.py'}
+2024-04-02 20:28:08,136 INFO    MainThread:123228 [wandb_init.py:_log_setup():507] Logging user logs to /home/wang4538/DGMS-master/wandb/run-20240402_202808-bphrk0xv/logs/debug.log
+2024-04-02 20:28:08,136 INFO    MainThread:123228 [wandb_init.py:_log_setup():508] Logging internal logs to /home/wang4538/DGMS-master/wandb/run-20240402_202808-bphrk0xv/logs/debug-internal.log
+2024-04-02 20:28:08,136 INFO    MainThread:123228 [wandb_init.py:init():547] calling init triggers
+2024-04-02 20:28:08,136 INFO    MainThread:123228 [wandb_init.py:init():554] wandb.init called with sweep_config: {}
+config: {'network': 'resnet18', 'dataset': 'cifar10', 'workers': 1, 'base_size': 32, 'crop_size': 32, 'sync_bn': None, 'freeze_bn': False, 'train_dir': '/home/wang4538/DGMS-master/CIFAR10/train/', 'val_dir': '/home/wang4538/DGMS-master/CIFAR10/val/', 'num_classes': 10, 'show_info': True, 'epochs': 350, 'start_epoch': 0, 'batch_size': 128, 'test_batch_size': 256, 'K': 4, 'tau': 0.01, 'normal': False, 'empirical': True, 'mask': True, 'lr': 2e-05, 'lr_scheduler': 'one-cycle', 'momentum': 0.9, 'weight_decay': 0.0005, 'nesterov': True, 'no_cuda': False, 'gpu_ids': '0', 'seed': 1, 'resume': '..\\DGMS\\run\\cifar10\\vggsmall_32bit_uncompressed\\experiment_9\\checkpoint.pth.tar', 'checkname': 'vggsmall2bit', 'pretrained': True, 'rt': True, 'eval_interval': 1, 'only_inference': False, 'wandb_watch': True, 't_warmup': '0.1dur', 'alpha_f': 0.001, 'duration': '1ep', 'watch_freq': 1000, 'run_name': 'debug', 'save_folder': '/DGMS/debug/cifar10', 'save_interval': '0.01dur', 'load_path': None, 'autoresume': True, 'cuda': True}
+2024-04-02 20:28:08,136 INFO    MainThread:123228 [wandb_init.py:init():591] wandb.init() called when a run is still active
+2024-04-02 20:28:13,163 WARNING MsgRouterThr:123228 [router.py:message_loop():77] message_loop has been closed

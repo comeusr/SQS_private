@@ -1,0 +1,254 @@
+                                                                                                                                       /home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/loggers/wandb_logger.py:291: UserWarning: WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. The file with name '/scratch/gilbreth/wang4538/DGMS/debug/cifar10/latest:latest' will be stored as '.scratch.gilbreth.wang4538.DGMS.debug.cifar10.latest:latest'.
+  warnings.warn(('WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. '
+/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/loggers/wandb_logger.py:291: UserWarning: WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. The file with name '/scratch/gilbreth/wang4538/DGMS/debug/cifar10/latest.symlink:latest' will be stored as '.scratch.gilbreth.wang4538.DGMS.debug.cifar10.latest.symlink:latest'.
+  warnings.warn(('WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. '
+******************************
+Config:
+composer_commit_hash: None
+composer_version: 0.17.2
+node_name: unknown because NODENAME environment variable not set
+num_gpus_per_node: 1
+num_nodes: 1
+rank_zero_seed: 1
+******************************
+train          Epoch   0:    0%|                         | 0/195 [00:00<?, ?ba/s]
+Epoch: 0ep
+Try to print Module Name
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+train          Epoch   0:  100%|█████████████████████████| 195/195 [03:23<00:00,  1.64ba/s, loss/train/total=6.8609]
+train          Epoch   1:    0%|                         | 0/195 [00:00<?, ?ba/s]
+Epoch: 1ep
+Try to print Module Name
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+Found DGMSConv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+train          Epoch   1:  100%|█████████████████████████| 195/195 [03:13<00:00,  2.42ba/s, loss/train/total=6.6825]
+
+
+
+
+
+
+
+
+
+
+
+  warnings.warn(f'Cannot split tensor of length {len(t)} into batches of size {microbatch_size}. '
+eval           Epoch   1:  100%|█████████████████████████| 40/40 [00:24<00:00,  3.33ba/s]

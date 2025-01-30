@@ -1,0 +1,1 @@
+{"time/epoch": 2, "_timestamp": 1712163818.9883118, "time/batch": 390, "time/sample": 99840, "time/batch_in_epoch": 0, "time/sample_in_epoch": 0, "trainer/device_train_microbatch_size": 256, "loss/train/total": 6.683979034423828, "_runtime": 430.8113498687744, "_step": 390, "_wandb": {"runtime": 429}}

@@ -1,0 +1,34 @@
+                                                                                                                                       /home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/loggers/wandb_logger.py:291: UserWarning: WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. The file with name '/scratch/gilbreth/wang4538/DGMS/debug/cifar10/latest:latest' will be stored as '.scratch.gilbreth.wang4538.DGMS.debug.cifar10.latest:latest'.
+  warnings.warn(('WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. '
+/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/loggers/wandb_logger.py:291: UserWarning: WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. The file with name '/scratch/gilbreth/wang4538/DGMS/debug/cifar10/latest.symlink:latest' will be stored as '.scratch.gilbreth.wang4538.DGMS.debug.cifar10.latest.symlink:latest'.
+  warnings.warn(('WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. '
+******************************
+Config:
+composer_commit_hash: None
+composer_version: 0.17.2
+node_name: unknown because NODENAME environment variable not set
+num_gpus_per_node: 1
+num_nodes: 1
+rank_zero_seed: 1
+******************************
+
+
+
+
+
+train          Epoch   0:  100%|█████████████████████████| 195/195 [00:12<00:00, 24.10ba/s, loss/train/total=0.0041]
+eval           Epoch   0:    0%|                         | 0/40 [00:00<?, ?ba/s]
+  File "/home/wang4538/DGMS-master/main.py", line 240, in <module>0:00<?, ?ba/s]
+    main()
+  File "/home/wang4538/DGMS-master/main.py", line 234, in main
+    trainer.fit()
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/trainer/trainer.py", line 1888, in fit
+    self._train_loop()
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/trainer/trainer.py", line 2156, in _train_loop
+    self._run_evaluators(Event.EPOCH_END)
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/trainer/trainer.py", line 2204, in _run_evaluators
+    self._eval_loop(
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/trainer/trainer.py", line 2908, in _eval_loop
+    self.state.outputs = self._original_model.eval_forward(self.state.batch)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: DGMSNet.eval_forward() missing 1 required positional argument: 'outputs'

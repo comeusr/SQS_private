@@ -1,0 +1,136 @@
+                                                                                                                                       /home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/loggers/wandb_logger.py:291: UserWarning: WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. The file with name '/scratch/gilbreth/wang4538/DGMS/debug/cifar10/latest:latest' will be stored as '.scratch.gilbreth.wang4538.DGMS.debug.cifar10.latest:latest'.
+  warnings.warn(('WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. '
+/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/loggers/wandb_logger.py:291: UserWarning: WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. The file with name '/scratch/gilbreth/wang4538/DGMS/debug/cifar10/latest.symlink:latest' will be stored as '.scratch.gilbreth.wang4538.DGMS.debug.cifar10.latest.symlink:latest'.
+  warnings.warn(('WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. '
+******************************
+Config:
+composer_commit_hash: None
+composer_version: 0.17.2
+node_name: unknown because NODENAME environment variable not set
+num_gpus_per_node: 1
+num_nodes: 1
+rank_zero_seed: 1
+******************************
+Traceback (most recent call last):
+  File "/home/wang4538/DGMS-master/main.py", line 282, in <module>
+    main()
+  File "/home/wang4538/DGMS-master/main.py", line 234, in main
+    trainer.fit()
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/trainer/trainer.py", line 1888, in fit
+    self._train_loop()
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/trainer/trainer.py", line 2027, in _train_loop
+    self.engine.run_event(Event.EPOCH_START)
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/core/engine.py", line 293, in run_event
+    self._run_nonlogger_callbacks(event)
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/core/engine.py", line 476, in _run_nonlogger_callbacks
+    self._run_callbacks(event, callbacks)
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/core/engine.py", line 468, in _run_callbacks
+    cb.run_event(event, self.state, self.logger)
+  File "/home/wang4538/DGMS-master/utils/watch.py", line 42, in run_event
+    wandb.log({name+"mu": wandb.Histogram(m.sub_distribution.mu)})
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/wandb/sdk/data_types/histogram.py", line 77, in __init__
+    self.histogram, self.bins = np.histogram(sequence, bins=num_bins)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/numpy/lib/histograms.py", line 778, in histogram
+    a, weights = _ravel_and_check_weights(a, weights)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/numpy/lib/histograms.py", line 285, in _ravel_and_check_weights
+    a = np.asarray(a)
+        ^^^^^^^^^^^^^
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/torch/_tensor.py", line 970, in __array__
+    return self.numpy()
+           ^^^^^^^^^^^^
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
+Try to print Module Name
+network
+network.conv1
+network.conv1.sub_distribution
+network.bn1
+network.relu
+network.maxpool
+network.layer1
+network.layer1.0
+network.layer1.0.conv1
+network.layer1.0.conv1.sub_distribution
+network.layer1.0.bn1
+network.layer1.0.relu
+network.layer1.0.conv2
+network.layer1.0.conv2.sub_distribution
+network.layer1.0.bn2
+network.layer1.1
+network.layer1.1.conv1
+network.layer1.1.conv1.sub_distribution
+network.layer1.1.bn1
+network.layer1.1.relu
+network.layer1.1.conv2
+network.layer1.1.conv2.sub_distribution
+network.layer1.1.bn2
+network.layer2
+network.layer2.0
+network.layer2.0.conv1
+network.layer2.0.conv1.sub_distribution
+network.layer2.0.bn1
+network.layer2.0.relu
+network.layer2.0.conv2
+network.layer2.0.conv2.sub_distribution
+network.layer2.0.bn2
+network.layer2.0.downsample
+network.layer2.0.downsample.0
+network.layer2.0.downsample.0.sub_distribution
+network.layer2.0.downsample.1
+network.layer2.1
+network.layer2.1.conv1
+network.layer2.1.conv1.sub_distribution
+network.layer2.1.bn1
+network.layer2.1.relu
+network.layer2.1.conv2
+network.layer2.1.conv2.sub_distribution
+network.layer2.1.bn2
+network.layer3
+network.layer3.0
+network.layer3.0.conv1
+network.layer3.0.conv1.sub_distribution
+network.layer3.0.bn1
+network.layer3.0.relu
+network.layer3.0.conv2
+network.layer3.0.conv2.sub_distribution
+network.layer3.0.bn2
+network.layer3.0.downsample
+network.layer3.0.downsample.0
+network.layer3.0.downsample.0.sub_distribution
+network.layer3.0.downsample.1
+network.layer3.1
+network.layer3.1.conv1
+network.layer3.1.conv1.sub_distribution
+network.layer3.1.bn1
+network.layer3.1.relu
+network.layer3.1.conv2
+network.layer3.1.conv2.sub_distribution
+network.layer3.1.bn2
+network.layer4
+network.layer4.0
+network.layer4.0.conv1
+network.layer4.0.conv1.sub_distribution
+network.layer4.0.bn1
+network.layer4.0.relu
+network.layer4.0.conv2
+network.layer4.0.conv2.sub_distribution
+network.layer4.0.bn2
+network.layer4.0.downsample
+network.layer4.0.downsample.0
+network.layer4.0.downsample.0.sub_distribution
+network.layer4.0.downsample.1
+network.layer4.1
+network.layer4.1.conv1
+network.layer4.1.conv1.sub_distribution
+network.layer4.1.bn1
+network.layer4.1.relu
+network.layer4.1.conv2
+network.layer4.1.conv2.sub_distribution
+network.layer4.1.bn2
+network.avgpool
+network.fc
+Epoch: 0ep
+Try to print Module Name
+Found DGMSConv

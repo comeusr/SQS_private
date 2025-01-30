@@ -1,0 +1,9 @@
+                                                                                                                                Traceback (most recent call last):
+  File "/home/wang4538/DGMS-master/main.py", line 285, in <module>
+    main()
+  File "/home/wang4538/DGMS-master/main.py", line 206, in main
+    trainer = Trainer(
+              ^^^^^^^^
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/trainer/trainer.py", line 1353, in __init__
+    raise ValueError(error_message)
+ValueError: The flag `save_overwrite` must be False when autoresume is enabled as autoresume always loads the latest existing checkpoint in `save_folder`.

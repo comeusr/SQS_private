@@ -1,0 +1,22 @@
+                                                                                                                                       /home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/loggers/wandb_logger.py:291: UserWarning: WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. The file with name '/scratch/gilbreth/wang4538/DGMS/debug/cifar10/latest:latest' will be stored as '.scratch.gilbreth.wang4538.DGMS.debug.cifar10.latest:latest'.
+  warnings.warn(('WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. '
+/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/composer/loggers/wandb_logger.py:291: UserWarning: WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. The file with name '/scratch/gilbreth/wang4538/DGMS/debug/cifar10/latest.symlink:latest' will be stored as '.scratch.gilbreth.wang4538.DGMS.debug.cifar10.latest.symlink:latest'.
+  warnings.warn(('WandB permits only alpha-numeric, periods, hyphens, and underscores in file names. '
+******************************
+Config:
+composer_commit_hash: None
+composer_version: 0.17.2
+node_name: unknown because NODENAME environment variable not set
+num_gpus_per_node: 1
+num_nodes: 1
+rank_zero_seed: 1
+******************************
+
+
+
+
+
+train          Epoch   0:  100%|█████████████████████████| 195/195 [00:12<00:00, 24.64ba/s, loss/train/total=0.0034]
+eval           Epoch   0:    0%|                         | 0/40 [00:00<?, ?ba/s]
+  warnings.warn(f'Cannot split tensor of length {len(t)} into batches of size {microbatch_size}. '
+eval           Epoch   0:  100%|█████████████████████████| 40/40 [00:01<00:00, 40.97ba/s, metrics/eval/MulticlassAccuracy=0.9489]

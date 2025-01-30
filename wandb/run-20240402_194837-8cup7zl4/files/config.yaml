@@ -1,0 +1,163 @@
+wandb_version: 1
+
+network:
+  desc: null
+  value: resnet18
+dataset:
+  desc: null
+  value: cifar10
+workers:
+  desc: null
+  value: 1
+base_size:
+  desc: null
+  value: 32
+crop_size:
+  desc: null
+  value: 32
+sync_bn:
+  desc: null
+  value: null
+freeze_bn:
+  desc: null
+  value: false
+train_dir:
+  desc: null
+  value: /home/wang4538/DGMS-master/CIFAR10/train/
+val_dir:
+  desc: null
+  value: /home/wang4538/DGMS-master/CIFAR10/val/
+num_classes:
+  desc: null
+  value: 10
+show_info:
+  desc: null
+  value: true
+epochs:
+  desc: null
+  value: 350
+start_epoch:
+  desc: null
+  value: 0
+batch_size:
+  desc: null
+  value: 128
+test_batch_size:
+  desc: null
+  value: 256
+K:
+  desc: null
+  value: 4
+tau:
+  desc: null
+  value: 0.01
+normal:
+  desc: null
+  value: false
+empirical:
+  desc: null
+  value: true
+mask:
+  desc: null
+  value: true
+lr:
+  desc: null
+  value: 2.0e-05
+lr_scheduler:
+  desc: null
+  value: one-cycle
+momentum:
+  desc: null
+  value: 0.9
+weight_decay:
+  desc: null
+  value: 0.0005
+nesterov:
+  desc: null
+  value: true
+no_cuda:
+  desc: null
+  value: false
+gpu_ids:
+  desc: null
+  value: '0'
+seed:
+  desc: null
+  value: 1
+resume:
+  desc: null
+  value: ..\DGMS\run\cifar10\vggsmall_32bit_uncompressed\experiment_9\checkpoint.pth.tar
+checkname:
+  desc: null
+  value: vggsmall2bit
+pretrained:
+  desc: null
+  value: true
+rt:
+  desc: null
+  value: true
+eval_interval:
+  desc: null
+  value: 1
+only_inference:
+  desc: null
+  value: false
+wandb_watch:
+  desc: null
+  value: true
+t_warmup:
+  desc: null
+  value: 0.1dur
+alpha_f:
+  desc: null
+  value: 0.001
+duration:
+  desc: null
+  value: 1ep
+watch_freq:
+  desc: null
+  value: 1000
+run_name:
+  desc: null
+  value: debug
+save_folder:
+  desc: null
+  value: /DGMS/debug/cifar10
+save_interval:
+  desc: null
+  value: 0.01dur
+load_path:
+  desc: null
+  value: null
+autoresume:
+  desc: null
+  value: true
+cuda:
+  desc: null
+  value: true
+_wandb:
+  desc: null
+  value:
+    python_version: 3.11.3
+    cli_version: 0.15.4
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1712101717.738949
+    t:
+      1:
+      - 1
+      - 5
+      - 41
+      - 53
+      - 55
+      - 66
+      3:
+      - 13
+      - 15
+      - 16
+      - 23
+      4: 3.11.3
+      5: 0.15.4
+      8:
+      - 5

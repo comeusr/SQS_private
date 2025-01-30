@@ -1,0 +1,28 @@
+2024-04-02 20:09:33,547 INFO    MainThread:62501 [wandb_setup.py:_flush():76] Current SDK version is 0.15.4
+2024-04-02 20:09:33,547 INFO    MainThread:62501 [wandb_setup.py:_flush():76] Configure stats pid to 62501
+2024-04-02 20:09:33,547 INFO    MainThread:62501 [wandb_setup.py:_flush():76] Loading settings from /home/wang4538/.config/wandb/settings
+2024-04-02 20:09:33,547 INFO    MainThread:62501 [wandb_setup.py:_flush():76] Loading settings from /home/wang4538/DGMS-master/wandb/settings
+2024-04-02 20:09:33,547 INFO    MainThread:62501 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2024-04-02 20:09:33,547 INFO    MainThread:62501 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-04-02 20:09:33,547 INFO    MainThread:62501 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'main.py', 'program': '/home/wang4538/DGMS-master/main.py'}
+2024-04-02 20:09:33,547 INFO    MainThread:62501 [wandb_init.py:_log_setup():507] Logging user logs to /home/wang4538/DGMS-master/wandb/run-20240402_200933-o2ulwt00/logs/debug.log
+2024-04-02 20:09:33,548 INFO    MainThread:62501 [wandb_init.py:_log_setup():508] Logging internal logs to /home/wang4538/DGMS-master/wandb/run-20240402_200933-o2ulwt00/logs/debug-internal.log
+2024-04-02 20:09:33,548 INFO    MainThread:62501 [wandb_init.py:init():547] calling init triggers
+2024-04-02 20:09:33,548 INFO    MainThread:62501 [wandb_init.py:init():554] wandb.init called with sweep_config: {}
+config: {'network': 'resnet18', 'dataset': 'cifar10', 'workers': 1, 'base_size': 32, 'crop_size': 32, 'sync_bn': None, 'freeze_bn': False, 'train_dir': '/home/wang4538/DGMS-master/CIFAR10/train/', 'val_dir': '/home/wang4538/DGMS-master/CIFAR10/val/', 'num_classes': 10, 'show_info': True, 'epochs': 350, 'start_epoch': 0, 'batch_size': 128, 'test_batch_size': 256, 'K': 4, 'tau': 0.01, 'normal': False, 'empirical': True, 'mask': True, 'lr': 2e-05, 'lr_scheduler': 'one-cycle', 'momentum': 0.9, 'weight_decay': 0.0005, 'nesterov': True, 'no_cuda': False, 'gpu_ids': '0', 'seed': 1, 'resume': '..\\DGMS\\run\\cifar10\\vggsmall_32bit_uncompressed\\experiment_9\\checkpoint.pth.tar', 'checkname': 'vggsmall2bit', 'pretrained': True, 'rt': True, 'eval_interval': 1, 'only_inference': False, 'wandb_watch': True, 't_warmup': '0.1dur', 'alpha_f': 0.001, 'duration': '1ep', 'watch_freq': 1000, 'run_name': 'debug', 'save_folder': '/DGMS/debug/cifar10', 'save_interval': '0.01dur', 'load_path': None, 'autoresume': True, 'cuda': True}
+2024-04-02 20:09:33,548 INFO    MainThread:62501 [wandb_init.py:init():596] starting backend
+2024-04-02 20:09:33,548 INFO    MainThread:62501 [wandb_init.py:init():600] setting up manager
+2024-04-02 20:09:33,554 INFO    MainThread:62501 [backend.py:_multiprocessing_setup():106] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2024-04-02 20:09:33,559 INFO    MainThread:62501 [wandb_init.py:init():606] backend started and connected
+2024-04-02 20:09:33,570 INFO    MainThread:62501 [wandb_init.py:init():703] updated telemetry
+2024-04-02 20:09:33,580 INFO    MainThread:62501 [wandb_init.py:init():736] communicating run to backend with 60.0 second timeout
+2024-04-02 20:09:33,708 ERROR   MainThread:62501 [wandb_init.py:init():762] encountered error: It appears that you do not have permission to access the requested resource. Please reach out to the project owner to grant you access. If you have the correct permissions, verify that there are no issues with your networking setup.(Error 403: Forbidden)
+2024-04-02 20:09:33,964 ERROR   MainThread:62501 [wandb_init.py:init():1170] It appears that you do not have permission to access the requested resource. Please reach out to the project owner to grant you access. If you have the correct permissions, verify that there are no issues with your networking setup.(Error 403: Forbidden)
+Traceback (most recent call last):
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/wandb/sdk/wandb_init.py", line 1152, in init
+    run = wi.init()
+          ^^^^^^^^^
+  File "/home/wang4538/.conda/envs/cent7/2020.11-py38/low/lib/python3.11/site-packages/wandb/sdk/wandb_init.py", line 768, in init
+    raise error
+wandb.errors.CommError: It appears that you do not have permission to access the requested resource. Please reach out to the project owner to grant you access. If you have the correct permissions, verify that there are no issues with your networking setup.(Error 403: Forbidden)
+2024-04-02 20:09:34,968 WARNING MsgRouterThr:62501 [router.py:message_loop():77] message_loop has been closed
