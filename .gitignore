@@ -11,10 +11,10 @@ __pycache__/
 CIFAR10/
 CIFAR100/
 out/
-scripts/cache/
-scripts/wandb/
+scripts/
 wandb/
 err/
+
 
 .err
 .out
