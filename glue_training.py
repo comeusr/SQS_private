@@ -20,7 +20,7 @@ import wandb
 
 from tqdm.auto import tqdm
 
-import config as cfg
+import config as cfg, model_config
 
 import bitsandbytes as bnb
 
@@ -41,8 +41,7 @@ from accelerate import Accelerator
 import sys
 import numpy as np  
 
-# import torchviz
-# import graphviz
+from utils import *
 
 task_to_keys = {
     "mnli": ("premise", "hypothesis"),
@@ -51,19 +50,6 @@ task_to_keys = {
     "sst2": ("sentence", None),
 }
 
-
-
-def print_environment_info():
-    print(f"Python version: {sys.version}")
-    print(f"PyTorch version: {torch.__version__}")
-    if torch.cuda.is_available():
-        print(f"CUDA version: {torch.version.cuda}")
-        print(f"cuDNN version: {torch.backends.cudnn.version()}")
-        print(f"Device count: {torch.cuda.device_count()}")
-        print(f"Current device: {torch.cuda.current_device()}")
-        print(f"Device name: {torch.cuda.get_device_name()}")
-    else:
-        print("CUDA is not available")
 
 def recursive_setattr(obj, attr, value):
     attr = attr.split('.', 1)
@@ -147,61 +133,25 @@ def main(args):
         device = torch.device('cpu')
 
     try:
-        if args.model_name == "gpt2":       
-            tokenizer = AutoTokenizer.from_pretrained("openai-community/gpt2", trust_remote_code=True, use_fast=True)
+        loaded_model_config= model_config[args.model_name]
+        tokenizer = AutoTokenizer.from_pretrained(loaded_model_config['from_pretrained'], trust_remote_code=True, use_fast=True)
             config = AutoConfig.from_pretrained(
-                "openai-community/gpt2",
+                loaded_model_config['from_pretrained'],
                 num_labels=num_labels,
                 finetuning_task=args.task_name,
                 # cache_dir=args.cache_dir,
                 trust_remote_code=True,
             )
-            model = AutoModelForSequenceClassification.from_pretrained(
-                "openai-community/gpt2", 
+        model = AutoModelForSequenceClassification.from_pretrained(
+                loaded_model_config['from_pretrained'], 
                 config=config,
-                attn_implementation="flash_attention_2",
+                attn_implementation=loaded_model_config['attn_implementation'],
                 torch_dtype=torch.float16,
                 trust_remote_code=True
             )
-
-        elif args.model_name == "Qwen_1.5b":
-            tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-1.5B", trust_remote_code=True, use_fast=True)
-            config = AutoConfig.from_pretrained(
-                "Qwen/Qwen2-1.5B",
-                num_labels=num_labels,
-                finetuning_task=args.task_name,
-                # cache_dir=args.cache_dir,
-                trust_remote_code=True,
-            )
-            model = AutoModelForSequenceClassification.from_pretrained(
-                "Qwen/Qwen2-1.5B", 
-                config=config,
-                attn_implementation="eager",
-                trust_remote_code=True,
-                torch_dtype=torch.float16,
-                device_map='auto'
-            )
-        elif args.model_name == "Qwen_0.5b":
-            tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-0.5B", trust_remote_code=True, use_fast=True)
-            config = AutoConfig.from_pretrained(
-                "Qwen/Qwen2-0.5B",
-                num_labels=num_labels,
-                finetuning_task=args.task_name,
-                # cache_dir=args.cache_dir,
-                trust_remote_code=True,
-            )
-            model = AutoModelForSequenceClassification.from_pretrained(
-                "Qwen/Qwen2-0.5B", 
-                config=config,
-                attn_implementation="flash_attention_2",
-                trust_remote_code=True,
-                torch_dtype=torch.float16,
-                # variant="fp16",
-                device_map='auto'
-            )
-            print("Defining pad token")
-            tokenizer.pad_token = tokenizer.eos_token
-            model.config.pad_token_id = model.config.eos_token_id
+        print("Defining pad token")
+        tokenizer.pad_token = tokenizer.eos_token
+        model.config.pad_token_id = model.config.eos_token_id
 
     except Exception as e:
         print(f"Error loading model: {e}")
