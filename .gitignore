@@ -1,0 +1,4 @@
+.err/
+.out/
+.wandb/
+.scripts/wandb/
