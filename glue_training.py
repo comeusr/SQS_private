@@ -115,6 +115,30 @@ def float_and_none(value):
         else:
             raise ValueError(f"Unsupported value type {value}")
 
+def evaluate(model, eval_dataloader, accelerator, device, num_labels):
+    model.eval()
+    cfg.IS_TRAIN = False
+    metric = MulticlassAccuracy(num_classes=num_labels, average='micro').to(device)
+
+    with torch.no_grad():
+        for batch in eval_dataloader:
+
+            # for key in batch:
+            #     batch[key] = batch[key].to(torch.bfloat16)
+            # for key in batch:
+            #     print(f"{key}: {batch[key]}")
+            with accelerator.autocast():
+                outputs = model(**batch)
+            logits = outputs.logits
+            predictions = torch.argmax(logits, dim=-1)
+
+            metric.update(predictions, batch['labels'])
+    
+    accuracy = metric.compute()
+    cfg.IS_TRAIN = True
+    return accuracy
+
+
 def main(args):
 
     # Load the dataset
@@ -233,29 +257,6 @@ def main(args):
         device_placement=True,
     )
 
-    def evaluate(model, eval_dataloader):
-        model.eval()
-        cfg.IS_TRAIN = False
-        metric = MulticlassAccuracy(num_classes=num_labels, average='micro').to(device)
-
-        with torch.no_grad():
-            for batch in eval_dataloader:
-
-                # for key in batch:
-                #     batch[key] = batch[key].to(torch.bfloat16)
-                # for key in batch:
-                #     print(f"{key}: {batch[key]}")
-                with accelerator.autocast():
-                    outputs = model(**batch)
-                logits = outputs.logits
-                predictions = torch.argmax(logits, dim=-1)
-
-                metric.update(predictions, batch['labels'])
-        
-        accuracy = metric.compute()
-        cfg.IS_TRAIN = True
-        return accuracy
-
 
 
     if args.task_name == "mnli":
@@ -347,7 +348,7 @@ def main(args):
     )
 
     print("Model Device: ", model.device)
-    accuracy = evaluate(model, eval_dataloader)
+    accuracy = evaluate(model, eval_dataloader, accelerator, device, num_labels)
     wandb.log({'Before Compression Eval Acc': accuracy}, commit=False)
 
     pruner =  GPT2_PRUNER(model, 
@@ -363,11 +364,10 @@ def main(args):
     )
 
     model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, accelerator, lr_scheduler, 
-                num_training_steps,duration, normal, cfg)
+                num_training_steps, args.duration, args.normal, cfg, device, num_labels)
 
 def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, accelerator,lr_scheduler,
-                num_training_steps,duration, normal
-                cfg):
+                num_training_steps,duration, normal, cfg, device, num_labels):
     progress_bar = tqdm(range(num_training_steps))
 
 
@@ -406,7 +406,7 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
             progress_bar.update(1)
 
             if step % 50 == 0:
-                accuracy = evaluate(model, eval_dataloader)
+                accuracy = evaluate(model, eval_dataloader, accelerator, device, num_labels)
                 wandb.log({'Eval Acc': accuracy}, commit=False)
 
         accelerator.wait_for_everyone()

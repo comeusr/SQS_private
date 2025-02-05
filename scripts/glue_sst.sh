@@ -1,5 +1,3 @@
-#!/bin/bash -l
-
 DATASET="--dataset_name ptb_text_only"
 TASK_NAME='sst2'
 WD=5e-7
