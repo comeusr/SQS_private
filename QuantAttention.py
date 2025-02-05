@@ -603,6 +603,8 @@ class CustomizedQwen2Attention(Qwen2Attention):
     
     def QuantizedWeights(self):
         if cfg.IS_TRAIN:
+
+            print("-"*50+"In Training Fetch Quantized Weights"+"-"*50)
             if torch.isnan(self.k_proj.weight).any():
                 print("Original k_proj weight is nan")
             if torch.isnan(self.v_proj.weight).any():
@@ -612,6 +614,7 @@ class CustomizedQwen2Attention(Qwen2Attention):
             if torch.isnan(self.o_proj.weight).any():
                 print("Original o_proj weight is nan")
             
+    
             k_weights = self.k_proj.sub_distribution(weights=self.k_proj.weight, train=True)
             v_weights = self.v_proj.sub_distribution(weights=self.v_proj.weight, train=True)
             q_weights = self.q_proj.sub_distribution(weights=self.q_proj.weight, train=True)
