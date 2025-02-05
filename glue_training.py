@@ -360,16 +360,22 @@ def main(args):
         num_training_steps=cfg.PRUNE_END_STEP,
     )
 
+    model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, accelerator, lr_scheduler, 
+                num_training_steps,duration, normal, cfg)
+
+def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, accelerator,lr_scheduler,
+                num_training_steps,duration, normal
+                cfg):
     progress_bar = tqdm(range(num_training_steps))
 
 
-    for epoch in range(args.duration):
+    for epoch in range(duration):
         model.train()
         cfg.IS_TRAIN = True
         for step, batch in enumerate(train_dataloader):
 
             curr_step = len(train_dataloader)*epoch+step
-            if not args.normal:
+            if not normal:
                 pruner.prune(curr_step)
                 pruner.log_sparsity()
 
@@ -405,8 +411,6 @@ def main(args):
         # if pruner.cur_sparsity == args.final_sparsity:
         unwrapped_model = accelerator.unwrap_model(model)
         unwrapped_model.save_pretrained(args.save_folder+"epoch"+str(epoch), save_function=accelerator.save)
-
-
 
 if __name__ == "__main__":
     # print_environment_info()
