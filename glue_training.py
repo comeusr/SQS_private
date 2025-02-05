@@ -21,7 +21,8 @@ import wandb
 
 from tqdm.auto import tqdm
 
-import config as cfg, model_config
+import config as cfg
+from config import model_config
 
 import bitsandbytes as bnb
 
@@ -227,7 +228,7 @@ def main(args):
     cfg.PRUNE_START_STEP = int(len(train_dataloader)*args.prune_start)
 
     accelerator = Accelerator(
-        mixed_precision= 'fp16' if use_fp16 else 'bf16',
+        # mixed_precision= 'fp16' if use_fp16 else 'bf16',
         # fp16 = TrainingArguments.fp16,
         device_placement=True,
     )
