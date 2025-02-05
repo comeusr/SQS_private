@@ -47,7 +47,7 @@ model_config={
     },
     "Qwen_0.5b":{
         "from_pretrained": "Qwen/Qwen2-0.5B",
-        "attn_implementation": "flash_attention_2",
+        "attn_implementation": "eager",
     }
 }
 

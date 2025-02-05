@@ -148,7 +148,7 @@ def main(args):
                 loaded_model_config['from_pretrained'], 
                 config=config,
                 attn_implementation=loaded_model_config['attn_implementation'],
-                torch_dtype=torch.float16,
+                # torch_dtype=torch.float16,
                 trust_remote_code=True
             )
         print("Defining pad token")
@@ -377,9 +377,9 @@ def main(args):
 
             # for key in batch:
             #     print(f"{key}: {batch[key]}")
-            with accelerator.autocast():
-                outputs = model(**batch)
-                loss = outputs.loss
+            # with accelerator.autocast():
+            outputs = model(**batch)
+            loss = outputs.loss
 
             wandb.log({'Training Loss': loss.item()})
 
@@ -389,9 +389,9 @@ def main(args):
 
             accelerator.backward(loss)
 
-            for name, param in model.named_parameters():
-                print(f"{name} grad dtype: {param.grad.dtype}")
-                print(f"{name} dtype: {param.dtype}")
+            # for name, param in model.named_parameters():
+            #     print(f"{name} grad dtype: {param.grad.dtype}")
+            #     print(f"{name} dtype: {param.dtype}")
 
             accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()

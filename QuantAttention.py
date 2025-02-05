@@ -646,11 +646,16 @@ class CustomizedQwen2Attention(Qwen2Attention):
         **kwargs: Unpack[FlashAttentionKwargs],
     ):
         input_shape = hidden_states.shape[:-1]
-        hidden_shape = (*input_shape, -1, self.head_dim)
+        hidden_shape = (*input_shape, -1, self.head_dim)        
 
-        query_states = F.linear(hidden_states, q_weights, self.q_proj.bias).view(hidden_shape).transpose(1, 2)
-        key_states = F.linear(hidden_states, k_weights, self.k_proj.bias).view(hidden_shape).transpose(1, 2)
-        value_states = F.linear(hidden_states, v_weights, self.v_proj.bias).view(hidden_shape).transpose(1, 2)
+        # try:
+        query_states = F.linear(hidden_states, q_weights.to(hidden_states.dtype), self.q_proj.bias).view(hidden_shape).transpose(1, 2)
+            # print(hidden_states.dtype)
+            # print(q_weights.dtype)
+            # print(self.q_proj.bias.dtype)
+
+        key_states = F.linear(hidden_states, k_weights.to(hidden_states.dtype), self.k_proj.bias).view(hidden_shape).transpose(1, 2)
+        value_states = F.linear(hidden_states, v_weights.to(hidden_states.dtype), self.v_proj.bias).view(hidden_shape).transpose(1, 2)
 
         cos, sin = position_embeddings
         query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
@@ -691,7 +696,7 @@ class CustomizedQwen2Attention(Qwen2Attention):
         )
 
         attn_output = attn_output.reshape(*input_shape, -1).contiguous()
-        attn_output = F.linear(attn_output, o_weights)
+        attn_output = F.linear(attn_output, o_weights.to(attn_output.dtype))
         return attn_output, attn_weights
         
 
