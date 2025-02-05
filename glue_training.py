@@ -15,6 +15,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from torchmetrics.classification import MulticlassAccuracy
 
+from torch.cuda.amp import GradScaler, autocast
 
 import wandb
 
