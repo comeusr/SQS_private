@@ -1,8 +1,3 @@
-torch==1.6.0
-torchvision==0.7.0
-tensorboardX
-pillow
-graphviz
-inspect
-pydot
-kmeans-pytorch
+torch==2.3.0
+torchvision==0.18
+transformers==4.10.0

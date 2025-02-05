@@ -35,6 +35,22 @@ STDS = {
     'aircraft': (0.229, 0.224, 0.225),
 }
 
+model_config={
+    "gpt2":{
+        "from_pretrained": "openai-community/gpt2",
+        "attn_implementation": "flash_attention_2",
+    },
+    "Qwen_1.5b":{
+        "from_pretrained": "Qwen/Qwen2-1.5B",
+        "attn_implementation": "eager",
+
+    },
+    "Qwen_0.5b":{
+        "from_pretrained": "Qwen/Qwen2-0.5B",
+        "attn_implementation": "flash_attention_2",
+    }
+}
+
 # Model definition
 TAU = 0.01
 IS_TRAIN = True
