@@ -215,11 +215,6 @@ def main(args):
 
     wandb.init(project='SQS_GLUE', name=args.run_name)
 
-    if torch.cuda.is_available():
-        device = torch.device('cuda:0')
-    else:
-        device = torch.device('cpu')
-
 
     sentence1_key, sentence2_key = task_to_keys[args.task_name]
 
@@ -500,12 +495,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--overwrite_cache", action="store_true", 
                         help="Overwrite the cached training and evaluation sets")
-    parser.add_argument("--train_file", type=str, default=None, 
-                        help="A csv or a json file containing the training data.")
-    parser.add_argument("--validation_file", type=str, default=None, 
-                        help="A csv or a json file containing the validation data.")
-    parser.add_argument("--test_file", type=str, default=None, 
-                        help="A csv or a json file containing the Prediction data.")
+    
     parser.add_argument('--empirical', type=bool, default=False,
                         help='whether use empirical initialization for parameter sigma (default: False)')
     parser.add_argument('--normal', action='store_true', default=False,
