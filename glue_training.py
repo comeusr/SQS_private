@@ -15,12 +15,14 @@ from torch.utils.data.distributed import DistributedSampler
 
 from torchmetrics.classification import MulticlassAccuracy
 
+from torch.cuda.amp import GradScaler, autocast
 
 import wandb
 
 from tqdm.auto import tqdm
 
-import config as cfg, model_config
+import config as cfg
+from config import model_config
 
 import bitsandbytes as bnb
 
@@ -135,7 +137,7 @@ def main(args):
     try:
         loaded_model_config= model_config[args.model_name]
         tokenizer = AutoTokenizer.from_pretrained(loaded_model_config['from_pretrained'], trust_remote_code=True, use_fast=True)
-            config = AutoConfig.from_pretrained(
+        config = AutoConfig.from_pretrained(
                 loaded_model_config['from_pretrained'],
                 num_labels=num_labels,
                 finetuning_task=args.task_name,
@@ -226,7 +228,7 @@ def main(args):
     cfg.PRUNE_START_STEP = int(len(train_dataloader)*args.prune_start)
 
     accelerator = Accelerator(
-        mixed_precision= 'fp16' if use_fp16 else 'bf16',
+        # mixed_precision= 'fp16' if use_fp16 else 'bf16',
         # fp16 = TrainingArguments.fp16,
         device_placement=True,
     )
