@@ -4,7 +4,7 @@ from copy import deepcopy
 from transformers.models.gpt2.modeling_gpt2 import GPT2Attention
 from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention
 
-from QuantAttention import CustomizGPT2Attention, CustomizedQwenFlashAttention2
+from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention
 from utils.GPT2_pruner_quantizer import GPT2_PRUNER
 
 import torch
@@ -22,11 +22,17 @@ from tqdm.auto import tqdm
 
 import config as cfg
 
+import bitsandbytes as bnb
+
 #Huggingface
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig, AutoModelForSequenceClassification
 from transformers import DataCollatorForLanguageModeling
 from transformers import get_scheduler, EvalPrediction
 from transformers import default_data_collator, DataCollatorWithPadding
+from transformers.trainer_pt_utils import get_parameter_names
+
+from transformers import TrainingArguments
+
 
 
 from datasets import load_dataset
@@ -47,17 +53,17 @@ task_to_keys = {
 
 
 
-# def print_environment_info():
-#     # print(f"Python version: {sys.version}")
-#     # print(f"PyTorch version: {torch.__version__}")
-#     if torch.cuda.is_available():
-#         print(f"CUDA version: {torch.version.cuda}")
-#         print(f"cuDNN version: {torch.backends.cudnn.version()}")
-#         print(f"Device count: {torch.cuda.device_count()}")
-#         print(f"Current device: {torch.cuda.current_device()}")
-#         print(f"Device name: {torch.cuda.get_device_name()}")
-#     else:
-#         print("CUDA is not available")
+def print_environment_info():
+    print(f"Python version: {sys.version}")
+    print(f"PyTorch version: {torch.__version__}")
+    if torch.cuda.is_available():
+        print(f"CUDA version: {torch.version.cuda}")
+        print(f"cuDNN version: {torch.backends.cudnn.version()}")
+        print(f"Device count: {torch.cuda.device_count()}")
+        print(f"Current device: {torch.cuda.current_device()}")
+        print(f"Device name: {torch.cuda.get_device_name()}")
+    else:
+        print("CUDA is not available")
 
 def recursive_setattr(obj, attr, value):
     attr = attr.split('.', 1)
@@ -73,7 +79,7 @@ def InitModel(model, sigma):
             print("Initializing Customized Model Parameters.")
             m.init_mask_params(sigma)
             count += 1
-        elif isinstance(m, CustomizedQwenFlashAttention2):
+        elif isinstance(m, CustomizedQwen2Attention):
             print("Initializing Layer {}".format(count))
             print("Initializing Customized Model Parameters.")
             m.init_mask_params(sigma) 
@@ -92,7 +98,7 @@ def replace_attn_layer(module, config, model_name, device):
     elif model_name == "Qwen_1.5b" or model_name == "Qwen_0.5b":
         if isinstance(module, Qwen2Attention):
             # target_state_dict   = deepcopy(module.state_dict())
-            new_module = CustomizedQwenFlashAttention2(config, layer_idx=module.layer_idx).to(device)
+            new_module = CustomizedQwen2Attention(config, layer_idx=module.layer_idx).to(device)
             new_module.load_state_dict(module.state_dict())
             print("Replace with Customize Qwen Flash Attention Layer.")
             return new_module
@@ -170,7 +176,7 @@ def main(args):
             model = AutoModelForSequenceClassification.from_pretrained(
                 "Qwen/Qwen2-1.5B", 
                 config=config,
-                attn_implementation="flash_attention_2",
+                attn_implementation="eager",
                 trust_remote_code=True,
                 torch_dtype=torch.float16,
                 device_map='auto'
@@ -190,6 +196,7 @@ def main(args):
                 attn_implementation="flash_attention_2",
                 trust_remote_code=True,
                 torch_dtype=torch.float16,
+                # variant="fp16",
                 device_map='auto'
             )
             print("Defining pad token")
@@ -236,30 +243,6 @@ def main(args):
             # in all cases, rename the column to labels because the model will expect that.
             result["labels"] = examples["label"]
         return result
-
-    def evaluate(model, eval_dataloader):
-        model.eval()
-        cfg.IS_TRAIN = False
-        metric = MulticlassAccuracy(num_classes=num_labels, average='micro').to(device)
-
-        with torch.no_grad():
-            for batch in eval_dataloader:
-
-                # for key in batch:
-                #     batch[key] = batch[key].to(torch.bfloat16)
-                for key in batch:
-                    print(f"{key}: {batch[key]}")
-
-                outputs = model(**batch)
-                logits = outputs.logits
-                predictions = torch.argmax(logits, dim=-1)
-
-                metric.update(predictions, batch['labels'])
-        
-        accuracy = metric.compute()
-        cfg.IS_TRAIN = True
-        return accuracy
-
     
 
     processed_datasets = raw_datasets.map(
@@ -297,6 +280,36 @@ def main(args):
     cfg.PRUNE_END_STEP = int(len(train_dataloader)*args.prune_end)
     cfg.PRUNE_START_STEP = int(len(train_dataloader)*args.prune_start)
 
+    accelerator = Accelerator(
+        mixed_precision= 'fp16' if use_fp16 else 'bf16',
+        # fp16 = TrainingArguments.fp16,
+        device_placement=True,
+    )
+
+    def evaluate(model, eval_dataloader):
+        model.eval()
+        cfg.IS_TRAIN = False
+        metric = MulticlassAccuracy(num_classes=num_labels, average='micro').to(device)
+
+        with torch.no_grad():
+            for batch in eval_dataloader:
+
+                # for key in batch:
+                #     batch[key] = batch[key].to(torch.bfloat16)
+                # for key in batch:
+                #     print(f"{key}: {batch[key]}")
+                with accelerator.autocast():
+                    outputs = model(**batch)
+                logits = outputs.logits
+                predictions = torch.argmax(logits, dim=-1)
+
+                metric.update(predictions, batch['labels'])
+        
+        accuracy = metric.compute()
+        cfg.IS_TRAIN = True
+        return accuracy
+
+
 
     if args.task_name == "mnli":
         mm_eval_dataset = processed_datasets["validation_mismatched"]
@@ -322,6 +335,30 @@ def main(args):
             lr=args.lr,
             eps=1e-8
         )
+        decay_parameters = get_parameter_names(model, [nn.LayerNorm])
+        decay_parameters = [name for name in decay_parameters if "bias" not in name]
+
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in model.named_parameters() if n in decay_parameters],
+                "weight_decay": args.weight_decay,
+            },
+            {
+                "params": [p for n, p in model.named_parameters() if n not in decay_parameters],
+                "weight_decay": 0.0,
+            },
+        ]
+
+        optimizer_kwargs = {
+            "eps": 1e-8,
+        }
+        optimizer_kwargs["lr"] = args.lr
+
+        optimizer = bnb.optim.AdamW(
+            model.parameters(),
+            lr=args.lr,
+            eps=1e-8
+        )
     elif args.optimizer == "rmsprop":
         print("SGD optimizer")
         optimizer = RMSprop(
@@ -338,10 +375,16 @@ def main(args):
             weight_decay=args.weight_decay
         )
 
-    accelerator = Accelerator(
-        mixed_precision='bf16',
-        device_placement=True,
-    )
+
+    # training_args = TrainingArguments(
+    #         output_dir=args.save_folder,
+    #         per_device_train_batch_size=1,
+    #         gradient_accumulation_steps=4,
+    #         gradient_checkpointing=True,
+    #         fp16=True,
+    #     )
+
+    # model = torch.compile(model)
 
     if not args.normal:
         for name, module in tuple(model.named_modules()):
@@ -350,6 +393,7 @@ def main(args):
         print("Initializing Model Parameters.")
         InitModel(model, args.sigma)
 
+    model.to(accelerator.device, dtype=torch.float16)
 
     model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
         model, optimizer, train_dataloader, eval_dataloader
@@ -374,7 +418,7 @@ def main(args):
     progress_bar = tqdm(range(num_training_steps))
 
 
-    for epoch in range(1):
+    for epoch in range(args.duration):
         model.train()
         cfg.IS_TRAIN = True
         for step, batch in enumerate(train_dataloader):
@@ -384,15 +428,25 @@ def main(args):
                 pruner.prune(curr_step)
                 pruner.log_sparsity()
 
-            for key in batch:
-                print(f"{key}: {batch[key]}")
-
-            outputs = model(**batch)
-            loss = outputs.loss
+            # for key in batch:
+            #     print(f"{key}: {batch[key]}")
+            with accelerator.autocast():
+                outputs = model(**batch)
+                loss = outputs.loss
 
             wandb.log({'Training Loss': loss.item()})
 
+            # accelerator.scaler.scale(loss).backward()  # ✅ Use scaler for mixed precision training
+            # accelerator.scaler.step(optimizer)  # ✅ Step with scaler
+            # accelerator.scaler.update()  # ✅ Update scaler
+
             accelerator.backward(loss)
+
+            for name, param in model.named_parameters():
+                print(f"{name} grad dtype: {param.grad.dtype}")
+                print(f"{name} dtype: {param.dtype}")
+
+            accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
@@ -403,9 +457,9 @@ def main(args):
                 wandb.log({'Eval Acc': accuracy}, commit=False)
 
         accelerator.wait_for_everyone()
-        if pruner.cur_sparsity == args.final_sparsity:
-            unwrapped_model = accelerator.unwrap_model(model)
-            unwrapped_model.save_pretrained(args.save_folder+"_epoch", save_function=accelerator.save)
+        # if pruner.cur_sparsity == args.final_sparsity:
+        unwrapped_model = accelerator.unwrap_model(model)
+        unwrapped_model.save_pretrained(args.save_folder+"epoch"+str(epoch), save_function=accelerator.save)
 
 
 

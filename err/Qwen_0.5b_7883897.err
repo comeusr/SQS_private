@@ -1,0 +1,24 @@
+
+CondaError: Run 'conda init' before 'conda activate'
+
+The following values were not passed to `accelerate launch` and had defaults used instead:
+	`--num_processes` was set to a value of `1`
+	`--num_machines` was set to a value of `1`
+	`--mixed_precision` was set to a value of `'no'`
+	`--dynamo_backend` was set to a value of `'no'`
+To avoid this warning pass in values for each of the problematic parameters or run `accelerate config`.
+Traceback (most recent call last):
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 7, in <module>
+    from QuantAttention import CustomizGPT2Attention, CustomizedQwenFlashAttention2
+ImportError: cannot import name 'CustomizedQwenFlashAttention2' from 'QuantAttention' (/home/wang4538/DGMS-master/QuantAttention.py). Did you mean: 'CustomizedOPTFlashAttention2'?
+Traceback (most recent call last):
+  File "/home/wang4538/miniconda3/envs/LLM/bin/accelerate", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/accelerate_cli.py", line 48, in main
+    args.func(args)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/launch.py", line 1172, in launch_command
+    simple_launcher(args)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/launch.py", line 762, in simple_launcher
+    raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
+subprocess.CalledProcessError: Command '['/home/wang4538/miniconda3/envs/LLM/bin/python3.12', '../glue_training.py', '--dataset_name', 'ptb_text_only', '--normal', '--task_name', 'sst2', '--K', '16', '--tau', '0.001', '--weight_decay', '5e-7', '--prune', '--model_name', 'Qwen_0.5b', '--lr', '5e-6', '--duration', '5', '--alpha_f', '0.01', '--seed', '428', '--init_method', 'k-means', '--run_name', 'Qwen_0.5b_K16_KL_SPAS0.75_temp0.001_LR5e-6_PRTEMP0.01_WD5e-7_SIGMA3', '--autoresume', '--eval_interval', '1ep', '--prune_scale', '0.01', '--prune_start', '0.05', '--sigma', '3', '--init_sparsity', '0.0', '--final_sparsity', '0.75', '--prune_end', '0.9', '--optimizer', 'adam', '--batch_size', '32', '--max_seq_length', '384', '--preprocessing_num_workers', '4', '--save_folder', '/scratch/gilbreth/wang4538/DGMS/Run/GLUE_sst2_Qwen_0.5b/normal/']' returned non-zero exit status 1.

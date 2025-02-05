@@ -5,8 +5,8 @@ TASK_NAME='sst2'
 WD=5e-7
 TEMP=0.001
 K=32
-LR=5e-10
-EPOCHS=1
+LR=5e-6
+EPOCHS=2
 FINAL_LR=0.01
 EVAL_INTERV='1ep'
 SEED=428
@@ -19,10 +19,9 @@ WARM_UP=0.05
 PRUNE_INIT_LR=0.01
 SIGMA=3
 MODEL_NAME='Qwen_0.5b'
-OPTIMIZER='sgd'
+OPTIMIZER='adam'
 BATCH_SIZE=16
 MAX_LENGTH=384
-py=/home/wang4538/miniconda3/bin/python
 
 # CIFAR100_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD}
 export HF_HUB_ENABLE_HF_TRANSFER=1
@@ -30,7 +29,6 @@ export CUDA_LAUNCH_BLOCKING=1
 export TORCH_USE_CUDA_DSA=1
 
 module load cuda/12.1
-# module load gcc/9.3.0
 
 conda activate LLM
 
@@ -38,9 +36,10 @@ conda activate LLM
 sh <<EOT
 #!/bin/bash -l
 
-#SBATCH --job-name normal_${MODEL_NAME}
+#SBATCH --job-name ${MODEL_NAME}normal
 #SBATCH --output /home/wang4538/DGMS-master/out/%x_%j.out
 #SBATCH --error /home/wang4538/DGMS-master/err/%x_%j.err
+
 
 nvidia-smi
 accelerate launch ../glue_training.py $DATASET --normal --task_name ${TASK_NAME} --K ${K} --tau ${TEMP} --weight_decay ${WD} --prune --model_name ${MODEL_NAME} \

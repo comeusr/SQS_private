@@ -1,0 +1,101 @@
+The following values were not passed to `accelerate launch` and had defaults used instead:
+	`--num_processes` was set to a value of `1`
+	`--num_machines` was set to a value of `1`
+	`--mixed_precision` was set to a value of `'no'`
+	`--dynamo_backend` was set to a value of `'no'`
+To avoid this warning pass in values for each of the problematic parameters or run `accelerate config`.
+Some weights of Qwen2ForSequenceClassification were not initialized from the model checkpoint at Qwen/Qwen2-0.5B and are newly initialized: ['score.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+wandb: Currently logged in as: wang4538 (rajdeeph-purdue-university). Use `wandb login --relogin` to force relogin
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Tracking run with wandb version 0.19.4
+wandb: Run data is saved locally in /home/wang4538/DGMS-master/scripts/wandb/run-20250203_032637-4yrc8hmk
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run Qwen_0.5b_K16_KL_SPAS0.75_temp0.001_LR1e-6_PRTEMP0.01_WD5e-7_SIGMA3
+wandb: ⭐️ View project at https://wandb.ai/rajdeeph-purdue-university/SQS_GLUE
+wandb: 🚀 View run at https://wandb.ai/rajdeeph-purdue-university/SQS_GLUE/runs/4yrc8hmk
+Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+Traceback (most recent call last):
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 519, in <module>
+    main(args)
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 358, in main
+    accuracy = evaluate(model, eval_dataloader)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 252, in evaluate
+    outputs = model(**batch)
+              ^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/utils/operations.py", line 819, in forward
+    return model_forward(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/utils/operations.py", line 807, in __call__
+    return convert_to_fp32(self.model_forward(*args, **kwargs))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/amp/autocast_mode.py", line 16, in decorate_autocast
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 904, in forward
+    transformer_outputs = self.model(
+                          ^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 574, in forward
+    layer_outputs = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 259, in forward
+    hidden_states, self_attn_weights = self.self_attn(
+                                       ^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 191, in forward
+    attn_output, attn_weights = attention_interface(
+                                ^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/transformers/integrations/flash_attention.py", line 50, in flash_attention_forward
+    attn_output = _flash_attention_forward(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/transformers/modeling_flash_attention_utils.py", line 311, in _flash_attention_forward
+    attn_output_unpad = flash_attn_varlen_func(
+                        ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/flash_attn/flash_attn_interface.py", line 1448, in flash_attn_varlen_func
+    return FlashAttnVarlenFunc.apply(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/autograd/function.py", line 598, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/flash_attn/flash_attn_interface.py", line 930, in forward
+    out_padded, softmax_lse, S_dmask, rng_state = _wrapped_flash_attn_varlen_forward(
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/flash_attn/flash_attn_interface.py", line 170, in _flash_attn_varlen_forward
+    out, softmax_lse, S_dmask, rng_state = flash_attn_gpu.varlen_fwd(
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: FlashAttention only supports Ampere GPUs or newer.
+Traceback (most recent call last):
+  File "/home/wang4538/miniconda3/envs/LLM/bin/accelerate", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/accelerate_cli.py", line 48, in main
+    args.func(args)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/launch.py", line 1172, in launch_command
+    simple_launcher(args)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/launch.py", line 762, in simple_launcher
+    raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
+subprocess.CalledProcessError: Command '['/home/wang4538/miniconda3/envs/LLM/bin/python3.12', '../glue_training.py', '--dataset_name', 'ptb_text_only', '--normal', '--task_name', 'sst2', '--K', '16', '--tau', '0.001', '--weight_decay', '5e-7', '--prune', '--model_name', 'Qwen_0.5b', '--lr', '1e-6', '--duration', '20', '--alpha_f', '0.01', '--seed', '428', '--init_method', 'k-means', '--run_name', 'Qwen_0.5b_K16_KL_SPAS0.75_temp0.001_LR1e-6_PRTEMP0.01_WD5e-7_SIGMA3', '--autoresume', '--eval_interval', '1ep', '--prune_scale', '0.01', '--prune_start', '0.05', '--sigma', '3', '--init_sparsity', '0.0', '--final_sparsity', '0.75', '--prune_end', '0.9', '--optimizer', 'adam', '--batch_size', '32', '--max_seq_length', '384', '--preprocessing_num_workers', '4', '--save_folder', '/scratch/gilbreth/wang4538/DGMS/Run/GLUE/normal_sst2_Qwen_0.5b/K16_temp0.001_LR1e-6_F0.01_WD5e-7']' returned non-zero exit status 1.

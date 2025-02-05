@@ -1,0 +1,94 @@
+{
+  "os":  "Linux-3.10.0-1160.108.1.el7.x86_64-x86_64-with-glibc2.17",
+  "python":  "CPython 3.12.2",
+  "startedAt":  "2025-02-03T08:07:44.250495Z",
+  "args":  [
+    "--dataset_name",
+    "ptb_text_only",
+    "--normal",
+    "--task_name",
+    "sst2",
+    "--K",
+    "32",
+    "--tau",
+    "0.001",
+    "--weight_decay",
+    "5e-7",
+    "--prune",
+    "--model_name",
+    "Qwen_0.5b",
+    "--lr",
+    "5e-10",
+    "--duration",
+    "1",
+    "--alpha_f",
+    "0.01",
+    "--seed",
+    "428",
+    "--init_method",
+    "k-means",
+    "--run_name",
+    "Qwen_0.5b_K32_KL_SPAS0.75_temp0.001_LR5e-10_PRTEMP0.01_WD5e-7_SIGMA3",
+    "--autoresume",
+    "--eval_interval",
+    "1ep",
+    "--prune_scale",
+    "0.01",
+    "--prune_start",
+    "0.05",
+    "--sigma",
+    "3",
+    "--init_sparsity",
+    "0.0",
+    "--final_sparsity",
+    "0.75",
+    "--prune_end",
+    "0.9",
+    "--optimizer",
+    "sgd",
+    "--batch_size",
+    "16",
+    "--max_seq_length",
+    "384",
+    "--preprocessing_num_workers",
+    "4",
+    "--save_folder",
+    "/scratch/gilbreth/wang4538/DGMS/Run/GLUE_sst2_Qwen_0.5b/K32_temp0.001_LR5e-10_F0.01_WD5e-7"
+  ],
+  "program":  "/home/wang4538/DGMS-master/scripts/../glue_training.py",
+  "codePath":  "glue_training.py",
+  "git":  {
+    "remote":  "https://github.com/comeusr/SQS_private",
+    "commit":  "0ece00de65fb857005224a2a96f64c7a4845ef6a"
+  },
+  "email":  "wang4538@purdue.edu",
+  "root":  "/home/wang4538/DGMS-master/scripts",
+  "host":  "gilbreth-fe02.rcac.purdue.edu",
+  "executable":  "/home/wang4538/miniconda3/envs/LLM/bin/python3.12",
+  "cpu_count":  64,
+  "cpu_count_logical":  64,
+  "gpu":  "NVIDIA A30",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "270357590016",
+      "used":  "25366704128"
+    }
+  },
+  "memory":  {
+    "total":  "540715180032"
+  },
+  "cpu":  {
+    "count":  64,
+    "countLogical":  64
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA A30",
+      "memoryTotal":  "25769803776",
+      "cudaCores":  3584,
+      "architecture":  "Ampere"
+    }
+  ],
+  "cudaVersion":  "12.3"
+}

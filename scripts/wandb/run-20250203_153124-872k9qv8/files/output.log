@@ -1,0 +1,140 @@
+AdamW optimizer
+Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+Model Device:  cuda:0
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0] Graph break from `Tensor.item()`, consider setting:
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0]     torch._dynamo.config.capture_scalar_outputs = True
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0] or:
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0]     env TORCHDYNAMO_CAPTURE_SCALAR_OUTPUTS=1
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0] to include these operations in the captured graph.
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0]
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0] Graph break: from user code at:
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0]   File "/home/wang4538/miniconda3/lib/python3.12/site-packages/transformers/modeling_flash_attention_utils.py", line 54, in torch_dynamo_resume_in__get_unpad_data_at_53
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0]     max_seqlen_in_batch = seqlens_in_batch.max().item()
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0]
+W0203 15:31:29.458000 25881 site-packages/torch/_dynamo/variables/tensor.py:776] [12/0]
+Traceback (most recent call last):
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 534, in <module>
+    main(args)
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 372, in main
+    accuracy = evaluate(model, eval_dataloader)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 253, in evaluate
+    outputs = model(**batch)
+              ^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/accelerate/utils/operations.py", line 819, in forward
+    return model_forward(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/accelerate/utils/operations.py", line 807, in __call__
+    return convert_to_fp32(self.model_forward(*args, **kwargs))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/amp/autocast_mode.py", line 44, in decorate_autocast
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 465, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 882, in forward
+    @add_start_docstrings_to_model_forward(QWEN2_INPUTS_DOCSTRING)
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 498, in forward
+    @add_start_docstrings_to_model_forward(QWEN2_INPUTS_DOCSTRING)
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 574, in torch_dynamo_resume_in_forward_at_544
+    layer_outputs = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 259, in forward
+    hidden_states, self_attn_weights = self.self_attn(
+                                       ^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 191, in forward
+    attn_output, attn_weights = attention_interface(
+                                ^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/transformers/integrations/flash_attention.py", line 50, in flash_attention_forward
+    attn_output = _flash_attention_forward(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/transformers/modeling_flash_attention_utils.py", line 231, in _flash_attention_forward
+    def _flash_attention_forward(
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/transformers/modeling_flash_attention_utils.py", line 305, in torch_dynamo_resume_in__flash_attention_forward_at_305
+    query_states, key_states, value_states, indices_q, cu_seq_lens, max_seq_lens = _upad_input(
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 632, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_functorch/aot_autograd.py", line 1100, in forward
+    return compiled_fn(full_args)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/runtime_wrappers.py", line 321, in runtime_wrapper
+    all_outs = call_func_at_runtime_with_args(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/utils.py", line 124, in call_func_at_runtime_with_args
+    out = normalize_as_list(f(args))
+                            ^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/runtime_wrappers.py", line 667, in inner_fn
+    outs = compiled_fn(args)
+           ^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/runtime_wrappers.py", line 488, in wrapper
+    return compiled_fn(runtime_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_inductor/codecache.py", line 1478, in __call__
+    return self.current_callable(inputs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_inductor/utils.py", line 1977, in run
+    return model(new_inputs)
+           ^^^^^^^^^^^^^^^^^
+  File "/tmp/torchinductor_wang4538/o2/co2q2hc6kj2qi65dfyapllq3srobcag3yegtaufpne32kelhzo6p.py", line 125, in call
+    buf0 = torch.ops.flash_attn._flash_attn_varlen_forward.default(arg0_1, arg1_1, arg2_1, arg4_1, arg4_1, 41, 41, 0.0, 0.125, True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_ops.py", line 716, in __call__
+    return self._op(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_library/autograd.py", line 113, in autograd_impl
+    result = forward_no_grad(*args, Metadata(keyset, keyword_only_args))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_library/autograd.py", line 40, in forward_no_grad
+    result = op.redispatch(keyset & _C._after_autograd_keyset, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_ops.py", line 721, in redispatch
+    return self._handle.redispatch_boxed(keyset, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_library/custom_ops.py", line 324, in backend_impl
+    result = self._backend_fns[device_type](*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_compile.py", line 32, in inner
+    return disable_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 632, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/torch/_library/custom_ops.py", line 367, in wrapped_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/lib/python3.12/site-packages/flash_attn/flash_attn_interface.py", line 170, in _flash_attn_varlen_forward
+    out, softmax_lse, S_dmask, rng_state = flash_attn_gpu.varlen_fwd(
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: FlashAttention only support fp16 and bf16 data type

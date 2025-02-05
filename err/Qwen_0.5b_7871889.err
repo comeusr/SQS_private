@@ -1,0 +1,46 @@
+The following values were not passed to `accelerate launch` and had defaults used instead:
+	`--num_processes` was set to a value of `1`
+	`--num_machines` was set to a value of `1`
+	`--mixed_precision` was set to a value of `'no'`
+	`--dynamo_backend` was set to a value of `'no'`
+To avoid this warning pass in values for each of the problematic parameters or run `accelerate config`.
+Some weights of Qwen2ForSequenceClassification were not initialized from the model checkpoint at Qwen/Qwen2-0.5B and are newly initialized: ['score.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+wandb: Currently logged in as: wang4538 (rajdeeph-purdue-university). Use `wandb login --relogin` to force relogin
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Tracking run with wandb version 0.19.4
+wandb: Run data is saved locally in /home/wang4538/DGMS-master/scripts/wandb/run-20250203_033830-e0ws2ovg
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run Qwen_0.5b_K16_KL_SPAS0.75_temp0.001_LR1e-6_PRTEMP0.01_WD5e-7_SIGMA3
+wandb: ⭐️ View project at https://wandb.ai/rajdeeph-purdue-university/SQS_GLUE
+wandb: 🚀 View run at https://wandb.ai/rajdeeph-purdue-university/SQS_GLUE/runs/e0ws2ovg
+Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+  0%|          | 0/42100 [00:00<?, ?it/s]Traceback (most recent call last):
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 519, in <module>
+    main(args)
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 395, in main
+    optimizer.step()
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/optim/lr_scheduler.py", line 75, in wrapper
+    return wrapped(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/optimizer.py", line 165, in step
+    self.scaler.step(self.optimizer, closure)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/amp/grad_scaler.py", line 447, in step
+    self.unscale_(optimizer)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/amp/grad_scaler.py", line 337, in unscale_
+    optimizer_state["found_inf_per_device"] = self._unscale_grads_(
+                                              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/amp/grad_scaler.py", line 259, in _unscale_grads_
+    raise ValueError("Attempting to unscale FP16 gradients.")
+ValueError: Attempting to unscale FP16 gradients.
+Traceback (most recent call last):
+  File "/home/wang4538/miniconda3/envs/LLM/bin/accelerate", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/accelerate_cli.py", line 48, in main
+    args.func(args)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/launch.py", line 1172, in launch_command
+    simple_launcher(args)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/launch.py", line 762, in simple_launcher
+    raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
+subprocess.CalledProcessError: Command '['/home/wang4538/miniconda3/envs/LLM/bin/python3.12', '../glue_training.py', '--dataset_name', 'ptb_text_only', '--normal', '--task_name', 'sst2', '--K', '16', '--tau', '0.001', '--weight_decay', '5e-7', '--prune', '--model_name', 'Qwen_0.5b', '--lr', '1e-6', '--duration', '20', '--alpha_f', '0.01', '--seed', '428', '--init_method', 'k-means', '--run_name', 'Qwen_0.5b_K16_KL_SPAS0.75_temp0.001_LR1e-6_PRTEMP0.01_WD5e-7_SIGMA3', '--autoresume', '--eval_interval', '1ep', '--prune_scale', '0.01', '--prune_start', '0.05', '--sigma', '3', '--init_sparsity', '0.0', '--final_sparsity', '0.75', '--prune_end', '0.9', '--optimizer', 'adam', '--batch_size', '32', '--max_seq_length', '384', '--preprocessing_num_workers', '4', '--save_folder', '/scratch/gilbreth/wang4538/DGMS/Run/GLUE/normal_sst2_Qwen_0.5b/K16_temp0.001_LR1e-6_F0.01_WD5e-7']' returned non-zero exit status 1.
