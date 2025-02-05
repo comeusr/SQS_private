@@ -1,23 +1,18 @@
 import argparse
 from copy import deepcopy
 
-from transformers.models.gpt2.modeling_gpt2 import GPT2Attention
-from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention
 
-from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention
-from utils.GPT2_pruner_quantizer import GPT2_PRUNER
 
 import torch
 import torch.nn as nn
 from torch.optim import AdamW, RMSprop, SGD
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-
 from torchmetrics.classification import MulticlassAccuracy
-
 from torch.cuda.amp import GradScaler, autocast
 
-import wandb
+from datasets import load_dataset
+from accelerate import Accelerator
 
 from tqdm.auto import tqdm
 
@@ -35,15 +30,25 @@ from transformers.trainer_pt_utils import get_parameter_names
 
 from transformers import TrainingArguments
 
+from transformers.models.gpt2.modeling_gpt2 import GPT2Attention
+from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention
+
+from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention
+from utils.GPT2_pruner_quantizer import GPT2_PRUNER
 
 
-from datasets import load_dataset
-from accelerate import Accelerator
 
 import sys
 import numpy as np  
 
 from utils import *
+
+if torch.cuda.is_available():
+    device = torch.device('cuda:0')
+else:
+    device = torch.device('cpu')
+
+import wandb
 
 task_to_keys = {
     "mnli": ("premise", "hypothesis"),
@@ -52,13 +57,6 @@ task_to_keys = {
     "sst2": ("sentence", None),
 }
 
-
-def recursive_setattr(obj, attr, value):
-    attr = attr.split('.', 1)
-    if len(attr) == 1:
-        setattr(obj, attr[0], value)
-    else:
-        recursive_setattr(getattr(obj, attr[0]), attr[1], value)
 
 def InitModel(model, sigma):
     count = 1
@@ -93,70 +91,71 @@ def replace_attn_layer(module, config, model_name, device):
         else:
             return module
 
-def str_int_and_none(value):
-    try:
-        # Try to convert the value to an integer
-        return int(value)
-    except ValueError:
-        # If conversion to int fails, return the value as a string
-        if value.casefold() == "none".casefold():
-            return None
-        else:
-            return value
+
+def config_glue_dataset(task_name, precision, tokenizer, batch_size, raw_datasets, max_seq_length, pad_to_max_length,
+                        preprocessing_num_workers, overwrite_cache):
+    sentence1_key, sentence2_key = task_to_keys[task_name]
+
+    padding = "max_length" if pad_to_max_length else False
+
+    if args.max_seq_length > tokenizer.model_max_length:
+        print(
+            f"The max_seq_length passed ({max_seq_length}) is larger than the maximum length for the "
+            f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
+        )
+    max_seq_length = min(max_seq_length, tokenizer.model_max_length)
+
+    def preprocess_function(examples):
+        # tokenize the texts
+        texts = (
+            (examples[sentence1_key],) if sentence2_key is None else (examples[sentence1_key], examples[sentence2_key])
+        )
+        result = tokenizer(*texts, padding=padding, max_length=max_seq_length, truncation=True)
+
+        if "label" in examples:
+            # in all cases, rename the column to labels because the model will expect that.
+            result["labels"] = examples["label"]
+        return result
     
-def float_and_none(value):
-    try:
-        # Try to convert the value to a float
-        return float(value)
-    except ValueError:
-        # If conversion to float fails, return the value as a string
-        if value.casefold() == "none".casefold():
-            return None
+
+    processed_datasets = raw_datasets.map(
+            preprocess_function,
+            batched=True,
+            num_proc=preprocessing_num_workers,
+            remove_columns=raw_datasets["train"].column_names,
+            load_from_cache_file=not overwrite_cache,
+            desc="Running tokenizer on dataset",
+    )
+
+    train_dataset = processed_datasets["train"]
+    eval_dataset = processed_datasets["validation_matched" if task_name == "mnli" else "validation"]
+
+    # dataLoaders creation:
+    if pad_to_max_length:
+        data_collator = default_data_collator
+    else:
+        if precision == "amp_fp16" or precision == "amp_bf16":
+            use_fp16 = True
         else:
-            raise ValueError(f"Unsupported value type {value}")
+            use_fp16 = False
+        data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=(8 if use_fp16 else None))
 
-def evaluate(model, eval_dataloader, accelerator, device, num_labels):
-    model.eval()
-    cfg.IS_TRAIN = False
-    metric = MulticlassAccuracy(num_classes=num_labels, average='micro').to(device)
-
-    with torch.no_grad():
-        for batch in eval_dataloader:
-
-            # for key in batch:
-            #     batch[key] = batch[key].to(torch.bfloat16)
-            # for key in batch:
-            #     print(f"{key}: {batch[key]}")
-            with accelerator.autocast():
-                outputs = model(**batch)
-            logits = outputs.logits
-            predictions = torch.argmax(logits, dim=-1)
-
-            metric.update(predictions, batch['labels'])
+    # train_sampler = DistributedSampler(train_dataset, shuffle=True)
+    # eval_sampler = DistributedSampler(eval_dataset, shuffle=False)
     
-    accuracy = metric.compute()
-    cfg.IS_TRAIN = True
-    return accuracy
-
+    train_dataloader = DataLoader(train_dataset, collate_fn=data_collator, batch_size=batch_size)
+    eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=batch_size)
+    return train_dataloader, eval_dataloader
 
 def main(args):
 
     # Load the dataset
-    raw_datasets = load_dataset(
-        "glue",
-        args.task_name,
-        trust_remote_code=True,
-    )
+    raw_datasets = load_dataset("glue", args.task_name, trust_remote_code=True)
 
     label_list = raw_datasets["train"].features["label"].names
     num_labels = len(label_list)
 
     # load the model and tokenizer
-
-    if torch.cuda.is_available():
-        device = torch.device('cuda:0')
-    else:
-        device = torch.device('cpu')
 
     try:
         loaded_model_config= model_config[args.model_name]
@@ -187,63 +186,9 @@ def main(args):
     # set the evluation metrics based on the task
     cfg.set_config(args=args)
 
-    wandb.login()
 
-    wandb.init(project='SQS_GLUE', name=args.run_name)
-
-
-    sentence1_key, sentence2_key = task_to_keys[args.task_name]
-
-    padding = "max_length" if args.pad_to_max_length else False
-
-    if args.max_seq_length > tokenizer.model_max_length:
-        print(
-            f"The max_seq_length passed ({args.max_seq_length}) is larger than the maximum length for the "
-            f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
-        )
-    max_seq_length = min(args.max_seq_length, tokenizer.model_max_length)
-
-    def preprocess_function(examples):
-        # tokenize the texts
-        texts = (
-            (examples[sentence1_key],) if sentence2_key is None else (examples[sentence1_key], examples[sentence2_key])
-        )
-        result = tokenizer(*texts, padding=padding, max_length=max_seq_length, truncation=True)
-
-        if "label" in examples:
-            # in all cases, rename the column to labels because the model will expect that.
-            result["labels"] = examples["label"]
-        return result
-    
-
-    processed_datasets = raw_datasets.map(
-            preprocess_function,
-            batched=True,
-            num_proc=args.preprocessing_num_workers,
-            remove_columns=raw_datasets["train"].column_names,
-            load_from_cache_file=not args.overwrite_cache,
-            desc="Running tokenizer on dataset",
-    )
-
-
-    train_dataset = processed_datasets["train"]
-    eval_dataset = processed_datasets["validation_matched" if args.task_name == "mnli" else "validation"]
-
-    # dataLoaders creation:
-    if args.pad_to_max_length:
-        data_collator = default_data_collator
-    else:
-        if args.precision == "amp_fp16" or args.precision == "amp_bf16":
-            use_fp16 = True
-        else:
-            use_fp16 = False
-        data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=(8 if use_fp16 else None))
-
-    # train_sampler = DistributedSampler(train_dataset, shuffle=True)
-    # eval_sampler = DistributedSampler(eval_dataset, shuffle=False)
-    
-    train_dataloader = DataLoader(train_dataset, collate_fn=data_collator, batch_size=args.batch_size)
-    eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=args.batch_size)
+    config_glue_dataset(args.task_name, args.precision, tokenizer, arg.sbatch_size, raw_datasets, args.max_seq_length, args.pad_to_max_length,
+                        args.preprocessing_num_workers, args.overwrite_cache)
 
     num_train_epochs = args.duration
     num_update_steps_per_epoch = len(train_dataloader)
@@ -414,6 +359,30 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
         unwrapped_model = accelerator.unwrap_model(model)
         unwrapped_model.save_pretrained(args.save_folder+"epoch"+str(epoch), save_function=accelerator.save)
 
+
+def evaluate(model, eval_dataloader, accelerator, device, num_labels):
+    model.eval()
+    cfg.IS_TRAIN = False
+    metric = MulticlassAccuracy(num_classes=num_labels, average='micro').to(device)
+
+    with torch.no_grad():
+        for batch in eval_dataloader:
+
+            # for key in batch:
+            #     batch[key] = batch[key].to(torch.bfloat16)
+            # for key in batch:
+            #     print(f"{key}: {batch[key]}")
+            with accelerator.autocast():
+                outputs = model(**batch)
+            logits = outputs.logits
+            predictions = torch.argmax(logits, dim=-1)
+
+            metric.update(predictions, batch['labels'])
+    
+    accuracy = metric.compute()
+    cfg.IS_TRAIN = True
+    return accuracy
+
 if __name__ == "__main__":
     # print_environment_info()
     parser = argparse.ArgumentParser(description="Unify Pruning and Quantization on Language Models",
@@ -516,5 +485,7 @@ if __name__ == "__main__":
                         help='Choose Optimizer')
 
     args = parser.parse_args()
+    wandb.login()
 
+    wandb.init(project='SQS_GLUE', name=args.run_name)
     main(args)
