@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import wandb
 
 import config as cfg
-from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention
+from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention
 
 from composer.core import Algorithm
 
@@ -30,7 +30,7 @@ class GPT2_PRUNER():
             if isinstance(m, CustomizGPT2Attention):
                 is_dict[name+'.c_attn'] = m.c_attn.sub_distribution.pruning_parameter.detach()
                 is_dict[name+'.c_proj'] = m.c_proj.sub_distribution.pruning_parameter.detach()
-            elif isinstance(m, CustomizedQwen2Attention):
+            elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
                 is_dict[name+'k_proj'] = m.k_proj.sub_distribution.pruning_parameter.detach()
                 is_dict[name+'v_proj'] = m.v_proj.sub_distribution.pruning_parameter.detach()
                 is_dict[name+'q_proj'] = m.q_proj.sub_distribution.pruning_parameter.detach()
@@ -70,17 +70,17 @@ class GPT2_PRUNER():
 
                     projMu = projLayer.mu
                     projMu.grad.add_(projMu, alpha=1/(projLayer.init_sigma ** 2))
-                elif isinstance(m, CustomizedQwen2Attention):
+                elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
                     sp=0.01
                     k_projLayer = m.k_proj.sub_distribution
                     v_projLayer = m.v_proj.sub_distribution
                     q_projLayer = m.q_proj.sub_distribution
                     o_projLayer = m.o_proj.sub_distribution
 
-                    k_temp = torch.log(F.sigmoid(k_projP)/(sp))*sigmoid_derivative(k_projP)
-                    if k_temp.isnan().any():
-                        print('-'*30+'k_temp is nan'+'-'*30)
-                        print(k_temp)
+                    # k_temp = torch.log(F.sigmoid(k_projP)/(sp))*sigmoid_derivative(k_projP)
+                    # if k_temp.isnan().any():
+                    #     print('-'*30+'k_temp is nan'+'-'*30)
+                    #     print(k_temp)
 
                     k_projP = k_projLayer.pruning_parameter/cfg.PRUNE_SCALE
                     k_projLayer.pruning_parameter.grad.add_(torch.log(F.sigmoid(k_projP)/(sp))*sigmoid_derivative(k_projP)) 
@@ -113,7 +113,7 @@ class GPT2_PRUNER():
             if isinstance(m, CustomizGPT2Attention):
                 m.c_attn.sub_distribution.mask = (is_dict[name+'.c_attn'] < mask_thresh)
                 m.c_proj.sub_distribution.mask = (is_dict[name+'.c_proj'] < mask_thresh)
-            elif isinstance(m, CustomizedQwen2Attention):
+            elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
                 m.k_proj.sub_distribution.mask = (is_dict[name+'k_proj'] < mask_thresh)
                 m.v_proj.sub_distribution.mask = (is_dict[name+'v_proj'] < mask_thresh)
                 m.q_proj.sub_distribution.mask = (is_dict[name+'q_proj'] < mask_thresh)
@@ -153,7 +153,7 @@ class GPT2_PRUNER():
 
                     projSigma = projLayer.sigma
                     projSigma.grad.add_(projSigma/(projLayer.init_sigma ** 2)- 1/projSigma)
-                elif isinstance(m, CustomizedQwen2Attention):
+                elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
                     k_projLayer = m.k_proj.sub_distribution
                     v_projLayer = m.v_proj.sub_distribution
                     q_projLayer = m.q_proj.sub_distribution
@@ -189,7 +189,7 @@ class GPT2_PRUNER():
             if isinstance(m, CustomizGPT2Attention):
                 m.c_attn.sub_distribution.pruning_parameter.requires_grad=True
                 m.c_proj.sub_distribution.pruning_parameter.requires_grad=True
-            elif isinstance(m, CustomizedQwen2Attention):
+            elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
                 m.k_proj.sub_distribution.pruning_parameter.requires_grad=True
                 m.v_proj.sub_distribution.pruning_parameter.requires_grad=True
                 m.q_proj.sub_distribution.pruning_parameter.requires_grad=True
@@ -202,7 +202,7 @@ class GPT2_PRUNER():
             if isinstance(m, CustomizGPT2Attention):
                 m.c_attn.sub_distribution.pruning_parameter.requires_grad=False
                 m.c_proj.sub_distribution.pruning_parameter.requires_grad=False
-            elif isinstance(m, CustomizedQwen2Attention):
+            elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
                 m.k_proj.sub_distribution.pruning_parameter.requires_grad=False
                 m.v_proj.sub_distribution.pruning_parameter.requires_grad=False
                 m.q_proj.sub_distribution.pruning_parameter.requires_grad=False
@@ -215,7 +215,7 @@ class GPT2_PRUNER():
                 m.c_attn.sub_distribution.pruning_parameter.detach().masked_fill_(attnMask, -0.1)
                 projMask = m.c_proj.sub_distribution.mask
                 m.c_proj.sub_distribution.pruning_parameter.detach().masked_fill_(projMask, -0.1)
-            elif isinstance(m, CustomizedQwen2Attention):
+            elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
                 k_projMask = m.k_proj.sub_distribution.mask
                 m.k_proj.sub_distribution.pruning_parameter.detach().masked_fill_(k_projMask, -0.1)
                 v_projMask = m.v_proj.sub_distribution.mask
@@ -282,29 +282,32 @@ class GPT2_PRUNER():
             self.prune_with_mask(self.model)
     
     def apply_non_prune_gradient(self, step):
-        try:
-            if cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP:
+        if cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP:
                 print('-'*30+'Apply Pruning Gradient'+'-'*30)
                 self.apply_pruning_grad(self.model)
-            # elif cfg.PRUNE and (step <= cfg.PRUNE_START_STEP or step > cfg.PRUNE_END_STEP):
-            #     print('-'*30+'Apply Mu Sigma Gradient'+'-'*30)
-            #     self.apply_mu_sigma_grad(self.model)
-        except:
-            prune_in_progress = cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP
-            if prune_in_progress:
-                print("Pruning in progress.")
-            else:
-                print("Not in Pruning.")
+        # try:
+        #     if cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP:
+        #         print('-'*30+'Apply Pruning Gradient'+'-'*30)
+        #         self.apply_pruning_grad(self.model)
+        #     # elif cfg.PRUNE and (step <= cfg.PRUNE_START_STEP or step > cfg.PRUNE_END_STEP):
+        #     #     print('-'*30+'Apply Mu Sigma Gradient'+'-'*30)
+        #     #     self.apply_mu_sigma_grad(self.model)
+        # except:
+        #     prune_in_progress = cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP
+        #     if prune_in_progress:
+        #         print("Pruning in progress.")
+        #     else:
+        #         print("Not in Pruning.")
             
-            print("Attention Require Grad or Not")
-            for name, m in self.model.named_modules():
-                if isinstance(m, CustomizGPT2Attention):
-                    print(m.c_attn.sub_distribution.pruning_parameter.requires_grad)
-                # elif isinstance(m, CustomizedQwen2Attention):
-                    # print(m.k_proj.sub_distribution.pruning_parameter.requires_grad)
-                    # print(m.v_proj.sub_distribution.pruning_parameter.requires_grad)
-                    # print(m.q_proj.sub_distribution.pruning_parameter.requires_grad)
-                    # print(m.o_proj.sub_distribution.pruning_parameter.requires_grad)
+        #     print("Attention Require Grad or Not")
+        #     for name, m in self.model.named_modules():
+        #         if isinstance(m, CustomizGPT2Attention):
+        #             print(m.c_attn.sub_distribution.pruning_parameter.requires_grad)
+        #         elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
+        #             print(m.k_proj.sub_distribution.pruning_parameter.requires_grad)
+        #             print(m.v_proj.sub_distribution.pruning_parameter.requires_grad)
+        #             print(m.q_proj.sub_distribution.pruning_parameter.requires_grad)
+        #             print(m.o_proj.sub_distribution.pruning_parameter.requires_grad)
 
     
     def log_sparsity(self):

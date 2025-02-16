@@ -153,13 +153,13 @@ def cluster_weights_sparsity(weights, n_clusters, iter_limit=100):
     start_time = time.time()
     # _cluster_idx, region_saliency = kmeans(X=flat_weight, num_clusters=n_clusters, tol=_tol, \
                         # distance='euclidean', iter_limit=iter_limit, device=torch.device('cuda'), tqdm_flag=False)
-    # _cluster_idx, region_saliency = kmeans(X=flat_weight, num_clusters=n_clusters, \
-    #                     distance='euclidean',  device=torch.device('cuda'))
+    _cluster_idx, region_saliency = kmeans(X=flat_weight, num_clusters=n_clusters, \
+                        distance='euclidean',  device=torch.device('cuda'))
     # kmeans_model = KMeans(init_method="rnd", n_clusters=n_clusters)
     # result = kmeans_model(flat_weight.view(1, -1, 1))
     # _cluster_idx, region_saliency = result.labels[0], result.centers
     # flat_weight = flat_weight.view(-1, 1)
-    # region_saliency = region_saliency.view(-1, 1)
+    region_saliency = region_saliency.view(-1, 1)
 
     end_time = time.time()
     # print("Time taken for k-means {} seconds".format(end_time - start_time))
@@ -170,14 +170,14 @@ def cluster_weights_sparsity(weights, n_clusters, iter_limit=100):
 
     # if torch.isnan(region_saliency).any():
 
-    q = torch.linspace(0, 1, n_clusters+2)[1:-1].to(DEVICE)
-    flat_weight = flat_weight.to(torch.float32).cpu()
+    # q = torch.linspace(0, 1, n_clusters+2)[1:-1].to(DEVICE)
+    # flat_weight = flat_weight.to(torch.float32).cpu()
     # region_saliency = torch.quantile(flat_weight.data, q)
-    region_saliency = torch.histogram(flat_weight, bins=n_clusters)[1][:-1].to(DEVICE)
+    # region_saliency = torch.histogram(flat_weight, bins=n_clusters)[1][:-1].to(DEVICE)
 
     print("Region saliency  dim {}".format(region_saliency.shape))
 
-    flat_weight = flat_weight.to(torch.float16).to(DEVICE)
+    # flat_weight = flat_weight.to(torch.float16).to(DEVICE)
     region_saliency = region_saliency.view(-1, 1)
     print("Region saliency {}".format(region_saliency))
 

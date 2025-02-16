@@ -1,8 +1,6 @@
 import argparse
 from copy import deepcopy
 
-
-
 import torch
 import torch.nn as nn
 from torch.optim import AdamW, RMSprop, SGD
@@ -32,11 +30,10 @@ from transformers import TrainingArguments
 
 from transformers.models.gpt2.modeling_gpt2 import GPT2Attention
 from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention
+from transformers.models.llama.modeling_llama import LlamaAttention
 
-from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention
+from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention
 from utils.GPT2_pruner_quantizer import GPT2_PRUNER
-
-
 
 import sys
 import numpy as np  
@@ -57,6 +54,12 @@ task_to_keys = {
     "sst2": ("sentence", None),
 }
 
+def recursive_setattr(obj, attr, value):
+    attr = attr.split('.', 1)
+    if len(attr) == 1:
+        setattr(obj, attr[0], value)
+    else:
+        recursive_setattr(getattr(obj, attr[0]), attr[1], value)
 
 def InitModel(model, sigma):
     count = 1
@@ -66,6 +69,11 @@ def InitModel(model, sigma):
             m.init_mask_params(sigma)
             count += 1
         elif isinstance(m, CustomizedQwen2Attention):
+            print("Initializing Layer {}".format(count))
+            print("Initializing Customized Model Parameters.")
+            m.init_mask_params(sigma) 
+            count += 1 
+        elif isinstance(m, CustomizedLlamaAttention):
             print("Initializing Layer {}".format(count))
             print("Initializing Customized Model Parameters.")
             m.init_mask_params(sigma) 
@@ -87,6 +95,15 @@ def replace_attn_layer(module, config, model_name, device):
             new_module = CustomizedQwen2Attention(config, layer_idx=module.layer_idx).to(device)
             new_module.load_state_dict(module.state_dict())
             print("Replace with Customize Qwen Flash Attention Layer.")
+            return new_module
+        else:
+            return module
+    elif model_name == "meta-llama/Llama-3.2-1B":
+        if isinstance(module, LlamaAttention):
+            target_state_dict   = deepcopy(module.state_dict())
+            new_module          = CustomizedLlamaAttention(config, layer_idx=module.layer_idx).to(device)
+            new_module.load_state_dict(target_state_dict)
+            print("Replace with Customize Llama Flash Attention Layer.")
             return new_module
         else:
             return module
@@ -145,7 +162,7 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, raw_dataset
     
     train_dataloader = DataLoader(train_dataset, collate_fn=data_collator, batch_size=batch_size)
     eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=batch_size)
-    return train_dataloader, eval_dataloader
+    return train_dataloader, eval_dataloader, processed_datasets
 
 def main(args):
 
@@ -156,12 +173,13 @@ def main(args):
     num_labels = len(label_list)
 
     # load the model and tokenizer
+    
 
     try:
         loaded_model_config= model_config[args.model_name]
-        tokenizer = AutoTokenizer.from_pretrained(loaded_model_config['from_pretrained'], trust_remote_code=True, use_fast=True)
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name, trust_remote_code=True, use_fast=True)
         config = AutoConfig.from_pretrained(
-                loaded_model_config['from_pretrained'],
+                args.model_name,
                 num_labels=num_labels,
                 finetuning_task=args.task_name,
                 # cache_dir=args.cache_dir,
@@ -171,9 +189,17 @@ def main(args):
                 loaded_model_config['from_pretrained'], 
                 config=config,
                 attn_implementation=loaded_model_config['attn_implementation'],
-                # torch_dtype=torch.float16,
+                torch_dtype=torch.float32,
                 trust_remote_code=True
             )
+        
+        # model = AutoModelForSequenceClassification.from_pretrained(
+        #         loaded_model_config['from_pretrained'], 
+        #         config=config,
+        #         attn_implementation=loaded_model_config['attn_implementation'],
+        #         torch_dtype=torch.float32,
+        #         trust_remote_code=True
+        #     )
         print("Defining pad token")
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = model.config.eos_token_id
@@ -186,8 +212,13 @@ def main(args):
     # set the evluation metrics based on the task
     cfg.set_config(args=args)
 
+    if args.freeze_weight:
+        for name, param in model.named_parameters():
+            param.requires_grad = False
 
-    config_glue_dataset(args.task_name, args.precision, tokenizer, arg.sbatch_size, raw_datasets, args.max_seq_length, args.pad_to_max_length,
+
+
+    train_dataloader, eval_dataloader, processed_datasets = config_glue_dataset(args.task_name, args.precision, tokenizer, args.batch_size, raw_datasets, args.max_seq_length, args.pad_to_max_length,
                         args.preprocessing_num_workers, args.overwrite_cache)
 
     num_train_epochs = args.duration
@@ -203,15 +234,14 @@ def main(args):
     )
 
 
+    # if args.task_name == "mnli":
+    #     mm_eval_dataset = processed_datasets["validation_mismatched"]
+    #     mm_eval_sampler = DistributedSampler(mm_eval_dataset, shuffle=False)
+    #     mm_eval_dataloader = DataLoader(mm_eval_dataset, collate_fn=data_collator, batch_size=args.batch_size, sampler=mm_eval_sampler)
+    #     # TODO: add the customized evaluator
 
-    if args.task_name == "mnli":
-        mm_eval_dataset = processed_datasets["validation_mismatched"]
-        mm_eval_sampler = DistributedSampler(mm_eval_dataset, shuffle=False)
-        mm_eval_dataloader = DataLoader(mm_eval_dataset, collate_fn=data_collator, batch_size=args.batch_size, sampler=mm_eval_sampler)
-        # TODO: add the customized evaluator
-
-        # mnli_matched_task = Evaluator(
-        #     label='mnli_matched_accuracy',
+    #     # mnli_matched_task = Evaluator(
+    #     #     label='mnli_matched_accuracy',
         #     dataloader=eval_dataloader,
         #     metric_names=['MulticlassAccuracy']
         # )
@@ -220,6 +250,14 @@ def main(args):
         #     dataloader=mm_eval_dataloader,
         #     metric_names=['MulticlassAccuracy']
         # )
+    
+    if not args.normal:
+        for name, module in tuple(model.named_modules()):
+            if name:
+                recursive_setattr(model, name, replace_attn_layer(module, config, args.model_name, device))
+        print("Initializing Model Parameters.")
+        InitModel(model, args.sigma)
+
 
     if args.optimizer == "adam":
         print("AdamW optimizer")
@@ -279,14 +317,7 @@ def main(args):
 
     # model = torch.compile(model)
 
-    if not args.normal:
-        for name, module in tuple(model.named_modules()):
-            if name:
-                recursive_setattr(model, name, replace_attn_layer(module, config, args.model_name, device))
-        print("Initializing Model Parameters.")
-        InitModel(model, args.sigma)
-
-    model.to(accelerator.device, dtype=torch.float16)
+    # model.to(accelerator.device, dtype=torch.float16)
 
     model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
         model, optimizer, train_dataloader, eval_dataloader
@@ -343,14 +374,20 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
             # for name, param in model.named_parameters():
             #     print(f"{name} grad dtype: {param.grad.dtype}")
             #     print(f"{name} dtype: {param.dtype}")
-
-            accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            for name, param in model.named_parameters():
+                if param.requires_grad:
+                    if torch.isnan(param.grad).any():
+                        print("-"*50+"NaN Grad Found"+"-"*50)
+                        print(f"{name} grad: {param.grad}")
+            if not normal:
+                pruner.apply_non_prune_gradient(curr_step)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
             progress_bar.update(1)
 
-            if step % 50 == 0:
+            if step % 10 == 0:
                 accuracy = evaluate(model, eval_dataloader, accelerator, device, num_labels)
                 wandb.log({'Eval Acc': accuracy}, commit=False)
 
@@ -372,8 +409,7 @@ def evaluate(model, eval_dataloader, accelerator, device, num_labels):
             #     batch[key] = batch[key].to(torch.bfloat16)
             # for key in batch:
             #     print(f"{key}: {batch[key]}")
-            with accelerator.autocast():
-                outputs = model(**batch)
+            outputs = model(**batch)
             logits = outputs.logits
             predictions = torch.argmax(logits, dim=-1)
 
@@ -474,8 +510,8 @@ if __name__ == "__main__":
                         help="Path to load pretrained model.")
     parser.add_argument('--average', action='store_true', default=False,
                         help="Whether use Bayesian Average to ensemble model.")
-    parser.add_argument("--model_name", type=str, default="gpt2",
-                        choices=["gpt2", "Qwen_1.5b", "Qwen_0.5b"],
+    parser.add_argument("--model_name", type=str, default="openai-community/gpt2",
+                        choices=["openai-community/gpt2", "Qwen/Qwen2.5-1.5B", "Qwen/Qwen2.5-0.5B", 'meta-llama/Llama-3.2-1B'],
                         help="Backbone Model Name.")
     parser.add_argument('--prior', type=str, default="spike_slab",
                         choices=['spike_slab', 'normal'],

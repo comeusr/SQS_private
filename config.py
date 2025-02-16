@@ -36,19 +36,24 @@ STDS = {
 }
 
 model_config={
-    "gpt2":{
+    "openai-community/gpt2":{
         "from_pretrained": "openai-community/gpt2",
         "attn_implementation": "flash_attention_2",
     },
-    "Qwen_1.5b":{
+    "Qwen/Qwen2-1.5B":{
         "from_pretrained": "Qwen/Qwen2-1.5B",
         "attn_implementation": "eager",
 
     },
-    "Qwen_0.5b":{
-        "from_pretrained": "Qwen/Qwen2-0.5B",
+    "Qwen/Qwen2-0.5B":{
+        "from_pretrained": "/scratch/gilbreth/wang4538/DGMS/Run/GLUE/normal_sst2_Qwen_0.5b/normal_epoch0",
+        "attn_implementation": "eager",
+    },
+    'meta-llama/Llama-3.2-1B':{
+        "from_pretrained": '/scratch/gilbreth/wang4538/DGMS/Run/GLUE/normal_meta-llama/Llama-3.2-1B/epoch1',
         "attn_implementation": "eager",
     }
+
 }
 
 # Model definition

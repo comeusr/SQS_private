@@ -16,6 +16,7 @@ from transformers.models.bert.modeling_bert import load_tf_weights_in_bert, \
 from transformers.models.gpt2.modeling_gpt2 import GPT2Attention, GPT2Attention
 from transformers.models.opt.modeling_opt import OptFlashAttention2
 from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention, apply_rotary_pos_emb, repeat_kv, Qwen2RotaryEmbedding, eager_attention_forward
+from transformers.models.llama.modeling_llama import LlamaAttention
 from transformers.modeling_flash_attention_utils import _flash_attention_forward
 from transformers.utils import logging
 from transformers.cache_utils import Cache
@@ -604,7 +605,7 @@ class CustomizedQwen2Attention(Qwen2Attention):
     def QuantizedWeights(self):
         if cfg.IS_TRAIN:
 
-            print("-"*50+"In Training Fetch Quantized Weights"+"-"*50)
+            # print("-"*50+"In Training Fetch Quantized Weights"+"-"*50)
             if torch.isnan(self.k_proj.weight).any():
                 print("Original k_proj weight is nan")
             if torch.isnan(self.v_proj.weight).any():
@@ -746,5 +747,108 @@ class CustomizedQwen2Attention(Qwen2Attention):
             # print('-'*50+"Temp requires_grad: ", temp[0].requires_grad, "-"*50)
 
             return temp
+
+
+class CustomizedLlamaAttention(LlamaAttention):
+    def __init__(self, config, layer_idx=None):
+        super().__init__(config, layer_idx)
+
+        self.is_normal = cfg.IS_NORMAL
+        self.k_level = cfg.K_LEVEL
+        self.temperature = cfg.TAU
+
+    def init_mask_params(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+        self.q_proj.sub_distribution = gmm_approximation(self.k_level, self.q_proj.weight, self.temperature, init_method, sigma)
+        self.k_proj.sub_distribution = gmm_approximation(self.k_level, self.k_proj.weight, self.temperature, init_method, sigma)
+        self.v_proj.sub_distribution = gmm_approximation(self.k_level, self.v_proj.weight, self.temperature, init_method, sigma)
+        self.o_proj.sub_distribution = gmm_approximation(self.k_level, self.o_proj.weight, self.temperature, init_method, sigma)
+
+    def QuantizedWeights(self):
+        if cfg.IS_TRAIN:
+            return self.q_proj.sub_distribution(weights=self.q_proj.weight, train=True), self.k_proj.sub_distribution(weights=self.k_proj.weight, train=True), self.v_proj.sub_distribution(weights=self.v_proj.weight, train=True), self.o_proj.sub_distribution(weights=self.o_proj.weight, train=True)
+        else:
+            return self.q_proj.sub_distribution(weights=self.q_proj.weight, train=False), self.k_proj.sub_distribution(weights=self.k_proj.weight, train=False), self.v_proj.sub_distribution(weights=self.v_proj.weight, train=False), self.o_proj.sub_distribution(weights=self.o_proj.weight, train=False)
+
+    def  softforward( 
+        self,
+        q_weights,
+        k_weights,
+        v_weights,
+        o_weights,
+        hidden_states: torch.Tensor,
+        position_embeddings: Tuple[torch.Tensor, torch.Tensor],
+        attention_mask: Optional[torch.Tensor],
+        past_key_value: Optional[Cache] = None,
+        cache_position: Optional[torch.LongTensor] = None,
+        **kwargs: Unpack[FlashAttentionKwargs],
+    ):
+        input_shape = hidden_states.shape[:-1]
+        hidden_shape = (*input_shape, -1, self.head_dim)
+
+        query_states = F.linear(hidden_states, q_weights.to(hidden_states.dtype), self.q_proj.bias).view(hidden_shape).transpose(1, 2)
+        key_states = F.linear(hidden_states, k_weights.to(hidden_states.dtype), self.k_proj.bias).view(hidden_shape).transpose(1, 2)
+        value_states = F.linear(hidden_states, v_weights.to(hidden_states.dtype), self.v_proj.bias).view(hidden_shape).transpose(1, 2)
+
+        cos, sin = position_embeddings
+        query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+
+        if past_key_value is not None:
+            # sin and cos are specific to RoPE models; cache_position needed for the static cache
+            cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
+            key_states, value_states = past_key_value.update(key_states, value_states, self.layer_idx, cache_kwargs)
+
+        attention_interface: Callable = eager_attention_forward
+        if self.config._attn_implementation != "eager":
+            if self.config._attn_implementation == "sdpa" and kwargs.get("output_attentions", False):
+                logger.warning_once(
+                    "`torch.nn.functional.scaled_dot_product_attention` does not support `output_attentions=True`. Falling back to "
+                    'eager attention. This warning can be removed using the argument `attn_implementation="eager"` when loading the model.'
+                )
+            else:
+                attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
+
+        attn_output, attn_weights = attention_interface(
+            self,
+            query_states,
+            key_states,
+            value_states,
+            attention_mask,
+            dropout=0.0 if not self.training else self.attention_dropout,
+            scaling=self.scaling,
+            **kwargs,
+        )
+
+        attn_output = attn_output.reshape(*input_shape, -1).contiguous()
+        attn_output = F.linear(attn_output, o_weights.to(attn_output.dtype))
+        return attn_output, attn_weights
+
+    def forward(
+            self,
+            hidden_states: torch.Tensor,
+            position_embeddings: Tuple[torch.Tensor, torch.Tensor],
+            attention_mask: Optional[torch.Tensor],
+            past_key_value: Optional[Cache] = None,
+            cache_position: Optional[torch.LongTensor] = None,
+            **kwargs: Unpack[FlashAttentionKwargs],
+        ):
+        if self.is_normal:
+            return super().forward(
+                hidden_states,
+                position_embeddings,
+                attention_mask,
+                past_key_value,
+                cache_position,
+                **kwargs
+            )
+        else:
+            q_weights, k_weights, v_weights, o_weights = self.QuantizedWeights()
+            return self.softforward(q_weights, 
+                                    k_weights, 
+                                    v_weights, 
+                                    o_weights, 
+                                    hidden_states, 
+                                    position_embeddings, attention_mask, past_key_value, cache_position, **kwargs)
+
 
 

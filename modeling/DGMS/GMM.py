@@ -127,6 +127,7 @@ class GaussianMixtureModel(nn.Module):
         
         pow2 = torch.pow(x - mu, 2)
         # pow2 = F.normalize(torch.pow(x - mu, 2), dim=-1)
+        sigma = sigma.to(torch.float32)
         pdf = torch.mul(torch.reciprocal(torch.sqrt(torch.mul( \
                 torch.tensor([2 * math.pi], device=DEVICE), (sigma**2)))), \
                     torch.exp(-torch.div(pow2, 2 * sigma**2))).mul(_pi)
@@ -139,6 +140,8 @@ class GaussianMixtureModel(nn.Module):
             # print("Sigma Squared {}".format(sigma**2))
             
             print("Pow 2 {}".format(pow2))
+            print("Sigma {}".format(sigma))
+            print("Sigam Dtype {}".format(sigma.dtype))
             print("Sigma Squared {}".format(sigma**2))
             # print("Temp 1{}".format(temp_1))
             # print("Temp 2{}".format(temp_2))
@@ -233,6 +236,7 @@ class GaussianMixtureModel(nn.Module):
                 Pweight = Pweight.view(weights.size())
 
                 Pweight.detach().masked_fill_(self.mask, 0.0)
+                # print()
                 return Pweight
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, init_method='k-means', sigma=3) -> GaussianMixtureModel:
