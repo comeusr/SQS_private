@@ -12,8 +12,49 @@ from utils.misc import cluster_weights, get_device, cluster_weights_sparsity
 
 DEVICE = get_device()
 
-def print_grad(grad):
-    print("Gradient for mu:", grad)
+import inspect
+import gc
+
+def gumbel_max_sample(logits: torch.Tensor) -> torch.Tensor:
+    gumbel_noise = -torch.log(-torch.log(torch.rand_like(logits)))  # Gumbel(0,1) noise
+    return torch.argmax(logits + gumbel_noise, dim=-1)
+
+def get_tensor_name(obj):
+    """Attempts to retrieve the variable name of a tensor."""
+    for frame in inspect.stack():
+        local_vars = frame.frame.f_locals
+        for var_name, var_val in local_vars.items():
+            if var_val is obj:
+                return var_name
+    return "Unknown"
+
+def print_ranked_gpu_tensors():
+    tensor_list = []
+    total_memory = 0
+
+    for obj in gc.get_objects():
+        try:
+            if isinstance(obj, torch.Tensor) and obj.is_cuda:
+                mem = obj.numel() * obj.element_size()
+                total_memory += mem
+                tensor_list.append((get_tensor_name(obj), obj.shape, obj.device, mem))
+        except Exception:
+            pass  # Ignore inaccessible objects
+
+    # Sort by memory usage (descending order)
+    tensor_list.sort(key=lambda x: x[3], reverse=True)
+
+    print("\n=== Ranked GPU Tensor Memory Usage ===")
+    count = 0
+    for rank, (name, shape, device, mem) in enumerate(tensor_list, 1):
+        count += 1
+        print(f"Rank {rank}: Name: {name}, Shape: {shape}, Device: {device}, Memory: {mem / 1e6:.2f} MB")
+        if count > 20:
+            break
+
+    print(f"Total GPU Memory Used by Tensors: {total_memory / 1e6:.2f} MB")
+    print("====================================\n")
+
 
 class GaussianMixtureModel(nn.Module):
     """Concrete GMM for sub-distribution approximation.
@@ -177,6 +218,9 @@ class GaussianMixtureModel(nn.Module):
             # print("responsibility {}".format(responsibility))
             temp = F.softmax(responsibility / self.temperature, dim=0)
 
+            # print("-"*50+"Responsibility before mask"+"-"*50)
+            # print_ranked_gpu_tensors()
+            
             if temp.isnan().any():
                 print('-'*50+"Found nan in the soft weights"+"-"*50)
                 if responsibility.isnan().any():
@@ -211,6 +255,12 @@ class GaussianMixtureModel(nn.Module):
         else:
             if train:
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
+                print("Printing the region_belong shape {}".format(self.region_belonging.shape))
+
+                def memory_in_mb(tensor):
+                    return tensor.element_size() * tensor.numel() / (1024*1024)
+                
+                # print("Region_belonging Memory in MB {}".format(memory_in_mb(self.region_belonging)))
                 
                 if cfg.PRIOR == 'spike_slab':
 
@@ -218,6 +268,14 @@ class GaussianMixtureModel(nn.Module):
                 else:
                     Sweight = torch.mul(self.region_belonging, self.mu.unsqueeze(1)).sum(dim=0)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE) \
                             + (1-F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE))*torch.randn_like(weights.flatten())
+
+                print("-"*50+"Sweight before delete"+"-"*50)
+                print_ranked_gpu_tensors() 
+                del self.region_belonging    
+                torch.cuda.empty_cache()
+                print("-"*50+"Sweight after delete"+"-"*50)
+                print_ranked_gpu_tensors() 
+                # print("Sweight Memory in MB {}".format(memory_in_mb(Sweight)))
 
                 return Sweight.view(weights.size())
             else:

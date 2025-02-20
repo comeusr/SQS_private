@@ -38,6 +38,47 @@ from utils.GPT2_pruner_quantizer import GPT2_PRUNER
 import sys
 import numpy as np  
 
+import gc
+import inspect
+
+
+def get_tensor_name(obj):
+    """Attempts to retrieve the variable name of a tensor."""
+    for frame in inspect.stack():
+        local_vars = frame.frame.f_locals
+        for var_name, var_val in local_vars.items():
+            if var_val is obj:
+                return var_name
+    return "Unknown"
+
+def print_ranked_gpu_tensors():
+    tensor_list = []
+    total_memory = 0
+
+    for obj in gc.get_objects():
+        try:
+            if isinstance(obj, torch.Tensor) and obj.is_cuda:
+                mem = obj.numel() * obj.element_size()
+                total_memory += mem
+                tensor_list.append((get_tensor_name(obj), obj.shape, obj.device, mem))
+        except Exception:
+            pass  # Ignore inaccessible objects
+
+    # Sort by memory usage (descending order)
+    tensor_list.sort(key=lambda x: x[3], reverse=True)
+
+    print("\n=== Ranked GPU Tensor Memory Usage ===")
+    count = 0
+    for rank, (name, shape, device, mem) in enumerate(tensor_list, 1):
+        count += 1
+        print(f"Rank {rank}: Name: {name}, Shape: {shape}, Device: {device}, Memory: {mem / 1e6:.2f} MB")
+        if count > 20:
+            break
+
+    print(f"Total GPU Memory Used by Tensors: {total_memory / 1e6:.2f} MB")
+    print("====================================\n")
+
+
 from utils import *
 
 if torch.cuda.is_available():
@@ -53,6 +94,34 @@ task_to_keys = {
     "qqp":  ("question1", "question2"),
     "sst2": ("sentence", None),
 }
+
+def model_memory_summary(model):
+    total_params = 0
+    total_memory = 0  # In bytes
+    
+    print(f"{'Layer':<50}{'Shape':<30}{'Memory (MB)'}")
+    print("=" * 100)
+    
+    for name, param in model.named_parameters():
+        shape = tuple(param.shape)
+        num_params = param.numel()
+        memory = num_params * param.element_size() / (1024 ** 2)  # Convert bytes to MB
+        total_params += num_params
+        total_memory += num_params * param.element_size()
+        
+        print(f"{name:<50}{str(shape):<30}{memory:.4f}")
+    
+    for name, buffer in model.named_buffers():
+        shape = tuple(buffer.shape)
+        num_params = buffer.numel()
+        memory = num_params * buffer.element_size() / (1024 ** 2)  # Convert bytes to MB
+        total_memory += num_params * buffer.element_size()
+        
+        print(f"{name:<50}{str(shape):<30}{memory:.4f}")
+        print("=" * 100)
+        print(f"Total Parameters: {total_params}")
+        print(f"Total Memory Consumption: {total_memory / (1024 ** 2):.4f} MB")
+
 
 def recursive_setattr(obj, attr, value):
     attr = attr.split('.', 1)
@@ -339,6 +408,8 @@ def main(args):
         num_training_steps=cfg.PRUNE_END_STEP,
     )
 
+    model_memory_summary(model)
+
     model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, accelerator, lr_scheduler, 
                 num_training_steps, args.duration, args.normal, cfg, device, num_labels)
 
@@ -370,6 +441,8 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
             # accelerator.scaler.update()  # ✅ Update scaler
 
             accelerator.backward(loss)
+
+            # print_ranked_gpu_tensors()
 
             # for name, param in model.named_parameters():
             #     print(f"{name} grad dtype: {param.grad.dtype}")
