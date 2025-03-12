@@ -1,51 +1,54 @@
 import numpy as np
 from sklearn.random_projection import GaussianRandomProjection
+import torch
+from collections import OrderedDict
+from utils import get_distribution
 
-def debug_lsh():
-    N = 2048**2  # Total number of vectors
-    K = 16       # Dimensionality of each vector
-    B = 2048     # Number of buckets (B << N)
-    L = 10       # Number of hash functions (typically tuned experimentally)
+def LSH(vector: torch.tensor, B):
+    thresholds=torch.random(min=torch.min(vector), max=torch.max(vector), size=B)
+    Nums = torch.zeros(B)
+    Buckets=OrderedDict()
+    for i, vi in enumerate(vector):
+        binary_code=[]
+        for ti in thresholds:
+            binary_code.append(vi <= ti)
+        if tuple(binary_code) not in Buckets:
+            Buckets[tuple(binary_code)]=[(i, vi)]
+        else:
+            Buckets[tuple(binary_code)].append((i, vi))
+    for i, l in enumerate(Buckets.values()):
+        if len(l) > 0:
+            Nums[i] = torch.mean(l)
+          
+    return Buckets, Nums
 
-    # Generate random vectors as input
-    np.random.seed(42)  # For reproducibility
-    vectors = np.random.randn(N, K)  # Sampled from a normal distribution
-    lsh(vectors,N, K,B, L)
 
-def lsh(
-    vectors,
-    N = 2048**2,  # Total number of vectors
-    K = 16,       # Dimensionality of each vector
-    B = 2048,     # Number of buckets (B << N)
-    L = 10,       # Number of hash functions (typically tuned experimentally)
-)
+def LSH_bucketing_and_reconstruct(M: torch.tensor, Pm: torch.tensor, B:int, K: int, pi_normalized, sigma, DEVICE):
+    # M: high-dim matrix or vetor 
+    # Pm: a vector of 16 different values
+    # Bucket
 
-    # Generate L random projection hash functions
-    hash_planes = [GaussianRandomProjection(n_components=K) for _ in range(L)]
+    dims = M.size()
+    #### flatten the input matrix
+    Mvect= M.view(-1)
+    invMap, nums=LSH(Mvect, B)
+    
+    # create a matrix of dimension B x 16
+    O = get_distribution(nums, Pm, K, pi_normalized, sigma, DEVICE)
+    Ws = O @ Pm
+    recon_M_vect=reconstruct(dims, Ws, invMap)
+    recon_M = recon_M_vect.size(dims)
+    return recon_M
 
-    # Compute hash values for all vectors at once
-    def hash_function_matrix(V):
-        """Compute L hash values for all vectors V in a single operation."""
-        hashes = np.array([proj.fit_transform(V) > 0 for proj in hash_planes])  # Shape (L, N, K)
-        return hashes.astype(int).reshape(L, N, K).sum(axis=2).T  # Summing over K to get L-bit hashes
+def reconstruct(dims, Ws, invMAP):
+    # dimension of input matrix M
+    # Ws: weighted sum
+    # inverse map from bucket to index in matrix M
+    B = len(invMAP)
 
-    # Compute hashes for all vectors
-    hashed_values = hash_function_matrix(vectors)  # Shape (N, L)
-
-    # Convert to hashable tuple representation for bucket assignment
-    bucket_indices = [tuple(row) for row in hashed_values]
-
-    # Efficient dictionary-based bucketing
-    from collections import defaultdict
-    hash_table = defaultdict(list)
-
-    # Vectorized bucketing using dictionary mapping
-    for i, bucket_index in enumerate(bucket_indices):
-        hash_table[bucket_index].append(i)
-
-    # Print some sample bucket sizes
-    print(f"Total unique buckets: {len(hash_table)}")
-    for k, v in list(hash_table.items())[:5]:
-        print(f"Bucket {k}: {len(v)} vectors")
-    return hash_table
+    M = torch.zeros(dims)
+    for bi, one_bucket in enumerate(invMAP):
+        for (index, _) in one_bucket:
+            M[index] = Ws[bi]
+    return M 
 

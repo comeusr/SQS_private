@@ -18,9 +18,9 @@ PRUNE_TEMP=0.01
 WARM_UP=0.05
 PRUNE_INIT_LR=0.01
 SIGMA=3
-MODEL_NAME='Qwen_0.5b'
-OPTIMIZER='adam'
-BATCH_SIZE=32
+MODEL_NAME='meta-llama/Llama-3.2-1B'
+OPTIMIZER='sgd'
+BATCH_SIZE=16
 MAX_LENGTH=384
 
 # CIFAR100_K${K}_KL_SPAS${FINAL_SPARSITY}_temp${TEMP}_LR${LR}_F${FINAL_LR}_WD${WD}
@@ -31,7 +31,7 @@ export TORCH_USE_CUDA_DSA=1
 sbatch --time=04:00:00 --nodes=1 --gpus-per-node=1 --mem=40G --job-name=${MODEL_NAME} --constraint="a100" <<EOT
 #!/bin/bash -l
 
-#SBATCH --job-name normal_${MODEL_NAME}
+#SBATCH --job-name ${MODEL_NAME}
 #SBATCH --output /home/wang4538/DGMS-master/out/%x_%j.out
 #SBATCH --error /home/wang4538/DGMS-master/err/%x_%j.err
 

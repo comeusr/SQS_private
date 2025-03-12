@@ -1,0 +1,50 @@
+
+The following have been reloaded with a version change:
+  1) cuda/12.6.0 => cuda/12.1.1
+
+
+CondaError: Run 'conda init' before 'conda activate'
+
+The following values were not passed to `accelerate launch` and had defaults used instead:
+	`--num_processes` was set to a value of `1`
+	`--num_machines` was set to a value of `1`
+	`--mixed_precision` was set to a value of `'no'`
+	`--dynamo_backend` was set to a value of `'no'`
+To avoid this warning pass in values for each of the problematic parameters or run `accelerate config`.
+usage: glue_training.py [-h] [--seed SEED] [--save_folder SAVE_FOLDER]
+                        [--max_seq_length MAX_SEQ_LENGTH]
+                        [--preprocessing_num_workers PREPROCESSING_NUM_WORKERS]
+                        [--run_name RUN_NAME] [--precision PRECISION]
+                        [--project_name PROJECT_NAME] [--watch]
+                        [--dataset_name DATASET_NAME] [--task_name TASK_NAME]
+                        [--num_labels NUM_LABELS] [--pad_to_max_length]
+                        [--autoresume]
+                        [--dataset_config_name DATASET_CONFIG_NAME]
+                        [--overwrite_cache] [--empirical EMPIRICAL] [--normal]
+                        [--K K] [--tau TAU]
+                        [--init_method {k-means,quantile,empirical}] [--prune]
+                        [--prune_scale PRUNE_SCALE] [--debug]
+                        [--freeze_weight] [--batch_size BATCH_SIZE] [--lr LR]
+                        [--weight_decay M] [--duration DURATION]
+                        [--warm_up WARM_UP] [--init_sparsity INIT_SPARSITY]
+                        [--final_sparsity FINAL_SPARSITY]
+                        [--pr_warm_up PR_WARM_UP] [--sigma SIGMA]
+                        [--doc_stride DOC_STRIDE] [--alpha_f ALPHA_F]
+                        [--eval_interval EVAL_INTERVAL]
+                        [--prune_end PRUNE_END] [--prune_start PRUNE_START]
+                        [--sample] [--pretrain_path PRETRAIN_PATH] [--average]
+                        [--model_name {openai-community/gpt2,Qwen/Qwen2.5-1.5B,Qwen/Qwen2.5-0.5B,meta-llama/Llama-3.2-1B}]
+                        [--prior {spike_slab,normal}]
+                        [--optimizer {adam,rmsprop,sgd}]
+glue_training.py: error: argument --model_name: invalid choice: 'Qwen_0.5b' (choose from 'openai-community/gpt2', 'Qwen/Qwen2.5-1.5B', 'Qwen/Qwen2.5-0.5B', 'meta-llama/Llama-3.2-1B')
+Traceback (most recent call last):
+  File "/home/wang4538/miniconda3/envs/LLM/bin/accelerate", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/accelerate_cli.py", line 48, in main
+    args.func(args)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/launch.py", line 1172, in launch_command
+    simple_launcher(args)
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/accelerate/commands/launch.py", line 762, in simple_launcher
+    raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
+subprocess.CalledProcessError: Command '['/home/wang4538/miniconda3/envs/LLM/bin/python3.12', '../glue_training.py', '--dataset_name', 'ptb_text_only', '--task_name', 'sst2', '--K', '16', '--tau', '0.001', '--weight_decay', '5e-7', '--prune', '--model_name', 'Qwen_0.5b', '--lr', '5e-6', '--duration', '5', '--alpha_f', '0.01', '--seed', '428', '--init_method', 'k-means', '--run_name', 'Qwen_0.5b_K16_KL_SPAS0.75_temp0.001_LR5e-6_PRTEMP0.01_WD5e-7_SIGMA3', '--autoresume', '--eval_interval', '1ep', '--prune_scale', '0.01', '--prune_start', '0.05', '--sigma', '3', '--init_sparsity', '0.0', '--final_sparsity', '0.75', '--prune_end', '0.9', '--optimizer', 'adam', '--batch_size', '32', '--max_seq_length', '384', '--preprocessing_num_workers', '4', '--save_folder', '/scratch/gilbreth/wang4538/DGMS/Run/GLUE_sst2_Qwen_0.5b/compressed/']' returned non-zero exit status 2.
