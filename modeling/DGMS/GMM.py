@@ -1,6 +1,4 @@
-""" DGMS GM Sub-distribution implementation.
-
-"""
+# DGMS GM Sub-distribution implementation.
 
 import torch
 import torch.nn as nn
@@ -15,48 +13,11 @@ import time
 
 DEVICE = get_device()
 
-import inspect
-import gc
 
 def gumbel_max_sample(logits: torch.Tensor) -> torch.Tensor:
     gumbel_noise = -torch.log(-torch.log(torch.rand_like(logits)))  # Gumbel(0,1) noise
     return torch.argmax(logits + gumbel_noise, dim=-1)
 
-def get_tensor_name(obj):
-    """Attempts to retrieve the variable name of a tensor."""
-    for frame in inspect.stack():
-        local_vars = frame.frame.f_locals
-        for var_name, var_val in local_vars.items():
-            if var_val is obj:
-                return var_name
-    return "Unknown"
-
-def print_ranked_gpu_tensors():
-    tensor_list = []
-    total_memory = 0
-
-    for obj in gc.get_objects():
-        try:
-            if isinstance(obj, torch.Tensor) and obj.is_cuda:
-                mem = obj.numel() * obj.element_size()
-                total_memory += mem
-                tensor_list.append((get_tensor_name(obj), obj.shape, obj.device, mem))
-        except Exception:
-            pass  # Ignore inaccessible objects
-
-    # Sort by memory usage (descending order)
-    tensor_list.sort(key=lambda x: x[3], reverse=True)
-
-    print("\n=== Ranked GPU Tensor Memory Usage ===")
-    count = 0
-    for rank, (name, shape, device, mem) in enumerate(tensor_list, 1):
-        count += 1
-        print(f"Rank {rank}: Name: {name}, Shape: {shape}, Device: {device}, Memory: {mem / 1e6:.2f} MB")
-        if count > 20:
-            break
-
-    print(f"Total GPU Memory Used by Tensors: {total_memory / 1e6:.2f} MB")
-    print("====================================\n")
 
 
 class GaussianMixtureModel(nn.Module):
@@ -78,11 +39,10 @@ class GaussianMixtureModel(nn.Module):
         # print('Init Mask dim {}'.format(self.mask.shape))
         if cfg.PRUNE:
             self.init_sigma = init_sigma
-
-        # Reduced dimension after the LSH
+        # Reduced dimension
         self.B = B
 
-        #TODO: Implement LSH for GMM
+        
         start_time = time.time()
         print("Starting Grouping")
         self.bin_indices, self.nums = interval_mapping(init_weights, self.B, DEVICE)
@@ -121,20 +81,12 @@ class GaussianMixtureModel(nn.Module):
             print("Method", method)
             if method == 'k-means':
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
-                # sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
-                # print("Initial Sigma contains zero {}".format(sigma_init.eq(0.0).any()))
             elif method == "quantile":
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
             elif method == 'empirical':
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
                 sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
-                # sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
-            
-            # if sigma_init.eq(0.0).any():
-            #     sigma_init = torch.where(sigma_init!=0.0, sigma_init, torch.min(sigma_init[torch.nonzero(sigma_init, as_tuple=True)]))
-            # if sigma_init.isnan().any():
-            #     sigma_init = torch.where(sigma_init!=0.0, sigma_init, torch.min(sigma_init[torch.nonzero(sigma_init, as_tuple=True)]))
-
+                
             if sigma_init.isnan().any() or sigma_init.eq(0.0).any():
                 print('-'*50+"Sigma init is nan or zero"+"-"*50)
                 print('-'*50+"Old Sigma init {}".format(sigma_init)+"-"*50)
@@ -144,36 +96,28 @@ class GaussianMixtureModel(nn.Module):
                 # Extract valid elements
                 valid_elements = sigma_init[valid_mask]
                 
-
                 smallest_valid = torch.min(valid_elements)
                 largest_valid = torch.max(valid_elements)
-
                 # Replace zeros and NaNs with the smallest valid elements
                 sigma_init[sigma_init == 0] = smallest_valid
                 sigma_init[torch.isnan(sigma_init)] = smallest_valid
                 sigma_init[~torch.isfinite(sigma_init)] = largest_valid
                 print('-'*50+"New Sigma init {}".format(sigma_init)+"-"*50)
-            # initial_region_saliency = pi_init = sigma_init = torch.ones_like(self.mu, device='cuda')
-            # temp = F.normalize(sigma_init, dim=-1)
-            # if temp.eq(0.0).any():
-            #     print('-'*50+"Normalized Sigma init {}".format(temp)+"-"*50)
-            #     print('-'*50+"Sigma init {}".format(sigma_init)+"-"*50)
+           
             self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
             self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
-            # self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=DEVICE)).to(DEVICE).float()
-            # self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=DEVICE)).float()
             self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
             # print("Initial Self Sigma contains zero {}".format(self.sigma.eq(0.0).any()))
             self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=DEVICE), requires_grad=False)
             self.pruning_parameter = nn.Parameter(data=5*cfg.PRUNE_SCALE*torch.ones_like(init_weights, device=DEVICE))
 
     def gaussian_mixing_regularization(self):
-        # pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
+        
         if not cfg.PRUNE:
             pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
-            res = torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).cuda()
+            res = torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
             # print('Pi shape{}'.format(res.shape))
-            return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).cuda()
+            return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
         else:
             pi_tmp = self.pi_k.abs()
             return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
@@ -181,7 +125,7 @@ class GaussianMixtureModel(nn.Module):
     def Normal_pdf(self, x, _pi, mu, sigma):
         """ Standard Normal Distribution PDF. """
         pow2 = torch.pow(x - mu, 2)
-        # pow2 = F.normalize(torch.pow(x - mu, 2), dim=-1)
+        
         sigma = sigma.to(torch.float32)
         pdf = torch.mul(torch.reciprocal(torch.sqrt(torch.mul( \
                 torch.tensor([2 * math.pi], device=DEVICE), (sigma**2)))), \
@@ -205,11 +149,11 @@ class GaussianMixtureModel(nn.Module):
     def GMM_region_responsibility(self, weights):
         if not cfg.PRUNE:
             """" Region responsibility of GMM. """
-            pi_normalized = self.gaussian_mixing_regularization().cuda()
+            pi_normalized = self.gaussian_mixing_regularization().to(DEVICE)
             responsibility = torch.zeros([self.num_components, weights.size(0)], device=DEVICE)
-            responsibility[0] = self.Normal_pdf(weights.cuda(), pi_normalized[0], 0.0, self.sigma_zero.cuda())
+            responsibility[0] = self.Normal_pdf(weights.to(DEVICE), pi_normalized[0], 0.0, self.sigma_zero.to(DEVICE))
             for k in range(self.num_components-1):
-                responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k].cuda(), self.sigma[k].cuda())
+                responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k].to(DEVICE), self.sigma[k].to(DEVICE))
             responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
             return F.softmax(responsibility / self.temperature, dim=0)
         else:
@@ -217,19 +161,12 @@ class GaussianMixtureModel(nn.Module):
 
             pi_normalized = self.gaussian_mixing_regularization().to(DEVICE)
             O = get_distribution(self.nums, self.mu, self.num_components, pi_normalized, self.sigma, DEVICE)
-            # responsibility = torch.zeros([self.num_components, self.B], device=DEVICE)
-            # # responsibility[0] = self.Normal_pdf(weights.to(DEVICE), pi_normalized[0], 0.0, self.sigma_zero.to(DEVICE))
-            # # print("Self Sigma contains zero {}".format(self.sigma.eq(0.0).any()))
-            # for k in range(self.num_components):
-            #     # print("Sigma {}".format(self.sigma[k]))
-            #     responsibility[k] = self.Normal_pdf(weights, pi_normalized[k], self.mu[k], self.sigma[k])
 
             O = torch.div(O, O.sum(dim=0) + cfg.EPS)
             # print("responsibility {}".format(responsibility))
             temp = F.softmax(O / self.temperature, dim=0).T
 
             # print("-"*50+"Responsibility before mask"+"-"*50)
-            # print_ranked_gpu_tensors()
             
             if temp.isnan().any():
                 print('-'*50+"Found nan in the soft weights"+"-"*50)
@@ -241,7 +178,6 @@ class GaussianMixtureModel(nn.Module):
                     print("-"*50+"weights is nan"+"-"*50)
                 if self.mu.isnan().any():
                     print('-'*50+"Mu is nan"+"-"*50)
-
 
             return temp
 
@@ -277,10 +213,8 @@ class GaussianMixtureModel(nn.Module):
                             + (1-F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE))*torch.randn_like(weights.flatten())
 
                 # print("-"*50+"Sweight before delete"+"-"*50)
-                # print_ranked_gpu_tensors() 
                 torch.cuda.empty_cache()
                 # print("-"*50+"Sweight after delete"+"-"*50)
-                # print_ranked_gpu_tensors() 
 
                 return Sweight.view(weights.size())
             else:
@@ -298,13 +232,12 @@ class GaussianMixtureModel(nn.Module):
                 # print("Region belonging shape", region_belonging.shape)
                 # print("Mu shape", self.mu.shape)
                 Pweight = reconstruct(weights.size(),region_belonging@self.mu, self.bin_indices)
-                # Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
+                
                 # print('Pweight before mask {}'.format(Pweight))
                 # print("Pweight shape", Pweight.shape)
                 Pweight = Pweight.view(weights.size())
 
                 Pweight.detach().masked_fill_(self.mask, 0.0)
-                # print()
                 return Pweight
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, B=11, init_method='k-means', sigma=3) -> GaussianMixtureModel:

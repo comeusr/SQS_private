@@ -2,6 +2,8 @@ import struct as st
 import torch
 import sys
 import math
+import inspect
+import gc
 
 def str_int_and_none(value):
     try:
@@ -102,3 +104,41 @@ def save_data(tensor, path, is_act=False, to_int=False, to_hex=False, output_dir
             f'{type_cast(num.item())}'
             for num in tensor.half().view(-1)
         ), file=f)
+
+
+
+def get_tensor_name(obj):
+    """Attempts to retrieve the variable name of a tensor."""
+    for frame in inspect.stack():
+        local_vars = frame.frame.f_locals
+        for var_name, var_val in local_vars.items():
+            if var_val is obj:
+                return var_name
+    return "Unknown"
+
+def print_ranked_gpu_tensors():
+    tensor_list = []
+    total_memory = 0
+
+    for obj in gc.get_objects():
+        try:
+            if isinstance(obj, torch.Tensor) and obj.is_cuda:
+                mem = obj.numel() * obj.element_size()
+                total_memory += mem
+                tensor_list.append((get_tensor_name(obj), obj.shape, obj.device, mem))
+        except Exception:
+            pass  # Ignore inaccessible objects
+
+    # Sort by memory usage (descending order)
+    tensor_list.sort(key=lambda x: x[3], reverse=True)
+
+    print("\n=== Ranked GPU Tensor Memory Usage ===")
+    count = 0
+    for rank, (name, shape, device, mem) in enumerate(tensor_list, 1):
+        count += 1
+        print(f"Rank {rank}: Name: {name}, Shape: {shape}, Device: {device}, Memory: {mem / 1e6:.2f} MB")
+        if count > 20:
+            break
+
+    print(f"Total GPU Memory Used by Tensors: {total_memory / 1e6:.2f} MB")
+    print("====================================\n")

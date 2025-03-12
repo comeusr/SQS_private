@@ -5,9 +5,7 @@ import torch
 import torch.nn as nn
 from torch.optim import AdamW, RMSprop, SGD
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torchmetrics.classification import MulticlassAccuracy
-from torch.cuda.amp import GradScaler, autocast
 
 from datasets import load_dataset
 from accelerate import Accelerator
@@ -20,9 +18,8 @@ from config import model_config
 import bitsandbytes as bnb
 
 #Huggingface
-from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig, AutoModelForSequenceClassification
-from transformers import DataCollatorForLanguageModeling
-from transformers import get_scheduler, EvalPrediction
+from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification
+from transformers import get_scheduler
 from transformers import default_data_collator, DataCollatorWithPadding
 from transformers.trainer_pt_utils import get_parameter_names
 
@@ -35,48 +32,6 @@ from transformers.models.llama.modeling_llama import LlamaAttention
 from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention
 from utils.GPT2_pruner_quantizer import GPT2_PRUNER
 
-import sys
-import numpy as np  
-
-import gc
-import inspect
-
-
-def get_tensor_name(obj):
-    """Attempts to retrieve the variable name of a tensor."""
-    for frame in inspect.stack():
-        local_vars = frame.frame.f_locals
-        for var_name, var_val in local_vars.items():
-            if var_val is obj:
-                return var_name
-    return "Unknown"
-
-def print_ranked_gpu_tensors():
-    tensor_list = []
-    total_memory = 0
-
-    for obj in gc.get_objects():
-        try:
-            if isinstance(obj, torch.Tensor) and obj.is_cuda:
-                mem = obj.numel() * obj.element_size()
-                total_memory += mem
-                tensor_list.append((get_tensor_name(obj), obj.shape, obj.device, mem))
-        except Exception:
-            pass  # Ignore inaccessible objects
-
-    # Sort by memory usage (descending order)
-    tensor_list.sort(key=lambda x: x[3], reverse=True)
-
-    print("\n=== Ranked GPU Tensor Memory Usage ===")
-    count = 0
-    for rank, (name, shape, device, mem) in enumerate(tensor_list, 1):
-        count += 1
-        print(f"Rank {rank}: Name: {name}, Shape: {shape}, Device: {device}, Memory: {mem / 1e6:.2f} MB")
-        if count > 20:
-            break
-
-    print(f"Total GPU Memory Used by Tensors: {total_memory / 1e6:.2f} MB")
-    print("====================================\n")
 
 
 from utils import *
@@ -262,13 +217,7 @@ def main(args):
                 trust_remote_code=True
             )
         
-        # model = AutoModelForSequenceClassification.from_pretrained(
-        #         loaded_model_config['from_pretrained'], 
-        #         config=config,
-        #         attn_implementation=loaded_model_config['attn_implementation'],
-        #         torch_dtype=torch.float32,
-        #         trust_remote_code=True
-        #     )
+        
         print("Defining pad token")
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = model.config.eos_token_id
@@ -302,23 +251,6 @@ def main(args):
         device_placement=True,
     )
 
-
-    # if args.task_name == "mnli":
-    #     mm_eval_dataset = processed_datasets["validation_mismatched"]
-    #     mm_eval_sampler = DistributedSampler(mm_eval_dataset, shuffle=False)
-    #     mm_eval_dataloader = DataLoader(mm_eval_dataset, collate_fn=data_collator, batch_size=args.batch_size, sampler=mm_eval_sampler)
-    #     # TODO: add the customized evaluator
-
-    #     # mnli_matched_task = Evaluator(
-    #     #     label='mnli_matched_accuracy',
-        #     dataloader=eval_dataloader,
-        #     metric_names=['MulticlassAccuracy']
-        # )
-        # mnli_mismatched_task = Evaluator(
-        #     label='mnli_mismatched_accuracy',
-        #     dataloader=mm_eval_dataloader,
-        #     metric_names=['MulticlassAccuracy']
-        # )
     
     if not args.normal:
         for name, module in tuple(model.named_modules()):
@@ -448,11 +380,8 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
             for name, param in model.named_parameters():
                 print(name, param.grad, param.device)
 
-            # print_ranked_gpu_tensors()
 
-            # for name, param in model.named_parameters():
-            #     print(f"{name} grad dtype: {param.grad.dtype}")
-            #     print(f"{name} dtype: {param.dtype}")
+
             for name, param in model.named_parameters():
                 if param.requires_grad:
                     if torch.isnan(param.grad).any():
@@ -483,11 +412,6 @@ def evaluate(model, eval_dataloader, accelerator, device, num_labels):
 
     with torch.no_grad():
         for batch in eval_dataloader:
-
-            # for key in batch:
-            #     batch[key] = batch[key].to(torch.bfloat16)
-            # for key in batch:
-            #     print(f"{key}: {batch[key]}")
             outputs = model(**batch)
             logits = outputs.logits
             predictions = torch.argmax(logits, dim=-1)
