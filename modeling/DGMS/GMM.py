@@ -10,7 +10,7 @@ import config as cfg
 
 from utils.misc import cluster_weights, get_device, cluster_weights_sparsity
 from utils.utils import get_distribution
-from utils.lsh import LSH, reconstruct
+from utils.interval_mapping import interval_mapping, reconstruct
 import time
 
 DEVICE = get_device()
@@ -83,13 +83,11 @@ class GaussianMixtureModel(nn.Module):
         self.B = B
 
         #TODO: Implement LSH for GMM
-        flat_init_weights = init_weights.view(-1)
         start_time = time.time()
-        print("Starting LSH")
-        self.invMap, self.nums = LSH(flat_init_weights, B, DEVICE)
-        del flat_init_weights
+        print("Starting Grouping")
+        self.bin_indices, self.nums = interval_mapping(init_weights, self.B, DEVICE)
         end_time = time.time()
-        print("LSH completed in {} seconds".format(end_time - start_time))
+        print("Grouping completed in {} seconds".format(end_time - start_time))
 
     def params_initialization(self, init_weights, method='k-means'):
         if not cfg.PRUNE:
@@ -122,15 +120,12 @@ class GaussianMixtureModel(nn.Module):
                     torch.ones(self.num_components, device=DEVICE)
             print("Method", method)
             if method == 'k-means':
-                print("Using k-means for GMM initialization")
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
                 # sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
                 # print("Initial Sigma contains zero {}".format(sigma_init.eq(0.0).any()))
             elif method == "quantile":
-                print("Using quantile for GMM initialization")
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
             elif method == 'empirical':
-                print("Using empirical for GMM initialization")
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
                 sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
                 # sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
@@ -270,27 +265,27 @@ class GaussianMixtureModel(nn.Module):
         else:
             if train:
                 region_belonging = self.GMM_region_responsibility(weights.flatten())
-                print("Printing the region_belong shape {}".format(region_belonging.shape))
+                # print("Printing the region_belong shape {}".format(region_belonging.shape))
 
                 def memory_in_mb(tensor):
                     return tensor.element_size() * tensor.numel() / (1024*1024)
                                 
                 if cfg.PRIOR == 'spike_slab':
-                    Sweight =  reconstruct(weights.size(),region_belonging@self.mu, self.invMap)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
+                    Sweight =  reconstruct(weights.size(), region_belonging@self.mu, self.bin_indices)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
                 else:
                     Sweight = torch.mul(region_belonging, self.mu.unsqueeze(1)).sum(dim=0)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE) \
                             + (1-F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE))*torch.randn_like(weights.flatten())
 
-                print("-"*50+"Sweight before delete"+"-"*50)
-                print_ranked_gpu_tensors() 
+                # print("-"*50+"Sweight before delete"+"-"*50)
+                # print_ranked_gpu_tensors() 
                 torch.cuda.empty_cache()
-                print("-"*50+"Sweight after delete"+"-"*50)
-                print_ranked_gpu_tensors() 
+                # print("-"*50+"Sweight after delete"+"-"*50)
+                # print_ranked_gpu_tensors() 
 
                 return Sweight.view(weights.size())
             else:
                 region_belonging = self.GMM_region_responsibility(weights.flatten())
-                print("Region belonging shape", region_belonging.shape)
+                # print("Region belonging shape", region_belonging.shape)
                 # print("Printing the region_belong shape {}".format(self.region_belonging.shape))  
            
                 if cfg.SAMPLE:
@@ -300,12 +295,12 @@ class GaussianMixtureModel(nn.Module):
                     max_index = torch.argmax(region_belonging, dim=0).unsqueeze(0)
                 # print("Print the max_index shape {}".format(max_index.shape))
                 mask_w = torch.zeros_like(region_belonging).scatter_(dim=0, index=max_index, value=1.)
-                print("Region belonging shape", region_belonging.shape)
-                print("Mu shape", self.mu.shape)
-                Pweight = reconstruct(weights.size(),region_belonging@self.mu, self.invMap)
+                # print("Region belonging shape", region_belonging.shape)
+                # print("Mu shape", self.mu.shape)
+                Pweight = reconstruct(weights.size(),region_belonging@self.mu, self.bin_indices)
                 # Pweight = torch.mul(mask_w, self.mu.unsqueeze(1)).sum(dim=0)
                 # print('Pweight before mask {}'.format(Pweight))
-                print("Pweight shape", Pweight.shape)
+                # print("Pweight shape", Pweight.shape)
                 Pweight = Pweight.view(weights.size())
 
                 Pweight.detach().masked_fill_(self.mask, 0.0)

@@ -1,7 +1,21 @@
 
 import torch
 from collections import OrderedDict
-from utils import get_distribution
+from utils.utils import get_distribution
+
+def interval_mapping(M: torch.tensor, B:int, DEVICE):
+    dims = M.size()
+    Mvect= M.view(-1)
+    quantiles = torch.quantile(Mvect, torch.linspace(0, 1, steps=B))
+    # Assign each element to a bin index
+    bin_indices = torch.bucketize(Mvect, quantiles, right=False)  # Adjust to 0-based index
+
+    means = torch.zeros(B, dtype=torch.float32)
+    for i in range(B):
+        means[i] = Mvect[bin_indices == i].mean()
+
+
+    return bin_indices, means.to(DEVICE)
 
 
 
@@ -32,11 +46,19 @@ def interval_mapping_and_reconstruct(M: torch.tensor, Pm: torch.tensor, B:int, K
     return recon_M
 
 def reconstruct(dims, Ws, bin_indices):
+
+    # Ws: B x 1
+    # bin_indices: N x 1
+    
+    N = dims[0]*dims[1]
+    unique_bin_indices = torch.unique(bin_indices)
+    
     # Create an empty matrix of the given dimensions
-    M = torch.zeros(dims, dtype=Ws.dtype, device=Ws.device)
+    M = torch.zeros(N, dtype=Ws.dtype, device=Ws.device)
 
     # Efficiently assign values using advanced indexing
-    M[torch.arange(len(bin_indices))] = Ws[bin_indices]
+    for i in unique_bin_indices:
+        M[bin_indices == i] = Ws[i]
 
     return M
 

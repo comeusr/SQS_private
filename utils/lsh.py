@@ -58,7 +58,8 @@ def reconstruct(dims, Ws, invMAP):
     # dimension of input matrix M
     # Ws: weighted sum
     # inverse map from bucket to index in matrix M
-    B = len(invMAP)
+    print("Inverse map length", len(invMAP))
+    print("invMAP", invMAP)
 
     M = torch.zeros(dims)
     for bi, one_bucket in enumerate(invMAP):

@@ -376,6 +376,9 @@ def main(args):
         )
 
 
+    for name, param in model.named_parameters():
+        print(name, param.device)
+
     # training_args = TrainingArguments(
     #         output_dir=args.save_folder,
     #         per_device_train_batch_size=1,
@@ -441,6 +444,9 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
             # accelerator.scaler.update()  # ✅ Update scaler
 
             accelerator.backward(loss)
+
+            for name, param in model.named_parameters():
+                print(name, param.grad, param.device)
 
             # print_ranked_gpu_tensors()
 
