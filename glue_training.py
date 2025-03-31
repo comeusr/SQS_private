@@ -27,9 +27,9 @@ from transformers import TrainingArguments
 
 from transformers.models.gpt2.modeling_gpt2 import GPT2Attention
 from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention
-from transformers.models.llama.modeling_llama import LlamaAttention
+from transformers.models.llama.modeling_llama import LlamaAttention, LlamaMLP
 
-from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention
+from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention, CustomizedLLamaMLP
 from utils.GPT2_pruner_quantizer import GPT2_PRUNER
 
 
@@ -102,6 +102,11 @@ def InitModel(model, sigma):
             print("Initializing Customized Model Parameters.")
             m.init_mask_params(sigma) 
             count += 1 
+        elif isinstance(m, CustomizedLLamaMLP):
+            print("Initializing Layer {}".format(count))
+            print("Initializing Customized Model Parameters.")
+            m.init_mask_params(sigma) 
+            count += 1 
 
 def replace_attn_layer(module, config, model_name, device):
     if model_name == "gpt2":
@@ -123,11 +128,17 @@ def replace_attn_layer(module, config, model_name, device):
         else:
             return module
     elif model_name == "meta-llama/Llama-3.2-1B":
-        if isinstance(module, LlamaAttention):
+        # if isinstance(module, LlamaAttention):
+        #     target_state_dict   = deepcopy(module.state_dict())
+        #     new_module          = CustomizedLlamaAttention(config, layer_idx=module.layer_idx).to(device)
+        #     new_module.load_state_dict(target_state_dict)
+        #     print("Replace with Customize Llama Flash Attention Layer.")
+        #     return new_module
+        if isinstance(module, LlamaMLP):
             target_state_dict   = deepcopy(module.state_dict())
-            new_module          = CustomizedLlamaAttention(config, layer_idx=module.layer_idx).to(device)
+            new_module          = CustomizedLLamaMLP(config).to(device)
             new_module.load_state_dict(target_state_dict)
-            print("Replace with Customize Llama Flash Attention Layer.")
+            print("Replace with Customize Llama MLP Layer.")
             return new_module
         else:
             return module
@@ -258,6 +269,20 @@ def main(args):
                 recursive_setattr(model, name, replace_attn_layer(module, config, args.model_name, device))
         print("Initializing Model Parameters.")
         InitModel(model, args.sigma)
+    
+
+    model.to(device)
+
+    for module in model.modules():
+        module.to(device)
+
+    for name, param in model.named_parameters():
+        print(name, param.device)
+
+    # for m in model.modules():
+    #     if isinstance(m, LlamaAttention):
+    #         print("self.nums device", m.q_proj.sub_distribution.nums.device)
+    #         print("self.bin_indices device", m.q_proj.sub_distribution.bin_indices.device)
 
 
     if args.optimizer == "adam":
@@ -307,9 +332,10 @@ def main(args):
             weight_decay=args.weight_decay
         )
 
-
-    for name, param in model.named_parameters():
-        print(name, param.device)
+    for state in optimizer.state.values():
+        for k, v in state.items():
+            if isinstance(v, torch.Tensor):
+                state[k] = v.to(device)
 
     # training_args = TrainingArguments(
     #         output_dir=args.save_folder,
@@ -328,8 +354,8 @@ def main(args):
     )
 
     print("Model Device: ", model.device)
-    accuracy = evaluate(model, eval_dataloader, accelerator, device, num_labels)
-    wandb.log({'Before Compression Eval Acc': accuracy}, commit=False)
+    # accuracy = evaluate(model, eval_dataloader, accelerator, device, num_labels)
+    # wandb.log({'Before Compression Eval Acc': accuracy}, commit=False)
 
     pruner =  GPT2_PRUNER(model, 
                           init_sparsity=args.init_sparsity , 
@@ -343,7 +369,7 @@ def main(args):
         num_training_steps=cfg.PRUNE_END_STEP,
     )
 
-    model_memory_summary(model)
+    # model_memory_summary(model)
 
     model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, accelerator, lr_scheduler, 
                 num_training_steps, args.duration, args.normal, cfg, device, num_labels)
@@ -369,18 +395,22 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
             outputs = model(**batch)
             loss = outputs.loss
 
+
             wandb.log({'Training Loss': loss.item()})
 
             # accelerator.scaler.scale(loss).backward()  # ✅ Use scaler for mixed precision training
             # accelerator.scaler.step(optimizer)  # ✅ Step with scaler
             # accelerator.scaler.update()  # ✅ Update scaler
 
-            accelerator.backward(loss)
+            accelerator.backward(loss, retain_graph=True)
 
             for name, param in model.named_parameters():
-                print(name, param.grad, param.device)
+                if param.requires_grad:
+                    param.grad = param.grad.to(device)
+                    # print(name+"grad device", param.grad.device)
+                    # print(name+"device", param.device)
 
-
+            
 
             for name, param in model.named_parameters():
                 if param.requires_grad:
@@ -389,15 +419,31 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
                         print(f"{name} grad: {param.grad}")
             if not normal:
                 pruner.apply_non_prune_gradient(curr_step)
+                
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
             progress_bar.update(1)
 
+            pruner.log_mlp_weight()
+
             if step % 10 == 0:
                 accuracy = evaluate(model, eval_dataloader, accelerator, device, num_labels)
                 wandb.log({'Eval Acc': accuracy}, commit=False)
+
+                # for name, module in model.named_modules():
+                #     if isinstance(module, CustomizedLLamaMLP):
+                #         if module.blocks == 1:
+                #             target_weight = module.up_proj.weight
+                #             print(name+".up_proj.sub_distribution.pruning_parameter.detach()", module.up_proj.sub_distribution.pruning_parameter.detach())
+                #             print(name+".down_proj.sub_distribution.pruning_parameter.detach()", module.down_proj.sub_distribution.pruning_parameter.detach())
+                #         else:
+                #             for i in range(module.blocks):
+                #                 print(name+".blocks.{}.up_proj.sub_distribution.pruning_parameter.detach()", module.up_proj.sub_distribution_list[i].pruning_parameter.detach())
+                #                 print(name+".blocks.{}.down_proj.sub_distribution.pruning_parameter.detach()", module.down_proj.sub_distribution_list[i].pruning_parameter.detach())
+                        
+                        
 
         accelerator.wait_for_everyone()
         # if pruner.cur_sparsity == args.final_sparsity:

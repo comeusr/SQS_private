@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import wandb
 
 import config as cfg
-from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention
+from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention, CustomizedLLamaMLP
 
 from composer.core import Algorithm
 
@@ -21,6 +21,23 @@ class GPT2_PRUNER():
         self.alpha_f = alpha_f
         self.model = model
 
+    def log_mlp_weight(self):
+        for name, m in self.model.named_modules():
+            if isinstance(m, CustomizedLLamaMLP):
+                quantized_up_proj_weights, quantized_down_proj_weights = m.QuantizedWeights()
+                up_proj_weight = m.up_proj.weight
+                down_proj_weight = m.down_proj.weight
+                wandb.log({name+"_up_proj_weight": wandb.Histogram(up_proj_weight.data.cpu().numpy())}, commit=False)
+                wandb.log({name+"_down_proj_weight": wandb.Histogram(down_proj_weight.data.cpu().numpy())}, commit=False)
+                wandb.log({name+"_quantized_up_proj_weights": wandb.Histogram(quantized_up_proj_weights.data.cpu().numpy())}, commit=False)
+                wandb.log({name+"_quantized_down_proj_weights": wandb.Histogram(quantized_down_proj_weights.data.cpu().numpy())}, commit=False)
+                
+                for block_idx in range(m.blocks):
+                    up_grad = m.up_proj.sub_distribution_list[block_idx].mu.grad
+                    down_grad = m.down_proj.sub_distribution_list[block_idx].mu.grad
+                    wandb.log({name+"_up_proj_weight_{}_grad".format(block_idx): wandb.Histogram(up_grad.data.cpu().numpy())}, commit=False)
+                    wandb.log({name+"_down_proj_weight_{}_grad".format(block_idx): wandb.Histogram(down_grad.data.cpu().numpy())}, commit=False)
+
     def caculate_mask_thresh(self, model, sparsity):
         # Calculuate the pruning threshold for a given sparsity
         # Smaller Pruning Parameters have higher chance to be pruned
@@ -35,6 +52,14 @@ class GPT2_PRUNER():
                 is_dict[name+'v_proj'] = m.v_proj.sub_distribution.pruning_parameter.detach()
                 is_dict[name+'q_proj'] = m.q_proj.sub_distribution.pruning_parameter.detach()
                 is_dict[name+'o_proj'] = m.o_proj.sub_distribution.pruning_parameter.detach()
+            elif isinstance(m, CustomizedLLamaMLP):
+                if m.blocks == 1:
+                    is_dict[name+'.up_proj'] = m.up_proj.sub_distribution.pruning_parameter.detach()
+                    is_dict[name+'.down_proj'] = m.down_proj.sub_distribution.pruning_parameter.detach()
+                else:
+                    for i in range(m.blocks):
+                        is_dict[name+'.blocks.{}.up_proj'.format(i)] = m.up_proj.sub_distribution_list[i].pruning_parameter.detach()
+                        is_dict[name+'.blocks.{}.down_proj'.format(i)] = m.down_proj.sub_distribution_list[i].pruning_parameter.detach()
 
                 # print("is_dict_{} {}".format(name, is_dict[name]))
         
@@ -65,11 +90,11 @@ class GPT2_PRUNER():
 
                     # layer.pruning_parameter.grad.add_(torch.log((1-sp)/(1-F.sigmoid(p)))*sigmoid_derivative(p))
 
-                    attnMu = attnLayer.mu
-                    attnMu.grad.add_(attnMu, alpha=1/(attnLayer.init_sigma ** 2))
+                    # attnMu = attnLayer.mu
+                    # attnMu.grad.add_(attnMu, alpha=1/(attnLayer.init_sigma ** 2))
 
-                    projMu = projLayer.mu
-                    projMu.grad.add_(projMu, alpha=1/(projLayer.init_sigma ** 2))
+                    # projMu = projLayer.mu
+                    # projMu.grad.add_(projMu, alpha=1/(projLayer.init_sigma ** 2))
                 elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
                     sp=0.01
                     k_projLayer = m.k_proj.sub_distribution
@@ -94,17 +119,17 @@ class GPT2_PRUNER():
                     o_projP = o_projLayer.pruning_parameter/cfg.PRUNE_SCALE
                     o_projLayer.pruning_parameter.grad.add_(torch.log(F.sigmoid(o_projP)/(sp))*sigmoid_derivative(o_projP))
 
-                    k_projMu = k_projLayer.mu
-                    k_projMu.grad.add_(k_projMu/(k_projLayer.init_sigma ** 2))
+                    # k_projMu = k_projLayer.mu
+                    # k_projMu.grad.add_(k_projMu/(k_projLayer.init_sigma ** 2))
 
-                    v_projMu = v_projLayer.mu
-                    v_projMu.grad.add_(v_projMu/(v_projLayer.init_sigma ** 2))
+                    # v_projMu = v_projLayer.mu
+                    # v_projMu.grad.add_(v_projMu/(v_projLayer.init_sigma ** 2))
 
-                    q_projMu = q_projLayer.mu
-                    q_projMu.grad.add_(q_projMu/(q_projLayer.init_sigma ** 2))
+                    # q_projMu = q_projLayer.mu
+                    # q_projMu.grad.add_(q_projMu/(q_projLayer.init_sigma ** 2))
 
-                    o_projMu = o_projLayer.mu
-                    o_projMu.grad.add_(o_projMu/(o_projLayer.init_sigma ** 2))
+                    # o_projMu = o_projLayer.mu
+                    # o_projMu.grad.add_(o_projMu/(o_projLayer.init_sigma ** 2))
 
         return      
     
@@ -140,48 +165,48 @@ class GPT2_PRUNER():
                     # print("Applying sparsisty Gradients")
                     attnLayer = m.c_attn.sub_distribution
 
-                    attnMu = attnLayer.mu
-                    attnMu.grad.add_(attnMu/(attnLayer.init_sigma ** 2))
+                    # attnMu = attnLayer.mu
+                    # attnMu.grad.add_(attnMu/(attnLayer.init_sigma ** 2))
 
-                    attnSigma = attnLayer.sigma
-                    attnSigma.grad.add_(attnSigma/(attnLayer.init_sigma ** 2)- 1/attnSigma)
+                    # attnSigma = attnLayer.sigma
+                    # attnSigma.grad.add_(attnSigma/(attnLayer.init_sigma ** 2)- 1/attnSigma)
 
-                    projLayer = m.c_proj.sub_distribution
+                    # projLayer = m.c_proj.sub_distribution
 
-                    projMu = projLayer.mu
-                    projMu.grad.add_(projMu/(projLayer.init_sigma ** 2))
+                    # projMu = projLayer.mu
+                    # projMu.grad.add_(projMu/(projLayer.init_sigma ** 2))
 
-                    projSigma = projLayer.sigma
-                    projSigma.grad.add_(projSigma/(projLayer.init_sigma ** 2)- 1/projSigma)
+                    # projSigma = projLayer.sigma
+                    # projSigma.grad.add_(projSigma/(projLayer.init_sigma ** 2)- 1/projSigma)
                 elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
                     k_projLayer = m.k_proj.sub_distribution
                     v_projLayer = m.v_proj.sub_distribution
                     q_projLayer = m.q_proj.sub_distribution
                     o_projLayer = m.o_proj.sub_distribution
 
-                    k_projMu = k_projLayer.mu
-                    k_projMu.grad.add_(k_projMu/(k_projLayer.init_sigma ** 2))
+                    # k_projMu = k_projLayer.mu
+                    # k_projMu.grad.add_(k_projMu/(k_projLayer.init_sigma ** 2))
 
-                    k_projSigma = k_projLayer.sigma
-                    k_projSigma.grad.add_(k_projSigma/(k_projLayer.init_sigma ** 2)- 1/k_projSigma) 
+                    # k_projSigma = k_projLayer.sigma
+                    # k_projSigma.grad.add_(k_projSigma/(k_projLayer.init_sigma ** 2)- 1/k_projSigma) 
 
-                    v_projMu = v_projLayer.mu
-                    v_projMu.grad.add_(v_projMu/(v_projLayer.init_sigma ** 2))
+                    # v_projMu = v_projLayer.mu
+                    # v_projMu.grad.add_(v_projMu/(v_projLayer.init_sigma ** 2))
 
-                    v_projSigma = v_projLayer.sigma
-                    v_projSigma.grad.add_(v_projSigma/(v_projLayer.init_sigma ** 2)- 1/v_projSigma) 
+                    # v_projSigma = v_projLayer.sigma
+                    # v_projSigma.grad.add_(v_projSigma/(v_projLayer.init_sigma ** 2)- 1/v_projSigma) 
 
-                    q_projMu = q_projLayer.mu
-                    q_projMu.grad.add_(q_projMu/(q_projLayer.init_sigma ** 2))
+                    # q_projMu = q_projLayer.mu
+                    # q_projMu.grad.add_(q_projMu/(q_projLayer.init_sigma ** 2))
 
-                    q_projSigma = q_projLayer.sigma
-                    q_projSigma.grad.add_(q_projSigma/(q_projLayer.init_sigma ** 2)- 1/q_projSigma) 
+                    # q_projSigma = q_projLayer.sigma
+                    # q_projSigma.grad.add_(q_projSigma/(q_projLayer.init_sigma ** 2)- 1/q_projSigma) 
 
-                    o_projMu = o_projLayer.mu
-                    o_projMu.grad.add_(o_projMu/(o_projLayer.init_sigma ** 2))
+                    # o_projMu = o_projLayer.mu
+                    # o_projMu.grad.add_(o_projMu/(o_projLayer.init_sigma ** 2))
 
-                    o_projSigma = o_projLayer.sigma
-                    o_projSigma.grad.add_(o_projSigma/(o_projLayer.init_sigma ** 2)- 1/o_projSigma) 
+                    # o_projSigma = o_projLayer.sigma
+                    # o_projSigma.grad.add_(o_projSigma/(o_projLayer.init_sigma ** 2)- 1/o_projSigma) 
     
     def pruning_grad_true(self, model):
         # Set the pruning parameter grad equal to True
@@ -312,6 +337,7 @@ class GPT2_PRUNER():
     
     def log_sparsity(self):
         wandb.log({'Sparsity': self.cur_sparsity}, commit=False)
+
     
     # def apply(self, event, state, logger):
     #     train_step = state.timestamp.batch.value

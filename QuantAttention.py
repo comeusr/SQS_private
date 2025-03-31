@@ -16,7 +16,7 @@ from transformers.models.bert.modeling_bert import load_tf_weights_in_bert, \
 from transformers.models.gpt2.modeling_gpt2 import GPT2Attention, GPT2Attention
 from transformers.models.opt.modeling_opt import OptFlashAttention2
 from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention, apply_rotary_pos_emb, repeat_kv, Qwen2RotaryEmbedding, eager_attention_forward
-from transformers.models.llama.modeling_llama import LlamaAttention
+from transformers.models.llama.modeling_llama import LlamaAttention, LlamaMLP
 from transformers.modeling_flash_attention_utils import _flash_attention_forward
 from transformers.utils import logging
 from transformers.cache_utils import Cache
@@ -851,4 +851,60 @@ class CustomizedLlamaAttention(LlamaAttention):
                                     position_embeddings, attention_mask, past_key_value, cache_position, **kwargs)
 
 
+
+class CustomizedLLamaMLP(LlamaMLP):
+    def __init__(self, config, blocks=8):
+        super().__init__(config)
+
+        self.is_normal = cfg.IS_NORMAL
+        self.k_level = cfg.K_LEVEL
+        self.temperature = cfg.TAU
+        self.blocks = blocks
+    
+    def generate_weight_blocks(self, blocks):
+        # return blocks of weights for 
+        
+        pass
+
+    
+    def init_mask_params(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+        if self.blocks > 1:
+            space1, space2 = self.up_proj.weight.size(-1)//self.blocks, self.down_proj.weight.size(-1)//self.blocks
+            self.up_proj.sub_distribution_list = [gmm_approximation(self.k_level, self.up_proj.weight[:,i*space1:(i+1)*space1].contiguous(), self.temperature, 32, init_method, sigma) for i in range(self.blocks)]
+            self.down_proj.sub_distribution_list = [gmm_approximation(self.k_level, self.down_proj.weight[:,i*space2:(i+1)*space2].contiguous(), self.temperature, 32, init_method, sigma) for i in range(self.blocks)]
+        else:
+            self.up_proj.sub_distribution = gmm_approximation(self.k_level, self.up_proj.weight, self.temperature, 64, init_method, sigma)
+            self.down_proj.sub_distribution = gmm_approximation(self.k_level, self.down_proj.weight, self.temperature, 64, init_method, sigma)
+    
+        
+    def QuantizedWeights(self):
+        if cfg.IS_TRAIN:
+            if self.blocks == 1:
+                return self.up_proj.sub_distribution(weights=self.up_proj.weight, train=True), self.down_proj.sub_distribution(weights=self.down_proj.weight, train=True)
+            else:
+                space1, space2 = self.up_proj.weight.size(-1)//self.blocks, self.down_proj.weight.size(-1)//self.blocks
+                return torch.cat([self.up_proj.sub_distribution_list[i](weights=self.up_proj.weight[:,i*space1:(i+1)*space1].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous(), torch.cat([self.down_proj.sub_distribution_list[i](weights=self.down_proj.weight[:,i*space2:(i+1)*space2].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous()
+        else:
+            if self.blocks == 1:
+                return self.up_proj.sub_distribution(weights=self.up_proj.weight, train=False), self.down_proj.sub_distribution(weights=self.down_proj.weight, train=False)
+            else:
+                space1, space2 = self.up_proj.weight.size(-1)//self.blocks, self.down_proj.weight.size(-1)//self.blocks
+                return torch.cat([self.up_proj.sub_distribution_list[i](weights=self.up_proj.weight[:,i*space1:(i+1)*space1].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous(), torch.cat([self.down_proj.sub_distribution_list[i](weights=self.down_proj.weight[:,i*space2:(i+1)*space2].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous()
+    
+    def softforward(self,
+        up_weights,
+        down_weights,
+        x
+    ):
+        x = self.act_fn(self.gate_proj(x))*F.linear(x, up_weights.to(x.dtype), self.up_proj.bias)
+        down_proj = F.linear(x, down_weights.to(x.dtype), self.down_proj.bias)
+        return down_proj
+
+    def forward(self, x):
+        if self.is_normal:
+            return super().forward(x)
+        else:
+            up_weights, down_weights = self.QuantizedWeights()
+            return self.softforward(up_weights, down_weights, x)
 

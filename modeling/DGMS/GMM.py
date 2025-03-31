@@ -104,9 +104,9 @@ class GaussianMixtureModel(nn.Module):
                 sigma_init[~torch.isfinite(sigma_init)] = largest_valid
                 print('-'*50+"New Sigma init {}".format(sigma_init)+"-"*50)
            
-            self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
-            self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
-            self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
+            self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)), requires_grad=True)
+            self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init), requires_grad=True).to(DEVICE).float()
+            self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init), requires_grad=True).to(DEVICE).float()
             # print("Initial Self Sigma contains zero {}".format(self.sigma.eq(0.0).any()))
             self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=DEVICE), requires_grad=False)
             self.pruning_parameter = nn.Parameter(data=5*cfg.PRUNE_SCALE*torch.ones_like(init_weights, device=DEVICE))
@@ -207,7 +207,7 @@ class GaussianMixtureModel(nn.Module):
                     return tensor.element_size() * tensor.numel() / (1024*1024)
                                 
                 if cfg.PRIOR == 'spike_slab':
-                    Sweight =  reconstruct(weights.size(), region_belonging@self.mu, self.bin_indices)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
+                    Sweight =  reconstruct(weights.size(), region_belonging@self.mu, self.bin_indices, DEVICE)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
                 else:
                     Sweight = torch.mul(region_belonging, self.mu.unsqueeze(1)).sum(dim=0)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE) \
                             + (1-F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE))*torch.randn_like(weights.flatten())
@@ -231,7 +231,7 @@ class GaussianMixtureModel(nn.Module):
                 mask_w = torch.zeros_like(region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 # print("Region belonging shape", region_belonging.shape)
                 # print("Mu shape", self.mu.shape)
-                Pweight = reconstruct(weights.size(),region_belonging@self.mu, self.bin_indices)
+                Pweight = reconstruct(weights.size(),region_belonging@self.mu, self.bin_indices, DEVICE)
                 
                 # print('Pweight before mask {}'.format(Pweight))
                 # print("Pweight shape", Pweight.shape)
