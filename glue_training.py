@@ -401,8 +401,9 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
             # accelerator.scaler.scale(loss).backward()  # ✅ Use scaler for mixed precision training
             # accelerator.scaler.step(optimizer)  # ✅ Step with scaler
             # accelerator.scaler.update()  # ✅ Update scaler
+            optimizer.zero_grad()
 
-            accelerator.backward(loss, retain_graph=True)
+            loss.backward(retain_graph=True)
 
             for name, param in model.named_parameters():
                 if param.requires_grad:
@@ -410,7 +411,6 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
                     # print(name+"grad device", param.grad.device)
                     # print(name+"device", param.device)
 
-            
 
             for name, param in model.named_parameters():
                 if param.requires_grad:
@@ -419,11 +419,10 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
                         print(f"{name} grad: {param.grad}")
             if not normal:
                 pruner.apply_non_prune_gradient(curr_step)
-                
+
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             lr_scheduler.step()
-            optimizer.zero_grad()
             progress_bar.update(1)
 
             pruner.log_mlp_weight()
