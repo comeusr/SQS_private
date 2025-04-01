@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 
 import wandb
 
@@ -35,6 +36,9 @@ class GPT2_PRUNER():
                 for block_idx in range(m.blocks):
                     up_grad = m.up_proj.sub_distribution_list[block_idx].mu.grad
                     down_grad = m.down_proj.sub_distribution_list[block_idx].mu.grad
+                    wandb.log({name+"_up_proj_weight_{}_grad_norm".format(block_idx): np.linalg.norm(up_grad.data.cpu().numpy())}, commit=False)
+                    wandb.log({name+"_down_proj_weight_{}_grad_norm".format(block_idx): np.linalg.norm(down_grad.data.cpu().numpy())}, commit=False)
+
                     wandb.log({name+"_up_proj_weight_{}_grad".format(block_idx): wandb.Histogram(up_grad.data.cpu().numpy())}, commit=False)
                     wandb.log({name+"_down_proj_weight_{}_grad".format(block_idx): wandb.Histogram(down_grad.data.cpu().numpy())}, commit=False)
 

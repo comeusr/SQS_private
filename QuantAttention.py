@@ -861,23 +861,31 @@ class CustomizedLLamaMLP(LlamaMLP):
         self.temperature = cfg.TAU
         self.blocks = blocks
     
-    def generate_weight_blocks(self, blocks):
-        # return blocks of weights for 
-        
-        pass
 
     
     def init_mask_params(self, sigma):
         init_method = 'empirical' if cfg.IS_EMP else 'k-means'
         if self.blocks > 1:
             space1, space2 = self.up_proj.weight.size(-1)//self.blocks, self.down_proj.weight.size(-1)//self.blocks
-            self.up_proj.sub_distribution_list = [gmm_approximation(self.k_level, self.up_proj.weight[:,i*space1:(i+1)*space1].contiguous(), self.temperature, 32, init_method, sigma) for i in range(self.blocks)]
-            self.down_proj.sub_distribution_list = [gmm_approximation(self.k_level, self.down_proj.weight[:,i*space2:(i+1)*space2].contiguous(), self.temperature, 32, init_method, sigma) for i in range(self.blocks)]
+            self.up_proj.sub_distribution_list = nn.ModuleList([gmm_approximation(self.k_level, self.up_proj.weight[:,i*space1:(i+1)*space1].contiguous(), self.temperature, 32, init_method, sigma) for i in range(self.blocks)])
+            self.down_proj.sub_distribution_list = nn.ModuleList([gmm_approximation(self.k_level, self.down_proj.weight[:,i*space2:(i+1)*space2].contiguous(), self.temperature, 32, init_method, sigma) for i in range(self.blocks)])
         else:
             self.up_proj.sub_distribution = gmm_approximation(self.k_level, self.up_proj.weight, self.temperature, 64, init_method, sigma)
             self.down_proj.sub_distribution = gmm_approximation(self.k_level, self.down_proj.weight, self.temperature, 64, init_method, sigma)
-    
+
+        # Adaptive quantization
+        # First sort the weights in descending order
+        # Split the sorted weights into blocks
+        # For each block calculate 
+        up_flat_weight = self.up_proj.weight.flatten()
+        down_flat_weight = self.down_proj.weight.flatten()
+
+        up_flat_weight.sort(descending=True)
+        down_flat_weight.sort(descending=True)
         
+        
+
+
     def QuantizedWeights(self):
         if cfg.IS_TRAIN:
             if self.blocks == 1:
@@ -885,6 +893,7 @@ class CustomizedLLamaMLP(LlamaMLP):
             else:
                 space1, space2 = self.up_proj.weight.size(-1)//self.blocks, self.down_proj.weight.size(-1)//self.blocks
                 return torch.cat([self.up_proj.sub_distribution_list[i](weights=self.up_proj.weight[:,i*space1:(i+1)*space1].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous(), torch.cat([self.down_proj.sub_distribution_list[i](weights=self.down_proj.weight[:,i*space2:(i+1)*space2].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous()
+        
         else:
             if self.blocks == 1:
                 return self.up_proj.sub_distribution(weights=self.up_proj.weight, train=False), self.down_proj.sub_distribution(weights=self.down_proj.weight, train=False)

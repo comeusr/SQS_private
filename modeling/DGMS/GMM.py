@@ -30,6 +30,15 @@ class GaussianMixtureModel(nn.Module):
 
         # print("Initializing GMM Parameters.")
         shape = init_weights.shape
+        self.mu_zero = nn.Parameter(data=torch.tensor([0.0], device=DEVICE).float())
+        self.pi_k, self.mu, self.sigma = \
+                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
+                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
+                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True)
+
+        self.temperature = torch.tensor([self.temperature], device=DEVICE)
+        self.pruning_parameter = nn.Parameter(data=torch.ones_like(init_weights, device=DEVICE))
+
         print("Init_method", init_method)
         self.params_initialization(init_weights, init_method)
         self.prune = cfg.PRUNE
@@ -73,11 +82,6 @@ class GaussianMixtureModel(nn.Module):
             self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=DEVICE), requires_grad=False)
         else:
             """ Intialization of GMM + Pruning parameters using k-means"""
-            self.mu_zero = torch.tensor([0.0], device=DEVICE).float()
-            self.pi_k, self.mu, self.sigma = \
-                    torch.ones(self.num_components, device=DEVICE), \
-                    torch.ones(self.num_components, device=DEVICE), \
-                    torch.ones(self.num_components, device=DEVICE)
             print("Method", method)
             if method == 'k-means':
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
@@ -104,12 +108,12 @@ class GaussianMixtureModel(nn.Module):
                 sigma_init[~torch.isfinite(sigma_init)] = largest_valid
                 print('-'*50+"New Sigma init {}".format(sigma_init)+"-"*50)
            
-            self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)), requires_grad=True)
-            self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init), requires_grad=True).to(DEVICE).float()
-            self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init), requires_grad=True).to(DEVICE).float()
+            self.mu.data = torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE))
+            self.pi_k.data = torch.mul(self.pi_k.to(DEVICE), pi_init).to(DEVICE).float()
+            self.sigma.data = torch.mul(self.sigma, sigma_init).to(DEVICE).float()
             # print("Initial Self Sigma contains zero {}".format(self.sigma.eq(0.0).any()))
-            self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=DEVICE), requires_grad=False)
-            self.pruning_parameter = nn.Parameter(data=5*cfg.PRUNE_SCALE*torch.ones_like(init_weights, device=DEVICE))
+            self.temperature = torch.tensor([self.temperature], device=DEVICE)
+            self.pruning_parameter.data = 5*cfg.PRUNE_SCALE*torch.ones_like(init_weights, device=DEVICE)
 
     def gaussian_mixing_regularization(self):
         

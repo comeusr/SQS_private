@@ -1,6 +1,8 @@
 import argparse
 from copy import deepcopy
 
+import numpy as np
+
 import torch
 import torch.nn as nn
 from torch.optim import AdamW, RMSprop, SGD
@@ -192,9 +194,6 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, raw_dataset
             use_fp16 = False
         data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=(8 if use_fp16 else None))
 
-    # train_sampler = DistributedSampler(train_dataset, shuffle=True)
-    # eval_sampler = DistributedSampler(eval_dataset, shuffle=False)
-    
     train_dataloader = DataLoader(train_dataset, collate_fn=data_collator, batch_size=batch_size)
     eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=batch_size)
     return train_dataloader, eval_dataloader, processed_datasets
@@ -270,19 +269,15 @@ def main(args):
         print("Initializing Model Parameters.")
         InitModel(model, args.sigma)
     
-
     model.to(device)
+
+    print(model)
 
     for module in model.modules():
         module.to(device)
 
     for name, param in model.named_parameters():
         print(name, param.device)
-
-    # for m in model.modules():
-    #     if isinstance(m, LlamaAttention):
-    #         print("self.nums device", m.q_proj.sub_distribution.nums.device)
-    #         print("self.bin_indices device", m.q_proj.sub_distribution.bin_indices.device)
 
 
     if args.optimizer == "adam":
@@ -297,11 +292,11 @@ def main(args):
 
         optimizer_grouped_parameters = [
             {
-                "params": [p for n, p in model.named_parameters() if n in decay_parameters],
+                "params": [p for n, p in model.named_parameters() if "mu" in n],
                 "weight_decay": args.weight_decay,
             },
             {
-                "params": [p for n, p in model.named_parameters() if n not in decay_parameters],
+                "params": [p for n, p in model.named_parameters() if 'mu' not in n],
                 "weight_decay": 0.0,
             },
         ]
@@ -326,6 +321,19 @@ def main(args):
         )
     elif args.optimizer == "sgd":
         print("SGD optimizer")
+        
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in model.named_parameters() if "mu" in name],
+                "lr": args.lr,
+                "weight_decay": args.weight_decay,
+            },
+            {
+                "params": [p for n, p in model.named_parameters() if "mu" not in name],
+                "lr": args.lr,
+                "weight_decay": 0.0,
+            },
+        ]
         optimizer = SGD(
             model.parameters(),
             lr=args.lr,
@@ -337,25 +345,11 @@ def main(args):
             if isinstance(v, torch.Tensor):
                 state[k] = v.to(device)
 
-    # training_args = TrainingArguments(
-    #         output_dir=args.save_folder,
-    #         per_device_train_batch_size=1,
-    #         gradient_accumulation_steps=4,
-    #         gradient_checkpointing=True,
-    #         fp16=True,
-    #     )
-
-    # model = torch.compile(model)
-
-    # model.to(accelerator.device, dtype=torch.float16)
-
     model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
         model, optimizer, train_dataloader, eval_dataloader
     )
 
     print("Model Device: ", model.device)
-    # accuracy = evaluate(model, eval_dataloader, accelerator, device, num_labels)
-    # wandb.log({'Before Compression Eval Acc': accuracy}, commit=False)
 
     pruner =  GPT2_PRUNER(model, 
                           init_sparsity=args.init_sparsity , 
@@ -389,27 +383,21 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
                 pruner.prune(curr_step)
                 pruner.log_sparsity()
 
-            # for key in batch:
-            #     print(f"{key}: {batch[key]}")
-            # with accelerator.autocast():
             outputs = model(**batch)
             loss = outputs.loss
 
 
             wandb.log({'Training Loss': loss.item()})
 
-            # accelerator.scaler.scale(loss).backward()  # ✅ Use scaler for mixed precision training
-            # accelerator.scaler.step(optimizer)  # ✅ Step with scaler
-            # accelerator.scaler.update()  # ✅ Update scaler
             optimizer.zero_grad()
 
-            loss.backward(retain_graph=True)
+            accelerator.backward(loss, retain_graph=True)
 
             for name, param in model.named_parameters():
                 if param.requires_grad:
-                    param.grad = param.grad.to(device)
-                    # print(name+"grad device", param.grad.device)
-                    # print(name+"device", param.device)
+                    # param.grad = param.grad.to(device)
+                    print(name+"grad device", param.grad.device)
+                    print(name+"device", param.device)
 
 
             for name, param in model.named_parameters():
@@ -417,32 +405,27 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
                     if torch.isnan(param.grad).any():
                         print("-"*50+"NaN Grad Found"+"-"*50)
                         print(f"{name} grad: {param.grad}")
+            
             if not normal:
                 pruner.apply_non_prune_gradient(curr_step)
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+            if step == 0:
+                for name, param in model.named_parameters():
+                    if param.requires_grad:
+                        print(name+".grad", np.linalg.norm(param.grad.detach().cpu().numpy()))
+
+            pruner.log_mlp_weight()
+
             optimizer.step()
             lr_scheduler.step()
             progress_bar.update(1)
 
-            pruner.log_mlp_weight()
 
             if step % 10 == 0:
                 accuracy = evaluate(model, eval_dataloader, accelerator, device, num_labels)
                 wandb.log({'Eval Acc': accuracy}, commit=False)
-
-                # for name, module in model.named_modules():
-                #     if isinstance(module, CustomizedLLamaMLP):
-                #         if module.blocks == 1:
-                #             target_weight = module.up_proj.weight
-                #             print(name+".up_proj.sub_distribution.pruning_parameter.detach()", module.up_proj.sub_distribution.pruning_parameter.detach())
-                #             print(name+".down_proj.sub_distribution.pruning_parameter.detach()", module.down_proj.sub_distribution.pruning_parameter.detach())
-                #         else:
-                #             for i in range(module.blocks):
-                #                 print(name+".blocks.{}.up_proj.sub_distribution.pruning_parameter.detach()", module.up_proj.sub_distribution_list[i].pruning_parameter.detach())
-                #                 print(name+".blocks.{}.down_proj.sub_distribution.pruning_parameter.detach()", module.down_proj.sub_distribution_list[i].pruning_parameter.detach())
-                        
-                        
 
         accelerator.wait_for_everyone()
         # if pruner.cur_sparsity == args.final_sparsity:
