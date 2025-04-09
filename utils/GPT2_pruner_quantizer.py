@@ -26,14 +26,29 @@ class GPT2_PRUNER():
         for name, m in self.model.named_modules():
             if isinstance(m, CustomizedLLamaMLP):
                 quantized_up_proj_weights, quantized_down_proj_weights = m.QuantizedWeights()
-                up_proj_weight = m.up_proj.weight
-                down_proj_weight = m.down_proj.weight
+                up_proj_weight = m.up_proj.weight.data.flatten()
+                down_proj_weight = m.down_proj.weight.data.flatten()
+                sorted_up_proj_weight = torch.sort(up_proj_weight)[0].cpu().numpy()
+                sorted_down_proj_weight = torch.sort(down_proj_weight)[0].cpu().numpy()
+
+                # print("-"*30+"Up proj weight min {}".format(sorted_up_proj_weight[0])+'-'*30) 
+                # print("-"*30+"Up proj weight max {}".format(sorted_up_proj_weight[-1])+'-'*30)
+                # print("-"*30+"Up proj weight shape {}".format(sorted_up_proj_weight.shape)+'-'*30)
+
                 wandb.log({name+"_up_proj_weight": wandb.Histogram(up_proj_weight.data.cpu().numpy())}, commit=False)
                 wandb.log({name+"_down_proj_weight": wandb.Histogram(down_proj_weight.data.cpu().numpy())}, commit=False)
                 wandb.log({name+"_quantized_up_proj_weights": wandb.Histogram(quantized_up_proj_weights.data.cpu().numpy())}, commit=False)
                 wandb.log({name+"_quantized_down_proj_weights": wandb.Histogram(quantized_down_proj_weights.data.cpu().numpy())}, commit=False)
                 
+                wandb.log({name+'_up_proj_weight_left_tail': wandb.Histogram(sorted_up_proj_weight[:len(sorted_up_proj_weight)//200])}, commit=False)
+                wandb.log({name+'_up_proj_weight_right_tail': wandb.Histogram(sorted_up_proj_weight[-len(sorted_up_proj_weight)//200:])}, commit=False)
+                wandb.log({name+'_down_proj_weight_left_tail': wandb.Histogram(sorted_down_proj_weight[:len(sorted_down_proj_weight)//200])}, commit=False)
+                wandb.log({name+'_down_proj_weight_right_tail': wandb.Histogram(sorted_down_proj_weight[-len(sorted_down_proj_weight)//200:])}, commit=False)
+
+
                 for block_idx in range(m.blocks):
+                    if block_idx == 0 or block_idx == m.blocks - 1:
+                        continue
                     up_grad = m.up_proj.sub_distribution_list[block_idx].mu.grad
                     down_grad = m.down_proj.sub_distribution_list[block_idx].mu.grad
                     wandb.log({name+"_up_proj_weight_{}_grad_norm".format(block_idx): np.linalg.norm(up_grad.data.cpu().numpy())}, commit=False)
@@ -57,13 +72,11 @@ class GPT2_PRUNER():
                 is_dict[name+'q_proj'] = m.q_proj.sub_distribution.pruning_parameter.detach()
                 is_dict[name+'o_proj'] = m.o_proj.sub_distribution.pruning_parameter.detach()
             elif isinstance(m, CustomizedLLamaMLP):
-                if m.blocks == 1:
-                    is_dict[name+'.up_proj'] = m.up_proj.sub_distribution.pruning_parameter.detach()
-                    is_dict[name+'.down_proj'] = m.down_proj.sub_distribution.pruning_parameter.detach()
-                else:
-                    for i in range(m.blocks):
-                        is_dict[name+'.blocks.{}.up_proj'.format(i)] = m.up_proj.sub_distribution_list[i].pruning_parameter.detach()
-                        is_dict[name+'.blocks.{}.down_proj'.format(i)] = m.down_proj.sub_distribution_list[i].pruning_parameter.detach()
+                for i in range(m.blocks):
+                    if i == 0 or i == m.blocks - 1:
+                        continue
+                    is_dict[name+'.blocks.{}.up_proj'.format(i)] = m.up_proj.sub_distribution_list[i].pruning_parameter.detach()
+                    is_dict[name+'.blocks.{}.down_proj'.format(i)] = m.down_proj.sub_distribution_list[i].pruning_parameter.detach()
 
                 # print("is_dict_{} {}".format(name, is_dict[name]))
         

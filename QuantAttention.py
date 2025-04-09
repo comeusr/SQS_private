@@ -853,53 +853,141 @@ class CustomizedLlamaAttention(LlamaAttention):
 
 
 class CustomizedLLamaMLP(LlamaMLP):
-    def __init__(self, config, blocks=8):
+    def __init__(self, config, blocks=3):
         super().__init__(config)
 
         self.is_normal = cfg.IS_NORMAL
         self.k_level = cfg.K_LEVEL
         self.temperature = cfg.TAU
         self.blocks = blocks
+        self.up_proj_size = self.up_proj.weight.size()
+        self.down_proj_size = self.down_proj.weight.size()
+        self.sorted_up_indices = None
+        self.sorted_down_indices = None
+        self.up_weight_num = self.up_proj.weight.numel()
+        self.down_weight_num = self.down_proj.weight.numel()
     
+    def reconstruct_weight(self, weights: List[torch.Tensor], weight_bins):
+        # TODO: Restore the up_proj_weight given up_weight and self.sorted_up_indices
+        # TODO: Restore the down_proj_weight given down_weight and self.sorted_down_indices
 
+        quantized_weight = torch.empty_like(weight_bins).cuda()
+
+        for idx in range(self.blocks):
+            up_mask = (weight_bins == idx)
+
+            quantized_weight[up_mask] = weights[idx]
+
+        return quantized_weight
+        
     
     def init_mask_params(self, sigma):
         init_method = 'empirical' if cfg.IS_EMP else 'k-means'
-        if self.blocks > 1:
-            space1, space2 = self.up_proj.weight.size(-1)//self.blocks, self.down_proj.weight.size(-1)//self.blocks
-            self.up_proj.sub_distribution_list = nn.ModuleList([gmm_approximation(self.k_level, self.up_proj.weight[:,i*space1:(i+1)*space1].contiguous(), self.temperature, 32, init_method, sigma) for i in range(self.blocks)])
-            self.down_proj.sub_distribution_list = nn.ModuleList([gmm_approximation(self.k_level, self.down_proj.weight[:,i*space2:(i+1)*space2].contiguous(), self.temperature, 32, init_method, sigma) for i in range(self.blocks)])
-        else:
-            self.up_proj.sub_distribution = gmm_approximation(self.k_level, self.up_proj.weight, self.temperature, 64, init_method, sigma)
-            self.down_proj.sub_distribution = gmm_approximation(self.k_level, self.down_proj.weight, self.temperature, 64, init_method, sigma)
 
-        # Adaptive quantization
-        # First sort the weights in descending order
-        # Split the sorted weights into blocks
-        # For each block calculate 
+
         up_flat_weight = self.up_proj.weight.flatten()
         down_flat_weight = self.down_proj.weight.flatten()
 
-        up_flat_weight.sort(descending=True)
-        down_flat_weight.sort(descending=True)
+        up_weight_range = (torch.min(self.up_proj.weight), torch.max(self.up_proj.weight))
+        down_weight_range = (torch.min(self.down_proj.weight), torch.max(self.down_proj.weight))
+
+       
+        self.up_weight_boundaries = torch.linspace(up_weight_range[0], up_weight_range[1], self.blocks-1)
+        self.down_weight_boundaries = torch.linspace(down_weight_range[0], down_weight_range[1], self.blocks-1)
+
+        self.up_weight_boundaries[0] = torch.kthvalue(up_flat_weight, 32)[0]
+        self.up_weight_boundaries[-1] = -torch.kthvalue(-up_flat_weight, 33)[0]
+
+        self.down_weight_boundaries[0] = torch.kthvalue(down_flat_weight, 32)[0]
+        self.down_weight_boundaries[-1] = -torch.kthvalue(-down_flat_weight, 33)[0]
+
+        del up_flat_weight
+        del down_flat_weight
+
+        torch.cuda.empty_cache()
         
-        
+        self.up_weight_bins = torch.empty(self.up_proj_size)
+        self.down_weight_bins = torch.empty(self.down_proj_size)
+        for i in range(self.blocks-1):
+            if i == 0:
+                up_mask = self.up_proj.weight <= self.up_weight_boundaries[0]
+                down_mask = self.down_proj.weight <= self.down_weight_boundaries[0]
+            else:
+                up_mask = (self.up_proj.weight > self.up_weight_boundaries[i-1]) & (self.up_proj.weight <= self.up_weight_boundaries[i])
+                down_mask = (self.down_proj.weight > self.down_weight_boundaries[i-1]) & (self.down_proj.weight <= self.down_weight_boundaries[i])
+
+            self.up_weight_bins[up_mask] = i
+            self.down_weight_bins[down_mask] = i
+
+        up_mask = self.up_proj.weight > self.up_weight_boundaries[-1]
+        down_mask = self.down_proj.weight > self.down_weight_boundaries[-1]
+
+        self.up_weight_bins[up_mask] = self.blocks-1
+        self.down_weight_bins[down_mask] = self.blocks-1
+
+
+        self.up_proj.sub_distribution_list = []
+        self.down_proj.sub_distribution_list = []
+
+        for block_idx in range(self.blocks):
+            up_mask = (self.up_weight_bins == block_idx)
+            down_mask = (self.down_weight_bins == block_idx)
+
+            # print("-"*50+"up_mask shape: ", up_mask.shape, "-"*50)
+            # print("-"*50+"up selectedweight shape {} ".format(self.up_proj.weight[up_mask].shape), "-"*50)
+            if block_idx == 0 or block_idx == self.blocks-1:
+                self.up_proj.sub_distribution_list.append(nn.Identity())
+                self.down_proj.sub_distribution_list.append(nn.Identity())
+            else:
+                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[up_mask].contiguous(), self.temperature, 32, init_method, sigma))
+                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[down_mask].contiguous(), self.temperature, 32, init_method, sigma))
+
+        self.up_proj.sub_distribution_list = nn.ModuleList(self.up_proj.sub_distribution_list)
+        self.down_proj.sub_distribution_list = nn.ModuleList(self.down_proj.sub_distribution_list)
 
 
     def QuantizedWeights(self):
         if cfg.IS_TRAIN:
-            if self.blocks == 1:
-                return self.up_proj.sub_distribution(weights=self.up_proj.weight, train=True), self.down_proj.sub_distribution(weights=self.down_proj.weight, train=True)
-            else:
-                space1, space2 = self.up_proj.weight.size(-1)//self.blocks, self.down_proj.weight.size(-1)//self.blocks
-                return torch.cat([self.up_proj.sub_distribution_list[i](weights=self.up_proj.weight[:,i*space1:(i+1)*space1].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous(), torch.cat([self.down_proj.sub_distribution_list[i](weights=self.down_proj.weight[:,i*space2:(i+1)*space2].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous()
-        
+            # Adaptive quantization
+            up_weights = []
+            down_weights = []
+
+            for idx in range(self.blocks):
+
+                up_mask = (self.up_weight_bins == idx)
+                down_mask = (self.down_weight_bins == idx)
+                if idx == 0 or idx == self.blocks-1:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_mask]))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_mask]))
+                else:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_mask].contiguous(), train=True))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_mask].contiguous(), train=True))
+
+            up_weights = self.reconstruct_weight(up_weights, self.up_weight_bins)
+            down_weights = self.reconstruct_weight(down_weights, self.down_weight_bins)
+
+            return up_weights, down_weights
+            
         else:
-            if self.blocks == 1:
-                return self.up_proj.sub_distribution(weights=self.up_proj.weight, train=False), self.down_proj.sub_distribution(weights=self.down_proj.weight, train=False)
-            else:
-                space1, space2 = self.up_proj.weight.size(-1)//self.blocks, self.down_proj.weight.size(-1)//self.blocks
-                return torch.cat([self.up_proj.sub_distribution_list[i](weights=self.up_proj.weight[:,i*space1:(i+1)*space1].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous(), torch.cat([self.down_proj.sub_distribution_list[i](weights=self.down_proj.weight[:,i*space2:(i+1)*space2].contiguous(), train=True) for i in range(self.blocks)], dim=-1).contiguous()
+            up_weights = []
+            down_weights = []
+            
+
+            for idx in range(self.blocks):
+
+                up_mask = (self.up_weight_bins == idx)
+                down_mask = (self.down_weight_bins == idx)
+                if idx == 0 or idx == self.blocks-1:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_mask]))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_mask]))
+                else:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_mask].contiguous(), train=False))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_mask].contiguous(), train=False))
+
+            up_weights = self.reconstruct_weight(up_weights, self.up_weight_bins)
+            down_weights = self.reconstruct_weight(down_weights, self.down_weight_bins)
+
+            return up_weights, down_weights
     
     def softforward(self,
         up_weights,

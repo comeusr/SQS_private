@@ -47,5 +47,4 @@ accelerate launch ../glue_training.py $DATASET --task_name ${TASK_NAME} --K ${K}
        --init_sparsity ${INIT_SPARSITY} --final_sparsity ${FINAL_SPARSITY} --prune_end ${PRUNE_END} --optimizer ${OPTIMIZER} \
        --batch_size ${BATCH_SIZE} --max_seq_length ${MAX_LENGTH} --preprocessing_num_workers 4 \
        --save_folder /scratch/gilbreth/wang4538/DGMS/Run/GLUE/compressed_${MODEL_NAME}/
-
 EOT

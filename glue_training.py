@@ -261,7 +261,7 @@ def main(args):
         device_placement=True,
     )
 
-    
+    model.to(device)
     if not args.normal:
         for name, module in tuple(model.named_modules()):
             if name:
@@ -269,15 +269,13 @@ def main(args):
         print("Initializing Model Parameters.")
         InitModel(model, args.sigma)
     
-    model.to(device)
-
     print(model)
 
     for module in model.modules():
         module.to(device)
 
-    for name, param in model.named_parameters():
-        print(name, param.device)
+    # for name, param in model.named_parameters():
+    #     print(name, param.device)
 
 
     if args.optimizer == "adam":
@@ -394,15 +392,17 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
             accelerator.backward(loss, retain_graph=True)
 
             for name, param in model.named_parameters():
-                if param.requires_grad:
-                    # param.grad = param.grad.to(device)
-                    print(name+"grad device", param.grad.device)
-                    print(name+"device", param.device)
+                if param.requires_grad and param.grad.device != param.device:
+                    param.grad = param.grad.to(param.device)
+                    # print(name+" grad device", param.grad.device)
+                    # print(name+" device", param.device)
 
 
             for name, param in model.named_parameters():
                 if param.requires_grad:
-                    if torch.isnan(param.grad).any():
+                    if param.grad is None:
+                        print(f"{name} grad: {param.grad}")
+                    elif torch.isnan(param.grad).any():
                         print("-"*50+"NaN Grad Found"+"-"*50)
                         print(f"{name} grad: {param.grad}")
             
@@ -411,10 +411,10 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
 
             accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-            if step == 0:
-                for name, param in model.named_parameters():
-                    if param.requires_grad:
-                        print(name+".grad", np.linalg.norm(param.grad.detach().cpu().numpy()))
+            # if step  % 10 == 0:
+            #     for name, param in model.named_parameters():
+            #         if param.requires_grad:
+            #             print(name+".grad", np.linalg.norm(param.grad.detach().cpu().numpy()))
 
             pruner.log_mlp_weight()
 
@@ -424,7 +424,7 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
 
 
             if step % 10 == 0:
-                accuracy = evaluate(model, eval_dataloader, accelerator, device, num_labels)
+                accuracy = evaluate(model, eval_dataloader, device, num_labels)
                 wandb.log({'Eval Acc': accuracy}, commit=False)
 
         accelerator.wait_for_everyone()
@@ -433,7 +433,7 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
         unwrapped_model.save_pretrained(args.save_folder+"epoch"+str(epoch), save_function=accelerator.save)
 
 
-def evaluate(model, eval_dataloader, accelerator, device, num_labels):
+def evaluate(model, eval_dataloader, device, num_labels):
     model.eval()
     cfg.IS_TRAIN = False
     metric = MulticlassAccuracy(num_classes=num_labels, average='micro').to(device)

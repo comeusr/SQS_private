@@ -5,7 +5,7 @@ from utils.utils import get_distribution
 
 def interval_mapping(M: torch.tensor, B:int, DEVICE):
     Mvect= M.view(-1)
-    quantiles = torch.quantile(Mvect, torch.linspace(0, 1, steps=B))
+    quantiles = torch.quantile(Mvect, torch.linspace(0, 1, steps=B).cuda())
     # Assign each element to a bin index
     bin_indices = torch.bucketize(Mvect, quantiles, right=False)  # Adjust to 0-based index
     M.to(DEVICE)
@@ -49,8 +49,9 @@ def reconstruct(dims, Ws, bin_indices, device):
 
     # Ws: B x 1
     # bin_indices: N x 1
-    
-    N = dims[0]*dims[1]
+
+    N = dims[0]*dims[1] if len(dims) == 2 else dims[0]
+
     unique_bin_indices = torch.unique(bin_indices)
     
     # Create an empty matrix of the given dimensions

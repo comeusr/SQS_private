@@ -161,6 +161,13 @@ def cluster_weights_sparsity(weights, n_clusters, iter_limit=100):
     # flat_weight = flat_weight.view(-1, 1)
     region_saliency = region_saliency.view(-1, 1)
 
+    # Plug in the min and max of the weight to the region saliency
+    print("")
+    weight_max = torch.max(flat_weight)
+    weight_min = torch.min(flat_weight)
+    region_saliency[0] = weight_min
+    region_saliency[-1] = weight_max
+
     end_time = time.time()
     # print("Time taken for k-means {} seconds".format(end_time - start_time))
 

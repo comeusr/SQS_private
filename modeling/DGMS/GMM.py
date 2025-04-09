@@ -30,7 +30,7 @@ class GaussianMixtureModel(nn.Module):
 
         # print("Initializing GMM Parameters.")
         shape = init_weights.shape
-        self.mu_zero = nn.Parameter(data=torch.tensor([0.0], device=DEVICE).float())
+        self.mu_zero = nn.Parameter(data=torch.tensor([0.0], device=DEVICE).float(), requires_grad=False)
         self.pi_k, self.mu, self.sigma = \
                     nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
                     nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
@@ -61,6 +61,7 @@ class GaussianMixtureModel(nn.Module):
     def params_initialization(self, init_weights, method='k-means'):
         if not cfg.PRUNE:
             """ Initialization of GMM parameters using k-means algorithm. """
+            self.mu_zero.requires_grad = True
             self.mu_zero = torch.tensor([0.0], device=DEVICE).float()
             self.pi_k, self.mu, self.sigma = \
                     torch.ones(self.num_components-1, device=DEVICE), \
@@ -209,9 +210,9 @@ class GaussianMixtureModel(nn.Module):
 
                 def memory_in_mb(tensor):
                     return tensor.element_size() * tensor.numel() / (1024*1024)
-                                
+                                                
                 if cfg.PRIOR == 'spike_slab':
-                    Sweight =  reconstruct(weights.size(), region_belonging@self.mu, self.bin_indices, DEVICE)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
+                    Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
                 else:
                     Sweight = torch.mul(region_belonging, self.mu.unsqueeze(1)).sum(dim=0)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE) \
                             + (1-F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE))*torch.randn_like(weights.flatten())
