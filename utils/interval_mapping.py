@@ -15,7 +15,7 @@ def interval_mapping(M: torch.tensor, B:int, DEVICE):
         means[i] = Mvect[bin_indices == i].mean()
 
 
-    return bin_indices.to(DEVICE), means.to(DEVICE)
+    return bin_indices.cpu(), means.to(DEVICE)
 
 
 
@@ -49,11 +49,9 @@ def reconstruct(dims, Ws, bin_indices, device):
 
     # Ws: B x 1
     # bin_indices: N x 1
-
     N = dims[0]*dims[1] if len(dims) == 2 else dims[0]
 
     unique_bin_indices = torch.unique(bin_indices)
-    
     # Create an empty matrix of the given dimensions
     M = torch.zeros(N, dtype=Ws.dtype, device=Ws.device)
 

@@ -1,5 +1,6 @@
 import argparse
 from copy import deepcopy
+import os
 
 import numpy as np
 
@@ -8,6 +9,9 @@ import torch.nn as nn
 from torch.optim import AdamW, RMSprop, SGD
 from torch.utils.data import DataLoader
 from torchmetrics.classification import MulticlassAccuracy
+import torch.distributed as dist
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
 
 from datasets import load_dataset
 from accelerate import Accelerator
@@ -35,7 +39,6 @@ from QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, Cust
 from utils.GPT2_pruner_quantizer import GPT2_PRUNER
 
 
-
 from utils import *
 
 if torch.cuda.is_available():
@@ -51,6 +54,20 @@ task_to_keys = {
     "qqp":  ("question1", "question2"),
     "sst2": ("sentence", None),
 }
+
+def setup(rank, world_size):
+    # Set up environment variables for distributed training.
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12355"
+    # Initialize the distributed process group.
+    dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
+    # Set the current GPU device.
+    torch.cuda.set_device(rank)
+
+
+def cleanup():
+    dist.destroy_process_group()
+
 
 def model_memory_summary(model):
     total_params = 0
@@ -200,6 +217,13 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, raw_dataset
 
 def main(args):
 
+    if args.distributed:
+        rank = int(os.environ["RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+
+        setup(rank, world_size)
+    
+
     # Load the dataset
     raw_datasets = load_dataset("glue", args.task_name, trust_remote_code=True)
 
@@ -207,8 +231,6 @@ def main(args):
     num_labels = len(label_list)
 
     # load the model and tokenizer
-    
-
     try:
         loaded_model_config= model_config[args.model_name]
         tokenizer = AutoTokenizer.from_pretrained(args.model_name, trust_remote_code=True, use_fast=True)
@@ -261,7 +283,11 @@ def main(args):
         device_placement=True,
     )
 
-    model.to(device)
+    if args.distributed:
+        model = FSDP(model, device_ids=[rank])
+    else:
+        model.to(device)
+    
     if not args.normal:
         for name, module in tuple(model.named_modules()):
             if name:
@@ -381,19 +407,28 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
                 pruner.prune(curr_step)
                 pruner.log_sparsity()
 
-            outputs = model(**batch)
-            loss = outputs.loss
+            print("-"*50+"Step {} Forward Start".format(step)+"-"*50)
 
+            outputs = model(**batch)
+
+            print("-"*50+"Step {} Forward Done".format(step)+"-"*50)
+            
+            loss = outputs.loss
 
             wandb.log({'Training Loss': loss.item()})
 
             optimizer.zero_grad()
 
+            print("-"*50+"Step {} Backward Start".format(step)+"-"*50)
+
             accelerator.backward(loss, retain_graph=True)
 
+            print("-"*50+"Step {} Backward Done".format(step)+"-"*50)
+
             for name, param in model.named_parameters():
-                if param.requires_grad and param.grad.device != param.device:
-                    param.grad = param.grad.to(param.device)
+                if param.grad is not None:
+                    if param.grad.device != param.device:
+                        param.grad = param.grad.to(param.device)
                     # print(name+" grad device", param.grad.device)
                     # print(name+" device", param.device)
 
@@ -550,6 +585,8 @@ if __name__ == "__main__":
     parser.add_argument('--optimizer', type=str, default="rmsprop",
                         choices=["adam", "rmsprop", "sgd"],
                         help='Choose Optimizer')
+    parser.add_argument('--distributed', action='store_true', default=False,
+                        help='Distributed Training or Not.')
 
     args = parser.parse_args()
     wandb.login()

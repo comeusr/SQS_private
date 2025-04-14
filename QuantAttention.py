@@ -24,6 +24,8 @@ from transformers.processing_utils import Unpack
 from transformers.modeling_flash_attention_utils import FlashAttentionKwargs
 from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS
 
+
+
 logger = logging.get_logger(__name__)
 
 
@@ -853,7 +855,7 @@ class CustomizedLlamaAttention(LlamaAttention):
 
 
 class CustomizedLLamaMLP(LlamaMLP):
-    def __init__(self, config, blocks=3):
+    def __init__(self, config, blocks=4):
         super().__init__(config)
 
         self.is_normal = cfg.IS_NORMAL
@@ -866,72 +868,45 @@ class CustomizedLLamaMLP(LlamaMLP):
         self.sorted_down_indices = None
         self.up_weight_num = self.up_proj.weight.numel()
         self.down_weight_num = self.down_proj.weight.numel()
+        self.first_n=64
+        self.last_n=64
     
-    def reconstruct_weight(self, weights: List[torch.Tensor], weight_bins):
+    def reconstruct_weight(self, weights: List[torch.Tensor], inverse_sorted_indices, type='up'):
         # TODO: Restore the up_proj_weight given up_weight and self.sorted_up_indices
         # TODO: Restore the down_proj_weight given down_weight and self.sorted_down_indices
 
-        quantized_weight = torch.empty_like(weight_bins).cuda()
+        # print("-"*50+"inverse_sorted_indices: ", inverse_sorted_indices.device, "-"*50)
 
-        for idx in range(self.blocks):
-            up_mask = (weight_bins == idx)
+        if type == 'up':
+            return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.up_proj_size)
+        else:
+            return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.down_proj_size)
 
-            quantized_weight[up_mask] = weights[idx]
-
-        return quantized_weight
         
     
     def init_mask_params(self, sigma):
         init_method = 'empirical' if cfg.IS_EMP else 'k-means'
 
+        up_flat_weight = self.up_proj.weight.flatten().data
+        down_flat_weight = self.down_proj.weight.flatten().data
 
-        up_flat_weight = self.up_proj.weight.flatten()
-        down_flat_weight = self.down_proj.weight.flatten()
+        self.up_proj.weight.data, sorted_up_indices = torch.sort(up_flat_weight)
+        self.down_proj.weight.data, sorted_down_indices = torch.sort(down_flat_weight)
 
-        up_weight_range = (torch.min(self.up_proj.weight), torch.max(self.up_proj.weight))
-        down_weight_range = (torch.min(self.down_proj.weight), torch.max(self.down_proj.weight))
+        self.up_argsort_indices = torch.argsort(sorted_up_indices).cpu()
+        self.down_argsort_indices = torch.argsort(sorted_down_indices).cpu()
 
-       
-        self.up_weight_boundaries = torch.linspace(up_weight_range[0], up_weight_range[1], self.blocks-1)
-        self.down_weight_boundaries = torch.linspace(down_weight_range[0], down_weight_range[1], self.blocks-1)
-
-        self.up_weight_boundaries[0] = torch.kthvalue(up_flat_weight, 32)[0]
-        self.up_weight_boundaries[-1] = -torch.kthvalue(-up_flat_weight, 33)[0]
-
-        self.down_weight_boundaries[0] = torch.kthvalue(down_flat_weight, 32)[0]
-        self.down_weight_boundaries[-1] = -torch.kthvalue(-down_flat_weight, 33)[0]
-
-        del up_flat_weight
-        del down_flat_weight
+        del up_flat_weight, sorted_up_indices
+        del down_flat_weight, sorted_down_indices
 
         torch.cuda.empty_cache()
-        
-        self.up_weight_bins = torch.empty(self.up_proj_size)
-        self.down_weight_bins = torch.empty(self.down_proj_size)
-        for i in range(self.blocks-1):
-            if i == 0:
-                up_mask = self.up_proj.weight <= self.up_weight_boundaries[0]
-                down_mask = self.down_proj.weight <= self.down_weight_boundaries[0]
-            else:
-                up_mask = (self.up_proj.weight > self.up_weight_boundaries[i-1]) & (self.up_proj.weight <= self.up_weight_boundaries[i])
-                down_mask = (self.down_proj.weight > self.down_weight_boundaries[i-1]) & (self.down_proj.weight <= self.down_weight_boundaries[i])
-
-            self.up_weight_bins[up_mask] = i
-            self.down_weight_bins[down_mask] = i
-
-        up_mask = self.up_proj.weight > self.up_weight_boundaries[-1]
-        down_mask = self.down_proj.weight > self.down_weight_boundaries[-1]
-
-        self.up_weight_bins[up_mask] = self.blocks-1
-        self.down_weight_bins[down_mask] = self.blocks-1
-
 
         self.up_proj.sub_distribution_list = []
         self.down_proj.sub_distribution_list = []
 
+        self.step_size = (self.up_proj.weight.numel()-self.first_n-self.last_n)//(self.blocks-2)
+
         for block_idx in range(self.blocks):
-            up_mask = (self.up_weight_bins == block_idx)
-            down_mask = (self.down_weight_bins == block_idx)
 
             # print("-"*50+"up_mask shape: ", up_mask.shape, "-"*50)
             # print("-"*50+"up selectedweight shape {} ".format(self.up_proj.weight[up_mask].shape), "-"*50)
@@ -939,8 +914,9 @@ class CustomizedLLamaMLP(LlamaMLP):
                 self.up_proj.sub_distribution_list.append(nn.Identity())
                 self.down_proj.sub_distribution_list.append(nn.Identity())
             else:
-                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[up_mask].contiguous(), self.temperature, 32, init_method, sigma))
-                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[down_mask].contiguous(), self.temperature, 32, init_method, sigma))
+                idx = block_idx-1
+                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[self.first_n+idx*self.step_size:self.first_n+(idx+1)*self.step_size].contiguous(), self.temperature, 20, init_method, sigma))
+                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[self.first_n+idx*self.step_size:self.first_n+(idx+1)*self.step_size].contiguous(), self.temperature, 20, init_method, sigma))
 
         self.up_proj.sub_distribution_list = nn.ModuleList(self.up_proj.sub_distribution_list)
         self.down_proj.sub_distribution_list = nn.ModuleList(self.down_proj.sub_distribution_list)
@@ -954,17 +930,19 @@ class CustomizedLLamaMLP(LlamaMLP):
 
             for idx in range(self.blocks):
 
-                up_mask = (self.up_weight_bins == idx)
-                down_mask = (self.down_weight_bins == idx)
-                if idx == 0 or idx == self.blocks-1:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_mask]))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_mask]))
+                if idx == 0:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[:self.first_n]))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[:self.first_n]))
+                elif idx == self.blocks-1:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[-self.last_n:]))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[-self.last_n:]))
                 else:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_mask].contiguous(), train=True))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_mask].contiguous(), train=True))
+                    temp_idx = idx-1
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[self.first_n+temp_idx*self.step_size:self.first_n+(temp_idx+1)*self.step_size].contiguous(), train=True))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[self.first_n+temp_idx*self.step_size:self.first_n+(temp_idx+1)*self.step_size].contiguous(), train=True))
 
-            up_weights = self.reconstruct_weight(up_weights, self.up_weight_bins)
-            down_weights = self.reconstruct_weight(down_weights, self.down_weight_bins)
+            up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
+            down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
 
             return up_weights, down_weights
             
@@ -975,17 +953,20 @@ class CustomizedLLamaMLP(LlamaMLP):
 
             for idx in range(self.blocks):
 
-                up_mask = (self.up_weight_bins == idx)
-                down_mask = (self.down_weight_bins == idx)
-                if idx == 0 or idx == self.blocks-1:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_mask]))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_mask]))
+                if idx == 0:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[:self.first_n]))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[:self.first_n]))
+                elif idx == self.blocks-1:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[-self.last_n:]))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[-self.last_n:]))
                 else:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_mask].contiguous(), train=False))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_mask].contiguous(), train=False))
+                    temp_idx = idx-1
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[self.first_n+temp_idx*self.step_size:self.first_n+(temp_idx+1)*self.step_size].contiguous(), train=False))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[self.first_n+temp_idx*self.step_size:self.first_n+(temp_idx+1)*self.step_size].contiguous(), train=False))
 
-            up_weights = self.reconstruct_weight(up_weights, self.up_weight_bins)
-            down_weights = self.reconstruct_weight(down_weights, self.down_weight_bins)
+            up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
+            down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
+
 
             return up_weights, down_weights
     

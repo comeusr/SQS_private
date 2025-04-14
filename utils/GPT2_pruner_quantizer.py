@@ -46,16 +46,16 @@ class GPT2_PRUNER():
                 wandb.log({name+'_down_proj_weight_right_tail': wandb.Histogram(sorted_down_proj_weight[-len(sorted_down_proj_weight)//200:])}, commit=False)
 
 
-                for block_idx in range(m.blocks):
-                    if block_idx == 0 or block_idx == m.blocks - 1:
-                        continue
-                    up_grad = m.up_proj.sub_distribution_list[block_idx].mu.grad
-                    down_grad = m.down_proj.sub_distribution_list[block_idx].mu.grad
-                    wandb.log({name+"_up_proj_weight_{}_grad_norm".format(block_idx): np.linalg.norm(up_grad.data.cpu().numpy())}, commit=False)
-                    wandb.log({name+"_down_proj_weight_{}_grad_norm".format(block_idx): np.linalg.norm(down_grad.data.cpu().numpy())}, commit=False)
+                # for block_idx in range(m.blocks):
+                #     if block_idx == 0 or block_idx == m.blocks - 1:
+                #         continue
+                #     up_grad = m.up_proj.sub_distribution_list[block_idx].mu.grad
+                #     down_grad = m.down_proj.sub_distribution_list[block_idx].mu.grad
+                #     wandb.log({name+"_up_proj_weight_{}_grad_norm".format(block_idx): np.linalg.norm(up_grad.data.cpu().numpy())}, commit=False)
+                #     wandb.log({name+"_down_proj_weight_{}_grad_norm".format(block_idx): np.linalg.norm(down_grad.data.cpu().numpy())}, commit=False)
 
-                    wandb.log({name+"_up_proj_weight_{}_grad".format(block_idx): wandb.Histogram(up_grad.data.cpu().numpy())}, commit=False)
-                    wandb.log({name+"_down_proj_weight_{}_grad".format(block_idx): wandb.Histogram(down_grad.data.cpu().numpy())}, commit=False)
+                #     wandb.log({name+"_up_proj_weight_{}_grad".format(block_idx): wandb.Histogram(up_grad.data.cpu().numpy())}, commit=False)
+                #     wandb.log({name+"_down_proj_weight_{}_grad".format(block_idx): wandb.Histogram(down_grad.data.cpu().numpy())}, commit=False)
 
     def caculate_mask_thresh(self, model, sparsity):
         # Calculuate the pruning threshold for a given sparsity
