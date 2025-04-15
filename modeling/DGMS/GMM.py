@@ -32,9 +32,9 @@ class GaussianMixtureModel(nn.Module):
         shape = init_weights.shape
         self.mu_zero = nn.Parameter(data=torch.tensor([0.0], device=DEVICE).float(), requires_grad=False)
         self.pi_k, self.mu, self.sigma = \
-                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=False), \
-                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=False), \
-                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=False)
+                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
+                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
+                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True)
 
         self.temperature = torch.tensor([self.temperature], device=DEVICE)
         self.pruning_parameter = nn.Parameter(data=torch.ones_like(init_weights, device=DEVICE))
@@ -212,9 +212,9 @@ class GaussianMixtureModel(nn.Module):
                     return tensor.element_size() * tensor.numel() / (1024*1024)
                                                 
                 if cfg.PRIOR == 'spike_slab':
-                    # Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
-                    Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)
-                    print("-"*50+"Debug Mode Pruning Parameter disabled"+"-"*50)
+                    Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
+                    # Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)
+                    # print("-"*50+"Debug Mode Pruning Parameter disabled"+"-"*50)
                 else:
                     Sweight = torch.mul(region_belonging, self.mu.unsqueeze(1)).sum(dim=0)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE) \
                             + (1-F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE))*torch.randn_like(weights.flatten())

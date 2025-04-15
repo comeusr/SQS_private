@@ -1,6 +1,7 @@
 import argparse
 from copy import deepcopy
 import os
+import time
 
 import numpy as np
 
@@ -147,13 +148,13 @@ def replace_attn_layer(module, config, model_name, device):
         else:
             return module
     elif model_name == "meta-llama/Llama-3.2-1B":
-        # if isinstance(module, LlamaAttention):
-        #     target_state_dict   = deepcopy(module.state_dict())
-        #     new_module          = CustomizedLlamaAttention(config, layer_idx=module.layer_idx).to(device)
-        #     new_module.load_state_dict(target_state_dict)
-        #     print("Replace with Customize Llama Flash Attention Layer.")
-        #     return new_module
-        if isinstance(module, LlamaMLP):
+        if isinstance(module, LlamaAttention):
+            target_state_dict   = deepcopy(module.state_dict())
+            new_module          = CustomizedLlamaAttention(config, layer_idx=module.layer_idx).to(device)
+            new_module.load_state_dict(target_state_dict)
+            print("Replace with Customize Llama Flash Attention Layer.")
+            return new_module
+        elif isinstance(module, LlamaMLP):
             target_state_dict   = deepcopy(module.state_dict())
             new_module          = CustomizedLLamaMLP(config).to(device)
             new_module.load_state_dict(target_state_dict)
@@ -163,7 +164,7 @@ def replace_attn_layer(module, config, model_name, device):
             return module
 
 
-def config_glue_dataset(task_name, precision, tokenizer, batch_size, raw_datasets, max_seq_length, pad_to_max_length,
+def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_size, raw_datasets, max_seq_length, pad_to_max_length,
                         preprocessing_num_workers, overwrite_cache):
     sentence1_key, sentence2_key = task_to_keys[task_name]
 
@@ -212,7 +213,7 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, raw_dataset
         data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=(8 if use_fp16 else None))
 
     train_dataloader = DataLoader(train_dataset, collate_fn=data_collator, batch_size=batch_size)
-    eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=batch_size)
+    eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=eval_batch_size)
     return train_dataloader, eval_dataloader, processed_datasets
 
 def main(args):
@@ -268,7 +269,7 @@ def main(args):
 
 
 
-    train_dataloader, eval_dataloader, processed_datasets = config_glue_dataset(args.task_name, args.precision, tokenizer, args.batch_size, raw_datasets, args.max_seq_length, args.pad_to_max_length,
+    train_dataloader, eval_dataloader, processed_datasets = config_glue_dataset(args.task_name, args.precision, tokenizer, args.batch_size, args.eval_batch_size, raw_datasets, args.max_seq_length, args.pad_to_max_length,
                         args.preprocessing_num_workers, args.overwrite_cache)
 
     num_train_epochs = args.duration
@@ -403,27 +404,30 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
         for step, batch in enumerate(train_dataloader):
 
             curr_step = len(train_dataloader)*epoch+step
+            
+            time_start = time.time()
             if not normal:
                 pruner.prune(curr_step)
                 pruner.log_sparsity()
+            time_end = time.time()
+            print("-"*50+"Step {} Pruning Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
-            print("-"*50+"Step {} Forward Start".format(step)+"-"*50)
-
+            time_start = time.time()
             outputs = model(**batch)
+            time_end = time.time()
+            print("-"*50+"Step {} Forward Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
-            print("-"*50+"Step {} Forward Done".format(step)+"-"*50)
-            
             loss = outputs.loss
 
             wandb.log({'Training Loss': loss.item()})
 
             optimizer.zero_grad()
 
-            print("-"*50+"Step {} Backward Start".format(step)+"-"*50)
+            time_start = time.time()
+            loss.backward(loss, retain_graph=True)
+            time_end = time.time()
 
-            accelerator.backward(loss, retain_graph=True)
-
-            print("-"*50+"Step {} Backward Done".format(step)+"-"*50)
+            print("-"*50+"Step {} Backward Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
             for name, param in model.named_parameters():
                 if param.grad is not None:
@@ -441,28 +445,33 @@ def model_train(train_dataloader,eval_dataloader, model, pruner, optimizer, acce
                         print("-"*50+"NaN Grad Found"+"-"*50)
                         print(f"{name} grad: {param.grad}")
             
+            time_start = time.time()
             if not normal:
                 pruner.apply_non_prune_gradient(curr_step)
+            time_end = time.time()
+            print("-"*50+"Step {} Pruner Apply Gradient Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
-            accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
             # if step  % 10 == 0:
             #     for name, param in model.named_parameters():
             #         if param.requires_grad:
             #             print(name+".grad", np.linalg.norm(param.grad.detach().cpu().numpy()))
 
-            pruner.log_mlp_weight()
-
+            time_start = time.time()
             optimizer.step()
+            time_end = time.time()
+            print("-"*50+"Step {} Optimizer Step Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
+
             lr_scheduler.step()
             progress_bar.update(1)
 
 
             if step % 10 == 0:
+                print("-"*50+"Evaluating Model"+"-"*50)
                 accuracy = evaluate(model, eval_dataloader, device, num_labels)
                 wandb.log({'Eval Acc': accuracy}, commit=False)
 
-        accelerator.wait_for_everyone()
         # if pruner.cur_sparsity == args.final_sparsity:
         unwrapped_model = accelerator.unwrap_model(model)
         unwrapped_model.save_pretrained(args.save_folder+"epoch"+str(epoch), save_function=accelerator.save)
@@ -544,6 +553,8 @@ if __name__ == "__main__":
                         help='Freeze Parameters')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='Batch Size')
+    parser.add_argument('--eval_batch_size', type=int, default=128,
+                        help='Evaluation Batch Size')
     parser.add_argument('--lr', type=float, default=2e-5,
                         help="Initial Learning rate.")
     parser.add_argument('--weight_decay', type=float, default=5e-4,

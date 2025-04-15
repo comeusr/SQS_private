@@ -943,6 +943,7 @@ class CustomizedLLamaMLP(LlamaMLP):
 
             up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
             down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
+            # print("-"*50+"Quantization Time taken to reconstruct weights {:.4f}".format(time_end-time_start)+"-"*50)
 
             return up_weights, down_weights
             
@@ -966,7 +967,7 @@ class CustomizedLLamaMLP(LlamaMLP):
 
             up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
             down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
-
+            # print("-"*50+"Quantization Time taken to reconstruct weights {:.4f}".format(time_end-time_start)+"-"*50)
 
             return up_weights, down_weights
     
@@ -983,6 +984,7 @@ class CustomizedLLamaMLP(LlamaMLP):
         if self.is_normal:
             return super().forward(x)
         else:
+            # print("-"*50+"CustomizedMLP Layer Forward"+"-"*50)
             up_weights, down_weights = self.QuantizedWeights()
             return self.softforward(up_weights, down_weights, x)
 
