@@ -1,1 +1,0 @@
-{"_timestamp":1.7386292695456023e+09,"Training Loss":0.0166473388671875,"_runtime":995.145050128,"_step":4209,"Eval Acc":0.9392201900482178,"_wandb":{"runtime":996},"Before Compression Eval Acc":0.49770641326904297}

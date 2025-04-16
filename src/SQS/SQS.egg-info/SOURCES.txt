@@ -1,0 +1,10 @@
+setup.py
+SQS/QuantAttention.py
+SQS/config.py
+SQS/qa_utils.py
+SQS/utils.py
+SQS.egg-info/PKG-INFO
+SQS.egg-info/SOURCES.txt
+SQS.egg-info/dependency_links.txt
+SQS.egg-info/requires.txt
+SQS.egg-info/top_level.txt

@@ -1,0 +1,13 @@
+Metadata-Version: 2.2
+Name: SQS
+Version: 1.1
+Summary: SQS: Efficient Bayesian DNN Compression through Sparse Quantized Sub-distributions
+Requires-Dist: numpy
+Requires-Dist: tqdm
+Requires-Dist: torch
+Requires-Dist: transformers
+Requires-Dist: datasets
+Requires-Dist: accelerate
+Requires-Dist: evaluate
+Dynamic: requires-dist
+Dynamic: summary

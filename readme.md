@@ -1,1 +1,2 @@
-load the model with fp16 cause trouble: value error during optimizer step.
+# SQS: Efficient Bayesian DNN Compression through Sparse Quantized Sub-distributions
+

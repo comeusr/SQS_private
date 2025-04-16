@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 535, in <module>
-    main(args)
-  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 241, in main
-    mixed_precision= 'fp16' if use_fp16 else 'bf16',
-                               ^^^^^^^^
-UnboundLocalError: cannot access local variable 'use_fp16' where it is not associated with a value
