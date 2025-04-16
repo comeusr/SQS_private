@@ -202,7 +202,6 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_
     eval_dataset = processed_datasets["validation_matched" if task_name == "mnli" else "validation"]
 
     g = torch.Generator().manual_seed(42)
-
     sample_data_indices = torch.randperm(len(train_dataset), generator=g)[:10000]
 
     # dataLoaders creation:
@@ -227,7 +226,6 @@ def main(args):
 
         setup(rank, world_size)
     
-
     # Load the dataset
     raw_datasets = load_dataset("glue", args.task_name, trust_remote_code=True)
 

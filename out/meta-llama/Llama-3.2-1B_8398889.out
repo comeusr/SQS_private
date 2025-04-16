@@ -1,0 +1,86 @@
+Tue Apr 15 22:23:25 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 565.57.01              Driver Version: 565.57.01      CUDA Version: 12.7     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-40GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   31C    P0             52W /  400W |       1MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Defining pad token
+LlamaForSequenceClassification(
+  (model): LlamaModel(
+    (embed_tokens): Embedding(128256, 2048)
+    (layers): ModuleList(
+      (0-15): 16 x LlamaDecoderLayer(
+        (self_attn): LlamaAttention(
+          (q_proj): Linear(in_features=2048, out_features=2048, bias=False)
+          (k_proj): Linear(in_features=2048, out_features=512, bias=False)
+          (v_proj): Linear(in_features=2048, out_features=512, bias=False)
+          (o_proj): Linear(in_features=2048, out_features=2048, bias=False)
+        )
+        (mlp): LlamaMLP(
+          (gate_proj): Linear(in_features=2048, out_features=8192, bias=False)
+          (up_proj): Linear(in_features=2048, out_features=8192, bias=False)
+          (down_proj): Linear(in_features=8192, out_features=2048, bias=False)
+          (act_fn): SiLU()
+        )
+        (input_layernorm): LlamaRMSNorm((2048,), eps=1e-05)
+        (post_attention_layernorm): LlamaRMSNorm((2048,), eps=1e-05)
+      )
+    )
+    (norm): LlamaRMSNorm((2048,), eps=1e-05)
+    (rotary_emb): LlamaRotaryEmbedding()
+  )
+  (score): Linear(in_features=2048, out_features=2, bias=False)
+)
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Initializing Model Parameters.
+Initializing Layer 1
+Initializing Customized Model Parameters.
+Init_method k-means
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mmeta-llama/Llama-3.2-1B_K16_KL_SPAS0.75_temp0.001_LR5e-5_PRTEMP0.01_WD5e-7_SIGMA3[0m at: [34mhttps://wandb.ai/rajdeeph-purdue-university/SQS_GLUE/runs/8dlp7yph[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20250415_222337-8dlp7yph/logs[0m

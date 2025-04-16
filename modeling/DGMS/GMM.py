@@ -62,8 +62,7 @@ class GaussianMixtureModel(nn.Module):
         if not cfg.PRUNE:
             """ Initialization of GMM parameters using k-means algorithm. """
             self.mu_zero.requires_grad = True
-            self.mu_zero = torch.tensor([0.0], device=DEVICE).float()
-            self.pi_k, self.mu, self.sigma = \
+            self.pi_k.data, self.mu.data, self.sigma.data = \
                     torch.ones(self.num_components-1, device=DEVICE), \
                     torch.ones(self.num_components-1, device=DEVICE), \
                     torch.ones(self.num_components-1, device=DEVICE)

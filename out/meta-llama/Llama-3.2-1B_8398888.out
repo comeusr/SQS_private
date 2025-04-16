@@ -1,0 +1,3090 @@
+Tue Apr 15 22:55:38 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 565.57.01              Driver Version: 565.57.01      CUDA Version: 12.7     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100 80GB PCIe          On  |   00000000:81:00.0 Off |                    0 |
+| N/A   26C    P0             42W /  300W |       1MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Defining pad token
+LlamaForSequenceClassification(
+  (model): LlamaModel(
+    (embed_tokens): Embedding(128256, 2048)
+    (layers): ModuleList(
+      (0-15): 16 x LlamaDecoderLayer(
+        (self_attn): LlamaAttention(
+          (q_proj): Linear(in_features=2048, out_features=2048, bias=False)
+          (k_proj): Linear(in_features=2048, out_features=512, bias=False)
+          (v_proj): Linear(in_features=2048, out_features=512, bias=False)
+          (o_proj): Linear(in_features=2048, out_features=2048, bias=False)
+        )
+        (mlp): LlamaMLP(
+          (gate_proj): Linear(in_features=2048, out_features=8192, bias=False)
+          (up_proj): Linear(in_features=2048, out_features=8192, bias=False)
+          (down_proj): Linear(in_features=8192, out_features=2048, bias=False)
+          (act_fn): SiLU()
+        )
+        (input_layernorm): LlamaRMSNorm((2048,), eps=1e-05)
+        (post_attention_layernorm): LlamaRMSNorm((2048,), eps=1e-05)
+      )
+    )
+    (norm): LlamaRMSNorm((2048,), eps=1e-05)
+    (rotary_emb): LlamaRotaryEmbedding()
+  )
+  (score): Linear(in_features=2048, out_features=2, bias=False)
+)
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Replace with Customize Llama Flash Attention Layer.
+Replace with Customize Llama MLP Layer.
+Initializing Model Parameters.
+Initializing Layer 1
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.7071],
+        [ 0.0153],
+        [ 0.1392],
+        [-0.0277],
+        [ 0.0080],
+        [-0.0597],
+        [-0.0035],
+        [ 0.0366],
+        [ 0.0542],
+        [-0.0409],
+        [ 0.0019],
+        [ 0.0825],
+        [-0.0895],
+        [-0.1506],
+        [-0.0178],
+        [ 0.5979]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.06965136528015137 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.5819],
+        [-0.0643],
+        [-0.0224],
+        [ 0.0014],
+        [-0.1018],
+        [ 0.0570],
+        [ 0.0756],
+        [ 0.1018],
+        [ 0.0111],
+        [ 0.0311],
+        [ 0.0208],
+        [ 0.0428],
+        [-0.0090],
+        [-0.0400],
+        [ 0.1436],
+        [ 0.6562]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01333475112915039 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-6.1677e-02],
+        [-7.3030e-03],
+        [ 6.0849e-03],
+        [ 2.1541e-02],
+        [-9.4730e-03],
+        [-4.7071e-03],
+        [-2.1280e-02],
+        [ 1.2986e-02],
+        [-4.2123e-05],
+        [ 4.5729e-03],
+        [ 3.4285e-03],
+        [ 7.7602e-03],
+        [-1.3040e-02],
+        [ 9.5650e-03],
+        [-2.6518e-03],
+        [ 6.9822e-02]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013346433639526367 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-3.1060e-01],
+        [-4.3370e-03],
+        [-1.9290e-04],
+        [-1.4999e-03],
+        [-1.0046e-02],
+        [ 2.3020e-03],
+        [ 1.4002e-02],
+        [ 5.0691e-03],
+        [ 1.0807e-03],
+        [ 3.6674e-03],
+        [ 6.2519e-03],
+        [ 9.7603e-03],
+        [-2.7457e-03],
+        [ 7.5510e-03],
+        [-6.5029e-03],
+        [ 3.2040e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.021168231964111328 seconds
+Initializing Layer 2
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.0867e-01],
+        [-5.6660e-03],
+        [-1.3489e-02],
+        [-3.5888e-03],
+        [-2.6125e-04],
+        [-2.5468e-03],
+        [-8.3281e-03],
+        [-1.8421e-03],
+        [-8.1339e-04],
+        [-6.8936e-03],
+        [-4.0940e-02],
+        [-2.6361e-02],
+        [-1.1298e-02],
+        [-9.7547e-03],
+        [-4.6588e-03],
+        [-1.2744e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.022928953170776367 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.6310e-01],
+        [-8.7444e-03],
+        [-7.4613e-03],
+        [-1.7088e-02],
+        [-1.5510e-02],
+        [-2.7838e-02],
+        [-1.4691e-03],
+        [-2.1284e-02],
+        [-5.8505e-03],
+        [-1.1558e-02],
+        [-9.9888e-03],
+        [-3.8567e-02],
+        [-1.9326e-02],
+        [-1.8101e-02],
+        [-3.9559e-03],
+        [-2.1941e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.0247957706451416 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.2711e-06],
+        [ 2.3540e-02],
+        [ 3.2528e-02],
+        [ 1.0829e-02],
+        [ 1.5982e-02],
+        [ 1.3484e-02],
+        [ 9.4885e-04],
+        [ 2.2516e-02],
+        [ 6.2401e-03],
+        [ 7.8545e-03],
+        [ 4.3192e-02],
+        [ 5.1275e-03],
+        [ 1.8867e-02],
+        [ 3.1092e-03],
+        [ 2.7808e-02],
+        [ 1.0582e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.022991657257080078 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-2.1883e-06],
+        [ 1.8138e-02],
+        [ 1.2101e-02],
+        [ 3.7541e-03],
+        [ 2.9622e-02],
+        [ 1.0223e-02],
+        [ 4.1692e-02],
+        [ 1.2418e-03],
+        [ 6.1931e-02],
+        [ 2.2350e-02],
+        [ 1.4769e-02],
+        [ 2.9382e-03],
+        [ 2.1582e-03],
+        [ 6.6116e-03],
+        [ 8.4646e-03],
+        [ 1.6547e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02345895767211914 seconds
+Initializing Layer 3
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3945],
+        [-0.0217],
+        [-0.0400],
+        [ 0.0580],
+        [ 0.0143],
+        [-0.0026],
+        [-0.0102],
+        [ 0.0024],
+        [ 0.0178],
+        [ 0.0225],
+        [ 0.0295],
+        [ 0.0061],
+        [-0.0737],
+        [ 0.0404],
+        [ 0.0912],
+        [ 0.4139]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.019427776336669922 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3087],
+        [-0.1229],
+        [ 0.0274],
+        [ 0.0140],
+        [ 0.0084],
+        [-0.0124],
+        [-0.0532],
+        [ 0.0024],
+        [-0.0791],
+        [-0.0043],
+        [ 0.0765],
+        [-0.0355],
+        [ 0.0526],
+        [-0.0225],
+        [ 0.1194],
+        [ 0.2927]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01333165168762207 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.0735],
+        [-0.0199],
+        [-0.0029],
+        [-0.0051],
+        [ 0.0097],
+        [ 0.0209],
+        [ 0.0087],
+        [ 0.0078],
+        [-0.0066],
+        [ 0.0069],
+        [ 0.0056],
+        [ 0.0109],
+        [-0.0116],
+        [-0.0081],
+        [ 0.0032],
+        [ 0.0916]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013638496398925781 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-5.3918e-01],
+        [ 7.7236e-03],
+        [-7.6614e-03],
+        [-1.8229e-02],
+        [-4.2036e-03],
+        [-2.9002e-04],
+        [ 2.7880e-02],
+        [ 2.5820e-03],
+        [ 1.3144e-02],
+        [ 5.8699e-03],
+        [-2.9406e-02],
+        [ 1.7416e-02],
+        [ 4.3647e-03],
+        [-1.1132e-02],
+        [-1.3528e-02],
+        [ 4.6255e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01916956901550293 seconds
+Initializing Layer 4
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-2.5349e-01],
+        [-1.1573e-03],
+        [-1.6995e-02],
+        [-1.8084e-02],
+        [-1.3489e-02],
+        [-1.5644e-02],
+        [-2.1412e-03],
+        [-2.1077e-02],
+        [-3.6169e-04],
+        [-1.0767e-02],
+        [-7.3871e-03],
+        [-4.5028e-03],
+        [-3.3261e-03],
+        [-8.6143e-03],
+        [-3.2120e-02],
+        [ 8.0952e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024583101272583008 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.6536e-01],
+        [-1.3675e-02],
+        [-3.8967e-03],
+        [-2.1133e-02],
+        [-5.8622e-03],
+        [-8.9643e-03],
+        [-1.1054e-03],
+        [-2.4759e-02],
+        [-7.6478e-03],
+        [-4.5379e-03],
+        [-3.8726e-02],
+        [-1.0995e-02],
+        [-5.1300e-03],
+        [-1.7098e-02],
+        [-6.7317e-03],
+        [ 7.5997e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02353668212890625 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[8.0976e-06],
+        [3.3034e-02],
+        [5.1564e-03],
+        [1.6001e-02],
+        [1.1377e-02],
+        [4.4406e-02],
+        [2.6970e-02],
+        [1.1203e-03],
+        [2.2723e-02],
+        [7.7896e-03],
+        [1.4000e-02],
+        [2.9240e-03],
+        [1.6879e-02],
+        [3.9715e-03],
+        [1.5215e-02],
+        [2.5397e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023757457733154297 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[7.6022e-06],
+        [1.6655e-02],
+        [4.4299e-03],
+        [2.7232e-03],
+        [3.1206e-03],
+        [2.1096e-02],
+        [3.4057e-02],
+        [9.6561e-03],
+        [1.2449e-03],
+        [1.3690e-02],
+        [5.4956e-03],
+        [1.5973e-02],
+        [3.6669e-03],
+        [1.4946e-02],
+        [8.0857e-03],
+        [1.6474e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02420973777770996 seconds
+Initializing Layer 5
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.5702],
+        [-0.0008],
+        [-0.0071],
+        [-0.0470],
+        [ 0.0282],
+        [ 0.0112],
+        [ 0.0143],
+        [ 0.0178],
+        [ 0.0220],
+        [ 0.0548],
+        [-0.0158],
+        [-0.0282],
+        [-0.0811],
+        [ 0.0886],
+        [ 0.0379],
+        [ 0.4861]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.019024133682250977 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.4044],
+        [-0.0107],
+        [-0.0303],
+        [ 0.0369],
+        [-0.0460],
+        [-0.1141],
+        [-0.0191],
+        [-0.0040],
+        [ 0.0016],
+        [ 0.0524],
+        [ 0.0067],
+        [ 0.0261],
+        [-0.0699],
+        [ 0.1218],
+        [ 0.0120],
+        [ 0.5350]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013242483139038086 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.0848],
+        [-0.0253],
+        [ 0.0021],
+        [-0.0015],
+        [-0.0044],
+        [-0.0179],
+        [ 0.0078],
+        [ 0.0188],
+        [-0.0005],
+        [-0.0331],
+        [-0.0220],
+        [-0.0069],
+        [-0.0200],
+        [-0.0151],
+        [-0.0095],
+        [ 0.0866]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01275181770324707 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3422],
+        [ 0.0073],
+        [ 0.0055],
+        [-0.0128],
+        [-0.0043],
+        [ 0.0323],
+        [-0.0009],
+        [-0.0064],
+        [-0.0097],
+        [-0.0078],
+        [-0.0165],
+        [-0.0321],
+        [ 0.0134],
+        [ 0.0028],
+        [ 0.0095],
+        [ 0.3534]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.020813465118408203 seconds
+Initializing Layer 6
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.0993e-01],
+        [-1.9347e-02],
+        [-1.3891e-02],
+        [-8.5948e-03],
+        [-9.1551e-04],
+        [-3.2695e-02],
+        [-4.3335e-02],
+        [-6.3380e-03],
+        [-1.1734e-02],
+        [-1.3073e-02],
+        [-7.6319e-03],
+        [-9.9535e-03],
+        [-3.6192e-03],
+        [-1.5475e-02],
+        [-2.4801e-03],
+        [-7.5402e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023746728897094727 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.6024e-01],
+        [-3.0602e-03],
+        [-7.0227e-03],
+        [-1.8897e-02],
+        [-2.3019e-03],
+        [-3.5171e-02],
+        [-2.4441e-02],
+        [-4.7510e-03],
+        [-1.7199e-02],
+        [-6.0903e-04],
+        [-9.2755e-03],
+        [-2.0662e-02],
+        [-3.9321e-03],
+        [-1.5909e-03],
+        [-1.4900e-02],
+        [-4.5609e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024099349975585938 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-7.5388e-06],
+        [ 1.0041e-02],
+        [ 2.6461e-03],
+        [ 6.2327e-04],
+        [ 1.6493e-03],
+        [ 2.2713e-03],
+        [ 1.1770e-02],
+        [ 5.3166e-03],
+        [ 8.8409e-03],
+        [ 3.0446e-03],
+        [ 1.6654e-02],
+        [ 2.4238e-02],
+        [ 1.0830e-02],
+        [ 7.1143e-03],
+        [ 1.3294e-02],
+        [ 1.0864e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023633956909179688 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-4.5577e-06],
+        [ 9.9567e-03],
+        [ 2.0969e-02],
+        [ 1.0491e-02],
+        [ 2.7081e-03],
+        [ 7.7296e-04],
+        [ 4.8710e-03],
+        [ 7.4763e-03],
+        [ 8.9763e-03],
+        [ 2.0147e-03],
+        [ 1.5132e-02],
+        [ 3.9047e-03],
+        [ 3.2005e-03],
+        [ 1.2227e-02],
+        [ 3.3235e-02],
+        [ 1.6036e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024945974349975586 seconds
+Initializing Layer 7
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3086],
+        [ 0.0433],
+        [ 0.0029],
+        [-0.0038],
+        [-0.0151],
+        [-0.0776],
+        [-0.0085],
+        [ 0.0083],
+        [ 0.0265],
+        [-0.0062],
+        [-0.0112],
+        [ 0.0745],
+        [-0.0466],
+        [-0.0009],
+        [-0.0305],
+        [ 0.2850]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.019570589065551758 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.2813],
+        [ 0.0726],
+        [-0.0553],
+        [ 0.0375],
+        [ 0.0276],
+        [ 0.0147],
+        [-0.0197],
+        [ 0.0102],
+        [ 0.1095],
+        [-0.0032],
+        [-0.0101],
+        [ 0.0019],
+        [ 0.0061],
+        [-0.0338],
+        [ 0.0515],
+        [ 0.2910]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01293802261352539 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.2020],
+        [ 0.0346],
+        [-0.0037],
+        [ 0.0006],
+        [ 0.0144],
+        [ 0.0014],
+        [ 0.0025],
+        [ 0.0210],
+        [-0.0306],
+        [-0.0007],
+        [ 0.0115],
+        [ 0.0082],
+        [ 0.0249],
+        [ 0.0048],
+        [-0.0090],
+        [ 0.1157]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01294088363647461 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.2484],
+        [ 0.0148],
+        [-0.0031],
+        [-0.0012],
+        [ 0.0050],
+        [ 0.0270],
+        [-0.0142],
+        [ 0.0065],
+        [ 0.0079],
+        [-0.0084],
+        [ 0.0015],
+        [ 0.0024],
+        [ 0.0004],
+        [ 0.0099],
+        [ 0.0035],
+        [ 0.2428]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.020989179611206055 seconds
+Initializing Layer 8
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.2707e-01],
+        [-9.8960e-03],
+        [-3.6508e-02],
+        [-2.0491e-02],
+        [-5.8314e-03],
+        [-2.7037e-02],
+        [-5.2647e-05],
+        [-1.4230e-02],
+        [-2.9565e-03],
+        [-2.3497e-02],
+        [-6.8862e-04],
+        [-1.2532e-02],
+        [-7.8996e-03],
+        [-1.1568e-02],
+        [-1.7349e-02],
+        [-3.5201e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024296998977661133 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.3620e-01],
+        [-1.8662e-03],
+        [-9.2717e-03],
+        [-4.6397e-03],
+        [-3.3777e-03],
+        [-1.2092e-02],
+        [-1.4626e-02],
+        [-6.2512e-03],
+        [-2.9089e-02],
+        [-8.4340e-03],
+        [-2.1376e-04],
+        [-1.0488e-02],
+        [-1.3437e-02],
+        [-7.9324e-04],
+        [-1.8055e-02],
+        [ 3.0145e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02370762825012207 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-3.5160e-06],
+        [ 4.4580e-02],
+        [ 1.9266e-02],
+        [ 8.3228e-03],
+        [ 1.0682e-02],
+        [ 5.6692e-03],
+        [ 2.8922e-03],
+        [ 1.3886e-02],
+        [ 1.6655e-03],
+        [ 9.8005e-03],
+        [ 9.0495e-03],
+        [ 2.5002e-02],
+        [ 9.5325e-03],
+        [ 3.2163e-02],
+        [ 5.3023e-04],
+        [ 1.2625e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024999618530273438 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[3.0165e-06],
+        [1.2767e-03],
+        [1.6807e-02],
+        [1.5978e-02],
+        [9.1698e-03],
+        [1.2565e-02],
+        [1.5439e-02],
+        [1.8510e-02],
+        [7.5056e-03],
+        [3.4196e-03],
+        [4.8219e-03],
+        [1.4790e-02],
+        [6.0159e-03],
+        [1.3901e-02],
+        [3.2950e-02],
+        [1.4044e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02476191520690918 seconds
+Initializing Layer 9
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3792],
+        [ 0.0183],
+        [ 0.0846],
+        [-0.0047],
+        [ 0.0139],
+        [-0.0087],
+        [ 0.0346],
+        [ 0.0026],
+        [-0.0386],
+        [-0.0010],
+        [-0.0142],
+        [-0.0693],
+        [ 0.0246],
+        [ 0.0064],
+        [ 0.0101],
+        [ 0.3477]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01920175552368164 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.4260],
+        [ 0.0155],
+        [ 0.0109],
+        [ 0.0651],
+        [ 0.1037],
+        [ 0.0308],
+        [ 0.0070],
+        [ 0.0031],
+        [-0.1014],
+        [-0.0073],
+        [-0.0620],
+        [-0.0255],
+        [-0.0402],
+        [-0.0014],
+        [ 0.0218],
+        [ 0.3669]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.012688636779785156 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.1240],
+        [-0.0332],
+        [ 0.0018],
+        [-0.0024],
+        [ 0.0068],
+        [ 0.0051],
+        [ 0.0036],
+        [ 0.0157],
+        [-0.0005],
+        [-0.0102],
+        [-0.0055],
+        [-0.0035],
+        [ 0.0097],
+        [ 0.0004],
+        [-0.0014],
+        [ 0.1083]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013130903244018555 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3416],
+        [-0.0360],
+        [-0.0008],
+        [ 0.0029],
+        [ 0.0042],
+        [-0.0115],
+        [ 0.0012],
+        [-0.0087],
+        [ 0.0104],
+        [ 0.0058],
+        [-0.0227],
+        [-0.0071],
+        [-0.0159],
+        [-0.0059],
+        [-0.0027],
+        [ 0.4062]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.020517587661743164 seconds
+Initializing Layer 10
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.2150e-01],
+        [-2.5855e-02],
+        [-2.1167e-02],
+        [-4.2659e-03],
+        [-1.7619e-02],
+        [-8.2052e-04],
+        [-1.4984e-02],
+        [-1.2758e-02],
+        [-1.0894e-02],
+        [-6.2334e-03],
+        [-3.7853e-02],
+        [-2.4507e-03],
+        [-7.7783e-03],
+        [-3.1427e-02],
+        [-9.6299e-03],
+        [ 2.5939e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024550437927246094 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.6579e-01],
+        [-1.2816e-02],
+        [-9.5193e-03],
+        [-2.3654e-02],
+        [-6.7246e-03],
+        [-1.2209e-02],
+        [-9.6550e-04],
+        [-3.0105e-02],
+        [-1.3631e-02],
+        [-3.5480e-02],
+        [-2.6522e-03],
+        [-1.1370e-02],
+        [-4.6491e-02],
+        [-2.6941e-02],
+        [-1.9319e-02],
+        [ 5.0614e-07]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024662494659423828 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[2.5939e-06],
+        [4.0435e-02],
+        [9.5727e-04],
+        [2.7495e-02],
+        [3.1206e-04],
+        [5.4295e-03],
+        [7.4034e-03],
+        [4.1917e-03],
+        [2.9581e-03],
+        [3.5386e-03],
+        [1.2911e-02],
+        [2.2657e-03],
+        [9.9870e-03],
+        [2.0985e-02],
+        [1.8003e-02],
+        [1.2964e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024376869201660156 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[5.0680e-07],
+        [9.3547e-03],
+        [6.4846e-03],
+        [1.0536e-02],
+        [1.8202e-02],
+        [7.3381e-03],
+        [2.2247e-03],
+        [5.6211e-03],
+        [9.9947e-03],
+        [1.1328e-02],
+        [1.2207e-02],
+        [8.3260e-03],
+        [7.1242e-04],
+        [3.6989e-03],
+        [2.9344e-02],
+        [1.6403e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024318933486938477 seconds
+Initializing Layer 11
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-8.0072e-01],
+        [-4.3242e-03],
+        [ 1.0945e-02],
+        [ 8.6546e-02],
+        [-1.9384e-02],
+        [ 1.4171e-02],
+        [-9.7031e-06],
+        [ 6.0569e-03],
+        [ 5.3917e-02],
+        [ 8.4352e-03],
+        [ 1.8852e-02],
+        [ 3.3413e-03],
+        [-6.4374e-02],
+        [-3.4585e-02],
+        [-1.0291e-02],
+        [ 5.3531e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.019600391387939453 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.1327],
+        [-0.1139],
+        [-0.0206],
+        [ 0.0378],
+        [ 0.1126],
+        [ 0.0273],
+        [ 0.0102],
+        [ 0.0183],
+        [-0.0402],
+        [ 0.0517],
+        [-0.0296],
+        [-0.0049],
+        [-0.0125],
+        [-0.0751],
+        [ 0.0730],
+        [ 1.0780]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01368570327758789 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.1389],
+        [-0.0221],
+        [ 0.0110],
+        [-0.0134],
+        [-0.0077],
+        [ 0.0073],
+        [-0.0026],
+        [ 0.0241],
+        [-0.0011],
+        [ 0.0039],
+        [-0.0038],
+        [-0.0096],
+        [-0.0056],
+        [-0.0047],
+        [-0.0065],
+        [ 0.0914]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013228893280029297 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-3.5331e-01],
+        [ 1.1044e-02],
+        [ 6.5595e-03],
+        [-3.1055e-02],
+        [-2.9615e-03],
+        [ 2.2261e-02],
+        [ 2.2490e-03],
+        [-4.4475e-03],
+        [ 3.2320e-04],
+        [-5.9482e-03],
+        [-1.0646e-02],
+        [-3.8599e-03],
+        [-1.5095e-03],
+        [ 4.1915e-03],
+        [-5.1226e-03],
+        [ 4.6471e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.020899057388305664 seconds
+Initializing Layer 12
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.2881e-01],
+        [-1.9392e-02],
+        [-1.0703e-02],
+        [-7.3435e-03],
+        [-1.2349e-02],
+        [-1.5939e-02],
+        [-3.7247e-02],
+        [-1.8441e-03],
+        [-2.7538e-03],
+        [-1.1698e-02],
+        [-2.4690e-02],
+        [-1.7414e-02],
+        [-1.3080e-02],
+        [-1.4431e-02],
+        [-4.6559e-03],
+        [ 5.4015e-08]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023180484771728516 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-2.0079e-01],
+        [-7.0839e-03],
+        [-1.5292e-03],
+        [-2.1666e-02],
+        [-2.5206e-02],
+        [-3.6795e-03],
+        [-4.5141e-03],
+        [-1.8640e-02],
+        [-2.8098e-02],
+        [-1.4996e-02],
+        [-5.0385e-03],
+        [-2.3548e-02],
+        [-9.2162e-03],
+        [-3.3948e-02],
+        [-1.1834e-02],
+        [ 5.0402e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024242401123046875 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[5.4530e-08],
+        [1.5798e-02],
+        [2.3478e-03],
+        [1.7058e-04],
+        [1.5017e-02],
+        [3.3707e-02],
+        [1.7184e-02],
+        [8.1828e-03],
+        [5.0225e-03],
+        [1.2487e-02],
+        [4.5188e-02],
+        [8.1676e-04],
+        [2.3075e-02],
+        [2.7373e-02],
+        [1.0726e-02],
+        [1.3262e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02405261993408203 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[5.0426e-06],
+        [2.4577e-02],
+        [3.5111e-03],
+        [9.1562e-03],
+        [1.2352e-02],
+        [2.6604e-02],
+        [1.5488e-02],
+        [4.1295e-02],
+        [3.0845e-02],
+        [1.3622e-03],
+        [2.1026e-02],
+        [3.1378e-04],
+        [6.4727e-03],
+        [1.8102e-02],
+        [2.3167e-02],
+        [2.0404e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02437424659729004 seconds
+Initializing Layer 13
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.2197],
+        [-0.0130],
+        [ 0.0648],
+        [-0.0479],
+        [ 0.0043],
+        [-0.0037],
+        [ 0.0084],
+        [ 0.0005],
+        [-0.0351],
+        [ 0.0223],
+        [-0.0083],
+        [-0.0278],
+        [ 0.0138],
+        [-0.0177],
+        [-0.0225],
+        [ 0.2130]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01941227912902832 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-3.8637e-01],
+        [ 1.0208e-02],
+        [-4.0981e-02],
+        [ 1.7360e-02],
+        [ 2.7529e-02],
+        [ 6.8196e-02],
+        [ 1.5198e-04],
+        [-4.6361e-03],
+        [ 4.8046e-03],
+        [ 4.2949e-02],
+        [-1.7697e-02],
+        [-2.7540e-02],
+        [-8.9327e-02],
+        [ 1.1890e-01],
+        [-1.0333e-02],
+        [ 3.7116e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013463973999023438 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.1268],
+        [-0.0008],
+        [ 0.0047],
+        [ 0.0245],
+        [ 0.0019],
+        [-0.0081],
+        [-0.0114],
+        [ 0.0038],
+        [-0.0035],
+        [-0.0306],
+        [-0.0178],
+        [ 0.0157],
+        [ 0.0380],
+        [-0.0058],
+        [ 0.0102],
+        [ 0.1579]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013561248779296875 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.2713],
+        [ 0.0016],
+        [-0.0072],
+        [-0.0010],
+        [-0.0273],
+        [-0.0099],
+        [ 0.0110],
+        [-0.0028],
+        [ 0.0050],
+        [ 0.0005],
+        [ 0.0232],
+        [ 0.0033],
+        [ 0.0066],
+        [-0.0050],
+        [-0.0151],
+        [ 0.2491]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01958179473876953 seconds
+Initializing Layer 14
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.2421e-01],
+        [-7.9887e-03],
+        [-6.6454e-03],
+        [-2.9515e-02],
+        [-1.2542e-02],
+        [-1.4892e-02],
+        [-5.3259e-03],
+        [-9.9736e-03],
+        [-2.5033e-02],
+        [-1.9551e-02],
+        [-4.0018e-02],
+        [-3.2156e-03],
+        [-2.2193e-02],
+        [-4.0425e-03],
+        [-1.0267e-03],
+        [ 7.7308e-07]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023262977600097656 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-2.0586e-01],
+        [-1.5454e-02],
+        [-1.9003e-02],
+        [-2.1788e-02],
+        [-2.5620e-03],
+        [-4.1119e-03],
+        [-1.7622e-02],
+        [-1.2069e-02],
+        [-2.9879e-04],
+        [-1.9694e-02],
+        [-8.7525e-03],
+        [-1.1357e-03],
+        [-5.0359e-03],
+        [-6.1235e-03],
+        [-3.9591e-02],
+        [ 3.8701e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02462005615234375 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[7.7338e-07],
+        [3.5166e-03],
+        [4.8469e-03],
+        [2.1751e-03],
+        [9.6549e-03],
+        [1.6625e-02],
+        [8.8408e-03],
+        [1.3442e-02],
+        [7.0071e-03],
+        [1.0948e-02],
+        [7.9562e-03],
+        [1.0089e-03],
+        [2.2691e-02],
+        [1.9220e-02],
+        [2.4830e-04],
+        [1.1988e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024007558822631836 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[3.8733e-06],
+        [5.3629e-03],
+        [1.1340e-02],
+        [2.7951e-03],
+        [7.1257e-03],
+        [3.6328e-02],
+        [1.4265e-02],
+        [8.9891e-03],
+        [5.0592e-02],
+        [1.7144e-02],
+        [2.2246e-03],
+        [1.5410e-03],
+        [1.9979e-02],
+        [2.3676e-02],
+        [3.8027e-03],
+        [2.1699e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02445507049560547 seconds
+Initializing Layer 15
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.2641],
+        [ 0.0716],
+        [-0.0094],
+        [-0.0139],
+        [-0.0188],
+        [-0.0314],
+        [-0.0587],
+        [-0.0417],
+        [-0.0013],
+        [-0.0244],
+        [ 0.0387],
+        [ 0.0026],
+        [ 0.0071],
+        [ 0.0226],
+        [ 0.0132],
+        [ 0.3029]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.0191953182220459 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3338],
+        [-0.1186],
+        [-0.0138],
+        [-0.0275],
+        [ 0.0173],
+        [ 0.0059],
+        [-0.0342],
+        [-0.0439],
+        [-0.0580],
+        [ 0.0330],
+        [ 0.0963],
+        [-0.0088],
+        [-0.0025],
+        [-0.0181],
+        [ 0.0563],
+        [ 0.2926]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013548612594604492 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.0918],
+        [ 0.0026],
+        [-0.0005],
+        [-0.0085],
+        [-0.0173],
+        [-0.0054],
+        [-0.0118],
+        [-0.0146],
+        [-0.0029],
+        [ 0.0200],
+        [ 0.0067],
+        [ 0.0317],
+        [-0.0217],
+        [-0.0319],
+        [ 0.0005],
+        [ 0.0867]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.012808084487915039 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3696],
+        [-0.0122],
+        [-0.0173],
+        [ 0.0097],
+        [-0.0104],
+        [-0.0011],
+        [ 0.0005],
+        [-0.0145],
+        [ 0.0055],
+        [ 0.0025],
+        [-0.0134],
+        [-0.0281],
+        [ 0.0379],
+        [-0.0072],
+        [ 0.0152],
+        [ 0.2520]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.021564960479736328 seconds
+Initializing Layer 16
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.2071e-01],
+        [-1.6888e-02],
+        [-1.4408e-02],
+        [-2.0655e-02],
+        [-6.0283e-03],
+        [-1.5588e-02],
+        [-2.4024e-03],
+        [-9.7873e-03],
+        [-1.7980e-02],
+        [-1.1683e-02],
+        [-4.0442e-03],
+        [-6.9735e-03],
+        [-5.1984e-03],
+        [-3.1346e-02],
+        [-7.5050e-04],
+        [ 4.2965e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023973703384399414 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-2.0603e-01],
+        [-2.0710e-02],
+        [-1.2147e-02],
+        [-9.0235e-03],
+        [-5.3477e-03],
+        [-1.6017e-02],
+        [-1.6621e-02],
+        [-6.8609e-03],
+        [-1.6189e-02],
+        [-3.7302e-02],
+        [-2.0602e-03],
+        [-5.7393e-04],
+        [-3.8307e-03],
+        [-1.4975e-02],
+        [-2.5695e-02],
+        [-5.4570e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024039506912231445 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[4.2970e-06],
+        [1.7791e-02],
+        [9.5335e-03],
+        [1.2213e-03],
+        [1.0903e-02],
+        [1.2104e-02],
+        [6.6317e-03],
+        [3.9183e-03],
+        [1.1406e-02],
+        [1.3565e-02],
+        [2.4965e-02],
+        [8.5142e-03],
+        [1.5650e-02],
+        [3.5470e-02],
+        [1.9816e-02],
+        [1.2179e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024451732635498047 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-5.4518e-06],
+        [ 2.5868e-03],
+        [ 8.8197e-03],
+        [ 6.9884e-03],
+        [ 5.5756e-03],
+        [ 2.6692e-02],
+        [ 1.6922e-02],
+        [ 1.1154e-02],
+        [ 8.7281e-04],
+        [ 4.0847e-02],
+        [ 1.3292e-02],
+        [ 1.9887e-02],
+        [ 5.8233e-03],
+        [ 4.0640e-03],
+        [ 5.0582e-03],
+        [ 2.0507e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024983644485473633 seconds
+Initializing Layer 17
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.4781],
+        [ 0.0267],
+        [ 0.0702],
+        [ 0.0136],
+        [-0.0266],
+        [-0.0094],
+        [ 0.0103],
+        [-0.0428],
+        [-0.0164],
+        [ 0.0024],
+        [ 0.0411],
+        [ 0.0051],
+        [-0.0044],
+        [ 0.0076],
+        [ 0.0186],
+        [ 0.4938]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01967024803161621 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.5117],
+        [-0.0113],
+        [ 0.0369],
+        [ 0.0698],
+        [-0.0708],
+        [-0.0464],
+        [-0.0044],
+        [ 0.0989],
+        [-0.0306],
+        [ 0.0167],
+        [ 0.0258],
+        [-0.1167],
+        [ 0.1608],
+        [ 0.0508],
+        [-0.0196],
+        [ 0.4572]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013201475143432617 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-8.7611e-02],
+        [-2.4470e-02],
+        [ 5.0198e-03],
+        [ 9.7881e-03],
+        [-2.2538e-03],
+        [-4.8566e-03],
+        [-1.3328e-02],
+        [ 8.1392e-03],
+        [ 6.5825e-03],
+        [-6.7407e-03],
+        [ 3.4920e-03],
+        [ 1.1447e-03],
+        [ 1.3107e-02],
+        [ 2.1670e-03],
+        [-8.6385e-05],
+        [ 7.9661e-02]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.012996912002563477 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3929],
+        [-0.0051],
+        [ 0.0096],
+        [ 0.0045],
+        [ 0.0239],
+        [ 0.0069],
+        [-0.0106],
+        [ 0.0416],
+        [ 0.0300],
+        [-0.0014],
+        [ 0.0019],
+        [ 0.0146],
+        [ 0.0080],
+        [ 0.0117],
+        [ 0.0188],
+        [ 0.3125]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.019861221313476562 seconds
+Initializing Layer 18
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.1726e-01],
+        [-9.8383e-03],
+        [-1.4020e-02],
+        [-1.2796e-02],
+        [-3.8091e-03],
+        [-1.5016e-03],
+        [-2.2408e-02],
+        [-7.1133e-03],
+        [-1.6258e-02],
+        [-1.8572e-02],
+        [-8.6104e-03],
+        [-4.8029e-02],
+        [-5.4118e-03],
+        [-1.4988e-02],
+        [-1.1267e-02],
+        [ 4.0302e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.0236358642578125 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.7782e-01],
+        [-2.7083e-03],
+        [-1.2567e-02],
+        [-1.7254e-02],
+        [-5.1633e-04],
+        [-9.9329e-03],
+        [-7.4684e-03],
+        [-3.8896e-03],
+        [-5.0822e-03],
+        [-1.2737e-03],
+        [-2.0250e-02],
+        [-3.4664e-03],
+        [-2.8749e-02],
+        [-1.5086e-02],
+        [-2.4117e-02],
+        [-3.4876e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024388551712036133 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[4.0333e-06],
+        [1.5087e-02],
+        [8.0752e-03],
+        [1.7794e-02],
+        [3.0714e-02],
+        [1.9796e-02],
+        [5.1342e-03],
+        [1.0801e-02],
+        [2.2533e-02],
+        [2.6883e-02],
+        [1.3960e-02],
+        [1.6404e-02],
+        [1.2733e-02],
+        [8.5991e-04],
+        [4.1589e-02],
+        [1.2098e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02388930320739746 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-3.4865e-06],
+        [ 6.0311e-03],
+        [ 1.1718e-02],
+        [ 9.5827e-03],
+        [ 4.3970e-03],
+        [ 4.6663e-02],
+        [ 1.6964e-02],
+        [ 2.7280e-02],
+        [ 1.5493e-02],
+        [ 2.6908e-03],
+        [ 1.3858e-02],
+        [ 3.4567e-04],
+        [ 1.2700e-03],
+        [ 3.4107e-02],
+        [ 1.9254e-02],
+        [ 1.8347e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02482295036315918 seconds
+Initializing Layer 19
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3671],
+        [ 0.1107],
+        [ 0.0142],
+        [-0.0049],
+        [-0.0115],
+        [ 0.0051],
+        [ 0.0462],
+        [-0.0334],
+        [ 0.0096],
+        [-0.0966],
+        [-0.0203],
+        [ 0.0675],
+        [ 0.0192],
+        [-0.0546],
+        [ 0.0252],
+        [ 0.4257]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.018667936325073242 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3577],
+        [-0.0281],
+        [-0.0025],
+        [ 0.0170],
+        [-0.0853],
+        [ 0.0045],
+        [ 0.0348],
+        [-0.0103],
+        [ 0.0530],
+        [-0.1237],
+        [ 0.0109],
+        [-0.0381],
+        [-0.0642],
+        [-0.0189],
+        [ 0.0242],
+        [ 0.3926]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.012778759002685547 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.1248],
+        [ 0.0134],
+        [ 0.0069],
+        [-0.0007],
+        [ 0.0017],
+        [-0.0026],
+        [-0.0192],
+        [-0.0155],
+        [-0.0054],
+        [-0.0094],
+        [ 0.0316],
+        [ 0.0090],
+        [ 0.0110],
+        [ 0.0045],
+        [-0.0296],
+        [ 0.0997]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01336526870727539 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-4.4777e-01],
+        [-1.0388e-02],
+        [-5.0476e-02],
+        [ 3.9361e-04],
+        [ 1.6986e-02],
+        [-1.3439e-02],
+        [ 3.0790e-02],
+        [ 9.3393e-03],
+        [ 4.0031e-03],
+        [-1.6271e-02],
+        [ 1.1708e-02],
+        [ 7.0939e-03],
+        [-2.4872e-02],
+        [-1.9785e-02],
+        [-6.8904e-03],
+        [ 5.0378e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.019733667373657227 seconds
+Initializing Layer 20
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.1446e-01],
+        [-1.1968e-02],
+        [-9.6869e-03],
+        [-1.8436e-02],
+        [-8.7944e-04],
+        [-2.0501e-02],
+        [-4.0494e-03],
+        [-2.7005e-02],
+        [-4.5954e-02],
+        [-1.4473e-02],
+        [-2.5523e-03],
+        [-5.4299e-03],
+        [-1.6570e-02],
+        [-2.3102e-02],
+        [-8.0614e-03],
+        [-6.9947e-07]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02324390411376953 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.8356e-01],
+        [-1.2187e-02],
+        [-4.1131e-02],
+        [-9.2215e-04],
+        [-2.0895e-02],
+        [-3.0051e-02],
+        [-3.2553e-03],
+        [-4.5442e-03],
+        [-1.4832e-02],
+        [-2.4934e-02],
+        [-5.9901e-03],
+        [-2.3955e-03],
+        [-1.0647e-02],
+        [-8.3058e-03],
+        [-1.7382e-02],
+        [-3.6586e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024210214614868164 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-6.9785e-07],
+        [ 6.2671e-03],
+        [ 1.7119e-02],
+        [ 2.6284e-02],
+        [ 4.1098e-02],
+        [ 3.0323e-02],
+        [ 9.4577e-03],
+        [ 2.3120e-02],
+        [ 4.9957e-03],
+        [ 3.0372e-03],
+        [ 1.1655e-02],
+        [ 7.6182e-03],
+        [ 1.5125e-02],
+        [ 1.9824e-02],
+        [ 1.3509e-02],
+        [ 1.1070e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024640798568725586 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-3.6546e-06],
+        [ 4.4065e-04],
+        [ 2.2205e-02],
+        [ 9.7859e-03],
+        [ 2.1282e-03],
+        [ 3.1980e-02],
+        [ 1.1280e-02],
+        [ 1.2257e-02],
+        [ 1.2499e-03],
+        [ 1.3263e-02],
+        [ 4.7043e-02],
+        [ 1.4257e-02],
+        [ 8.4280e-03],
+        [ 6.1197e-03],
+        [ 3.7017e-03],
+        [ 1.9328e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02502155303955078 seconds
+Initializing Layer 21
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3183],
+        [-0.0508],
+        [ 0.0017],
+        [ 0.0051],
+        [-0.0123],
+        [ 0.0215],
+        [ 0.0155],
+        [-0.0868],
+        [-0.0318],
+        [-0.0065],
+        [ 0.0315],
+        [-0.0020],
+        [ 0.0114],
+        [ 0.0844],
+        [ 0.0082],
+        [ 0.3967]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.018981456756591797 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.2873],
+        [-0.0586],
+        [ 0.0105],
+        [ 0.0423],
+        [ 0.0299],
+        [-0.0155],
+        [ 0.0019],
+        [ 0.0062],
+        [ 0.0154],
+        [ 0.0983],
+        [ 0.0214],
+        [-0.0249],
+        [-0.0382],
+        [-0.0954],
+        [-0.0084],
+        [ 0.2944]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013689279556274414 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.6802e-01],
+        [-3.0366e-03],
+        [-1.7602e-02],
+        [-5.0462e-03],
+        [ 2.2374e-03],
+        [-9.8285e-03],
+        [-1.6880e-03],
+        [-3.9431e-03],
+        [-1.3434e-02],
+        [-6.9812e-03],
+        [-1.4112e-04],
+        [-3.5185e-02],
+        [-2.3114e-02],
+        [ 1.0378e-03],
+        [ 4.5379e-03],
+        [ 1.6689e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013208150863647461 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-5.1531e-01],
+        [-1.4863e-02],
+        [ 1.4169e-03],
+        [ 1.7225e-02],
+        [-9.6619e-05],
+        [-1.3432e-03],
+        [-2.6128e-03],
+        [-2.2820e-02],
+        [-4.7195e-03],
+        [-8.7389e-03],
+        [ 2.9295e-02],
+        [ 1.1921e-02],
+        [-3.6539e-02],
+        [ 3.2710e-03],
+        [ 6.9378e-03],
+        [ 6.0926e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.021577835083007812 seconds
+Initializing Layer 22
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.1477e-01],
+        [-1.5855e-02],
+        [-3.3684e-02],
+        [-5.6620e-03],
+        [-7.9614e-03],
+        [-6.9192e-03],
+        [-2.1786e-02],
+        [-7.6355e-03],
+        [-1.4741e-02],
+        [-7.4274e-03],
+        [-1.0557e-02],
+        [-1.3733e-02],
+        [-3.5639e-03],
+        [-1.7570e-02],
+        [-1.2363e-02],
+        [-7.7462e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01593327522277832 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.8786e-01],
+        [-1.2051e-02],
+        [-2.3512e-02],
+        [-1.7488e-02],
+        [-1.7124e-03],
+        [-1.0987e-03],
+        [-2.7240e-03],
+        [-2.0364e-02],
+        [-4.0135e-02],
+        [-6.5877e-03],
+        [-9.1906e-03],
+        [-2.7355e-02],
+        [-4.0413e-04],
+        [-1.4848e-02],
+        [-4.3946e-03],
+        [ 7.1225e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02415156364440918 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-7.7432e-06],
+        [ 1.3624e-02],
+        [ 8.8777e-04],
+        [ 1.5984e-02],
+        [ 1.0217e-02],
+        [ 2.5447e-02],
+        [ 9.2240e-03],
+        [ 5.6172e-03],
+        [ 2.2640e-02],
+        [ 1.9898e-02],
+        [ 3.8597e-03],
+        [ 2.4679e-03],
+        [ 7.6650e-03],
+        [ 3.9977e-02],
+        [ 1.1496e-02],
+        [ 1.1378e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023003578186035156 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[7.1225e-06],
+        [4.0616e-03],
+        [2.3202e-03],
+        [5.4161e-02],
+        [8.8662e-03],
+        [1.7067e-02],
+        [1.9759e-02],
+        [2.9839e-02],
+        [7.5446e-04],
+        [1.1363e-02],
+        [6.2625e-03],
+        [2.1599e-02],
+        [3.8650e-02],
+        [2.3683e-02],
+        [2.5359e-02],
+        [1.8411e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024808645248413086 seconds
+Initializing Layer 23
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.2636],
+        [-0.0382],
+        [-0.0047],
+        [ 0.0451],
+        [-0.0908],
+        [ 0.0210],
+        [-0.0153],
+        [-0.0091],
+        [ 0.0732],
+        [ 0.0100],
+        [-0.0583],
+        [-0.0245],
+        [ 0.0147],
+        [-0.0009],
+        [ 0.0062],
+        [ 0.2215]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.018821001052856445 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.4164],
+        [-0.0400],
+        [-0.0294],
+        [-0.0214],
+        [-0.1183],
+        [ 0.0065],
+        [-0.0547],
+        [ 0.0007],
+        [-0.0095],
+        [ 0.0998],
+        [ 0.0139],
+        [ 0.0383],
+        [-0.0044],
+        [ 0.0240],
+        [ 0.0602],
+        [ 0.4377]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013067483901977539 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.1269],
+        [ 0.0178],
+        [ 0.0044],
+        [ 0.0027],
+        [-0.0200],
+        [-0.0006],
+        [ 0.0234],
+        [ 0.0007],
+        [-0.0085],
+        [ 0.0072],
+        [ 0.0448],
+        [ 0.0105],
+        [-0.0041],
+        [-0.0021],
+        [ 0.0138],
+        [ 0.1320]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013304710388183594 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-6.4926e-01],
+        [-4.8327e-03],
+        [ 7.8097e-03],
+        [ 6.3479e-03],
+        [ 3.1967e-02],
+        [ 5.9841e-04],
+        [-2.4964e-03],
+        [-1.0249e-02],
+        [ 3.9054e-03],
+        [ 1.0102e-02],
+        [-7.2324e-03],
+        [-1.3870e-02],
+        [ 1.8704e-02],
+        [ 1.2776e-02],
+        [-1.9606e-02],
+        [ 5.1643e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.020969867706298828 seconds
+Initializing Layer 24
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.0970e-01],
+        [-8.3963e-04],
+        [-1.3220e-02],
+        [-1.2247e-02],
+        [-2.7364e-03],
+        [-6.1560e-03],
+        [-4.7093e-03],
+        [-2.0540e-02],
+        [-1.7409e-02],
+        [-8.9104e-03],
+        [-7.8229e-03],
+        [-1.4883e-02],
+        [-2.5421e-02],
+        [-7.0298e-03],
+        [-3.6966e-02],
+        [ 2.9413e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024716854095458984 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.4330e-01],
+        [-3.0135e-03],
+        [-1.4029e-02],
+        [-4.4689e-03],
+        [-4.9880e-03],
+        [-1.5707e-02],
+        [-7.3078e-03],
+        [-1.6814e-03],
+        [-1.9706e-02],
+        [-6.5075e-03],
+        [-8.5654e-03],
+        [-1.2302e-02],
+        [-3.1779e-02],
+        [-4.8383e-04],
+        [-3.9484e-03],
+        [ 1.9856e-07]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024559736251831055 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[2.9429e-06],
+        [2.2427e-02],
+        [3.9289e-03],
+        [4.1818e-02],
+        [1.2041e-02],
+        [2.7480e-02],
+        [6.2789e-04],
+        [2.4379e-02],
+        [3.1693e-02],
+        [1.3816e-02],
+        [9.6200e-03],
+        [1.9691e-02],
+        [1.9882e-03],
+        [2.1344e-02],
+        [1.5396e-02],
+        [1.1715e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024871826171875 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[2.0180e-07],
+        [1.3166e-02],
+        [1.4326e-02],
+        [2.0492e-02],
+        [1.1962e-02],
+        [4.1431e-02],
+        [1.6698e-02],
+        [4.3873e-03],
+        [1.0086e-02],
+        [5.8170e-04],
+        [2.9599e-03],
+        [1.4524e-03],
+        [2.4698e-02],
+        [6.0250e-03],
+        [3.0071e-02],
+        [1.4275e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023890972137451172 seconds
+Initializing Layer 25
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3768],
+        [ 0.0169],
+        [ 0.1173],
+        [-0.0110],
+        [-0.0015],
+        [-0.0314],
+        [ 0.0014],
+        [ 0.0258],
+        [ 0.0535],
+        [-0.0069],
+        [ 0.0051],
+        [ 0.0102],
+        [-0.0040],
+        [ 0.0376],
+        [ 0.0764],
+        [ 0.3457]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01965618133544922 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.7537],
+        [ 0.0069],
+        [ 0.0114],
+        [ 0.0027],
+        [-0.0393],
+        [ 0.0714],
+        [ 0.0169],
+        [-0.0620],
+        [ 0.1121],
+        [-0.0072],
+        [ 0.0343],
+        [-0.0018],
+        [-0.0245],
+        [ 0.0242],
+        [-0.1026],
+        [ 0.5156]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01311182975769043 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.1309],
+        [ 0.0013],
+        [ 0.0062],
+        [ 0.0087],
+        [ 0.0383],
+        [-0.0201],
+        [ 0.0072],
+        [ 0.0031],
+        [-0.0009],
+        [ 0.0052],
+        [ 0.0220],
+        [ 0.0129],
+        [-0.0120],
+        [-0.0067],
+        [-0.0034],
+        [ 0.1796]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013347625732421875 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.5747],
+        [-0.0332],
+        [ 0.0221],
+        [ 0.0113],
+        [ 0.0009],
+        [-0.0044],
+        [ 0.0367],
+        [-0.0094],
+        [-0.0120],
+        [-0.0067],
+        [ 0.0071],
+        [-0.0146],
+        [-0.0021],
+        [ 0.0150],
+        [-0.0199],
+        [ 0.6997]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02078866958618164 seconds
+Initializing Layer 26
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.0394e-01],
+        [-4.1316e-02],
+        [-1.6453e-02],
+        [-7.5167e-03],
+        [-1.0423e-02],
+        [-4.0182e-03],
+        [-1.4282e-02],
+        [-9.4340e-03],
+        [-2.6003e-02],
+        [-3.0442e-02],
+        [-1.2221e-02],
+        [-9.0891e-03],
+        [-1.5033e-03],
+        [-2.2686e-02],
+        [-5.9005e-03],
+        [-5.8056e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023977279663085938 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.1010e-01],
+        [-2.8525e-02],
+        [-4.3271e-02],
+        [-3.2802e-02],
+        [-2.5245e-02],
+        [-1.6735e-02],
+        [-6.3448e-03],
+        [-3.1163e-03],
+        [-1.4017e-02],
+        [-8.0721e-03],
+        [-9.3729e-03],
+        [-1.9426e-02],
+        [-1.0275e-02],
+        [-4.7476e-03],
+        [-1.1029e-03],
+        [ 5.5862e-07]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023088455200195312 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-5.8023e-06],
+        [ 1.9680e-02],
+        [ 3.6980e-02],
+        [ 9.6986e-03],
+        [ 3.7287e-03],
+        [ 1.4710e-02],
+        [ 5.0086e-03],
+        [ 1.3665e-02],
+        [ 1.1348e-02],
+        [ 8.0723e-03],
+        [ 2.4696e-02],
+        [ 6.7518e-03],
+        [ 1.2663e-02],
+        [ 5.8124e-03],
+        [ 1.5962e-02],
+        [ 1.0489e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.023384571075439453 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[5.6722e-07],
+        [1.8466e-02],
+        [1.7180e-02],
+        [2.0654e-02],
+        [1.3261e-02],
+        [1.9401e-02],
+        [2.2590e-02],
+        [2.1150e-02],
+        [1.0976e-02],
+        [5.5741e-03],
+        [1.9074e-03],
+        [1.5444e-02],
+        [8.6006e-03],
+        [2.1699e-02],
+        [3.6775e-02],
+        [1.0835e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.025141000747680664 seconds
+Initializing Layer 27
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3162],
+        [-0.0027],
+        [-0.0082],
+        [-0.0142],
+        [-0.0816],
+        [ 0.0064],
+        [ 0.0142],
+        [ 0.0419],
+        [ 0.0193],
+        [-0.0281],
+        [ 0.0022],
+        [-0.0527],
+        [ 0.0705],
+        [ 0.0102],
+        [-0.0208],
+        [ 0.2929]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.018267154693603516 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3943],
+        [ 0.0097],
+        [-0.0036],
+        [ 0.0140],
+        [ 0.0188],
+        [-0.0309],
+        [-0.0842],
+        [ 0.0333],
+        [ 0.0014],
+        [ 0.0250],
+        [-0.0100],
+        [ 0.0455],
+        [ 0.0994],
+        [-0.0185],
+        [-0.0500],
+        [ 0.5351]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013300895690917969 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.1728],
+        [ 0.0405],
+        [ 0.0013],
+        [ 0.0130],
+        [-0.0209],
+        [-0.0052],
+        [ 0.0048],
+        [-0.0075],
+        [ 0.0242],
+        [-0.0093],
+        [-0.0142],
+        [ 0.0078],
+        [-0.0111],
+        [-0.0022],
+        [ 0.0103],
+        [ 0.1700]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013547658920288086 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.4807],
+        [-0.0092],
+        [-0.0080],
+        [ 0.0037],
+        [-0.0132],
+        [-0.0327],
+        [-0.0053],
+        [-0.0064],
+        [ 0.0006],
+        [-0.0017],
+        [ 0.0315],
+        [-0.0107],
+        [ 0.0083],
+        [-0.0072],
+        [-0.0188],
+        [ 0.3851]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.020813941955566406 seconds
+Initializing Layer 28
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.1131e-01],
+        [-2.5163e-02],
+        [-3.9889e-03],
+        [-1.2034e-02],
+        [-7.1804e-03],
+        [-2.9299e-02],
+        [-1.4818e-02],
+        [-5.5222e-03],
+        [-2.3234e-02],
+        [-1.9946e-02],
+        [-3.6667e-02],
+        [-2.4470e-03],
+        [-8.4202e-04],
+        [-1.7543e-02],
+        [-9.3602e-03],
+        [ 4.0689e-07]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.0250551700592041 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.1796e-01],
+        [-5.1793e-04],
+        [-2.9427e-02],
+        [-1.3644e-02],
+        [-8.5339e-03],
+        [-6.0912e-03],
+        [-4.2505e-02],
+        [-1.6390e-02],
+        [-1.2014e-02],
+        [-2.1612e-02],
+        [-3.3844e-03],
+        [-4.9335e-03],
+        [-1.0544e-02],
+        [-7.0686e-03],
+        [-1.7682e-03],
+        [-3.2205e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024738311767578125 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[4.0711e-07],
+        [2.4856e-02],
+        [1.1811e-03],
+        [2.1465e-02],
+        [6.8672e-03],
+        [5.8116e-03],
+        [4.0225e-02],
+        [2.0176e-02],
+        [3.2011e-03],
+        [8.9390e-03],
+        [5.1617e-03],
+        [2.2939e-02],
+        [1.5790e-02],
+        [1.8519e-02],
+        [2.8858e-02],
+        [1.1494e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02413153648376465 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-3.2188e-06],
+        [ 9.5952e-04],
+        [ 1.9523e-02],
+        [ 8.5591e-05],
+        [ 1.1647e-02],
+        [ 3.3927e-04],
+        [ 9.1422e-03],
+        [ 2.6597e-02],
+        [ 1.0411e-02],
+        [ 7.6672e-03],
+        [ 4.0351e-03],
+        [ 1.5159e-02],
+        [ 2.2419e-03],
+        [ 1.2997e-02],
+        [ 4.9102e-02],
+        [ 1.1648e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.025050640106201172 seconds
+Initializing Layer 29
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.4608],
+        [ 0.0296],
+        [-0.0016],
+        [-0.0164],
+        [ 0.0021],
+        [-0.0500],
+        [-0.0120],
+        [ 0.0189],
+        [-0.0228],
+        [-0.0845],
+        [ 0.0471],
+        [-0.0328],
+        [-0.0050],
+        [ 0.0064],
+        [-0.0084],
+        [ 0.4257]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.020208120346069336 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.5820],
+        [-0.0018],
+        [ 0.0090],
+        [ 0.0207],
+        [ 0.2124],
+        [-0.0086],
+        [ 0.0038],
+        [-0.0978],
+        [ 0.0386],
+        [ 0.1083],
+        [-0.0537],
+        [-0.0178],
+        [-0.0313],
+        [ 0.0144],
+        [ 0.0731],
+        [ 0.5232]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013633489608764648 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3027],
+        [ 0.0063],
+        [ 0.1034],
+        [ 0.0370],
+        [ 0.0104],
+        [-0.0189],
+        [-0.0455],
+        [ 0.0270],
+        [ 0.0542],
+        [-0.0019],
+        [ 0.0201],
+        [-0.0119],
+        [-0.0064],
+        [ 0.0149],
+        [ 0.0022],
+        [ 0.3028]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013571500778198242 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3595],
+        [-0.0164],
+        [ 0.0019],
+        [-0.0083],
+        [-0.0253],
+        [-0.0065],
+        [-0.0008],
+        [ 0.0242],
+        [-0.0030],
+        [ 0.0428],
+        [ 0.0092],
+        [-0.0044],
+        [-0.0113],
+        [ 0.0147],
+        [-0.0055],
+        [ 0.3652]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02051091194152832 seconds
+Initializing Layer 30
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.7085e-01],
+        [-1.2091e-02],
+        [-2.1092e-02],
+        [-2.7360e-02],
+        [-8.8249e-03],
+        [-8.1104e-03],
+        [-1.6953e-02],
+        [-2.8321e-03],
+        [-1.8546e-02],
+        [-1.5352e-02],
+        [-1.0625e-02],
+        [-6.9281e-03],
+        [-1.3722e-02],
+        [-9.5453e-03],
+        [-8.7742e-04],
+        [ 1.4250e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024592876434326172 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.2575e-01],
+        [-1.2576e-02],
+        [-1.3585e-02],
+        [-3.0412e-02],
+        [-1.3237e-02],
+        [-1.4359e-02],
+        [-6.2258e-03],
+        [-1.3155e-03],
+        [-8.2378e-03],
+        [-2.0170e-02],
+        [-2.5366e-02],
+        [-9.9430e-03],
+        [-3.8847e-03],
+        [-3.5640e-02],
+        [-1.1408e-02],
+        [ 1.3370e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02282428741455078 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[1.4254e-06],
+        [9.7644e-03],
+        [2.6718e-02],
+        [9.0792e-04],
+        [2.3677e-03],
+        [3.2649e-03],
+        [2.2805e-02],
+        [5.9429e-03],
+        [1.9836e-02],
+        [4.8926e-03],
+        [1.4714e-02],
+        [1.7133e-02],
+        [3.2936e-02],
+        [1.2366e-02],
+        [4.5257e-02],
+        [1.6307e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024523019790649414 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[1.3422e-06],
+        [1.9360e-02],
+        [9.4868e-03],
+        [2.3180e-02],
+        [1.2478e-02],
+        [1.8470e-02],
+        [2.8831e-02],
+        [6.0900e-03],
+        [1.0574e-03],
+        [3.8311e-03],
+        [1.4338e-02],
+        [2.6328e-03],
+        [1.5817e-02],
+        [2.0229e-02],
+        [4.1925e-02],
+        [1.2409e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024054765701293945 seconds
+Initializing Layer 31
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-0.3224],
+        [-0.0102],
+        [-0.0059],
+        [-0.0276],
+        [-0.0170],
+        [-0.0452],
+        [-0.0005],
+        [ 0.0208],
+        [ 0.0491],
+        [ 0.0137],
+        [ 0.0314],
+        [ 0.0048],
+        [ 0.0086],
+        [ 0.0019],
+        [-0.0817],
+        [ 0.3343]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.01941370964050293 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-4.9013e-01],
+        [ 3.1407e-02],
+        [-3.6349e-02],
+        [-8.8688e-02],
+        [ 6.4961e-02],
+        [ 2.1546e-02],
+        [ 1.0216e-01],
+        [ 4.4863e-02],
+        [-2.3587e-02],
+        [-2.0522e-01],
+        [-6.4158e-03],
+        [ 2.3017e-01],
+        [ 3.1954e-04],
+        [ 6.8089e-03],
+        [-5.5279e-02],
+        [ 4.9621e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013305187225341797 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-3.0045e-01],
+        [ 1.1076e-02],
+        [-1.3501e-02],
+        [-2.4007e-02],
+        [ 5.2842e-03],
+        [-4.6952e-03],
+        [ 1.7774e-02],
+        [-9.6128e-02],
+        [ 9.1499e-05],
+        [-3.2875e-02],
+        [ 3.7700e-02],
+        [ 1.1116e-01],
+        [-9.1671e-03],
+        [-1.8143e-02],
+        [-4.9048e-02],
+        [ 2.5573e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.013123035430908203 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-6.9512e-01],
+        [ 2.0883e-02],
+        [-5.6353e-02],
+        [-1.6807e-02],
+        [ 3.6400e-03],
+        [-9.4238e-03],
+        [-3.4357e-02],
+        [-1.2432e-02],
+        [ 3.0532e-02],
+        [-3.5105e-03],
+        [-2.3549e-02],
+        [ 1.0759e-02],
+        [ 5.0889e-02],
+        [-6.6845e-03],
+        [ 4.8349e-05],
+        [ 7.3417e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.0215301513671875 seconds
+Initializing Layer 32
+Initializing Customized Model Parameters.
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-5.1550e-01],
+        [-1.6272e-02],
+        [-1.2843e-02],
+        [-2.1225e-03],
+        [-1.8189e-02],
+        [-2.3938e-02],
+        [-2.9277e-02],
+        [-2.0416e-02],
+        [-6.4095e-03],
+        [-1.2027e-02],
+        [-1.3815e-02],
+        [-5.6895e-02],
+        [-3.5356e-02],
+        [-1.4714e-02],
+        [-4.2274e-02],
+        [ 3.6034e-07]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02402019500732422 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[-1.7471e-01],
+        [-3.3609e-03],
+        [-3.3408e-02],
+        [-4.2688e-03],
+        [-5.4358e-03],
+        [-1.6479e-02],
+        [-9.9713e-03],
+        [-1.2016e-02],
+        [-6.8781e-03],
+        [-1.3235e-02],
+        [-1.4662e-02],
+        [-8.1608e-03],
+        [-2.2903e-03],
+        [-2.0644e-02],
+        [-9.1149e-03],
+        [ 1.2705e-06]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024541139602661133 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[3.6058e-07],
+        [8.9324e-03],
+        [1.4821e-02],
+        [2.1485e-02],
+        [2.4006e-02],
+        [2.5906e-03],
+        [1.0527e-02],
+        [3.8643e-02],
+        [2.9169e-02],
+        [1.9838e-02],
+        [7.5834e-03],
+        [6.2592e-03],
+        [8.2039e-03],
+        [9.6571e-03],
+        [1.7708e-02],
+        [5.4284e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.024918317794799805 seconds
+Init_method k-means
+Method k-means
+running k-means on cuda..
+Region saliency  dim torch.Size([16, 1])
+Region saliency tensor([[1.2710e-06],
+        [3.4150e-03],
+        [1.8500e-03],
+        [6.8412e-03],
+        [2.1758e-03],
+        [4.7688e-03],
+        [1.9190e-02],
+        [3.7643e-02],
+        [1.5579e-02],
+        [1.2327e-02],
+        [9.4514e-03],
+        [4.9466e-04],
+        [2.6165e-03],
+        [2.3331e-02],
+        [2.9048e-02],
+        [1.7294e-01]], device='cuda:0')
+predicting on cuda..
+Starting Grouping
+Grouping completed in 0.02449202537536621 seconds
+SGD optimizer
+Model Device:  cuda:0

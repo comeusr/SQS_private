@@ -1,0 +1,8 @@
+
+The following have been reloaded with a version change:
+  1) cuda/12.6.0 => cuda/12.1.1
+
+
+CondaError: Run 'conda init' before 'conda activate'
+
+python: can't open file '/home/wang4538/DGMS-master/scripts/glue_sst/../glue_training.py': [Errno 2] No such file or directory

@@ -1,0 +1,36 @@
+
+The following have been reloaded with a version change:
+  1) cuda/12.6.0 => cuda/12.1.1
+
+
+CondaError: Run 'conda init' before 'conda activate'
+
+wandb: Currently logged in as: wang4538 (rajdeeph-purdue-university). Use `wandb login --relogin` to force relogin
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Tracking run with wandb version 0.19.4
+wandb: Run data is saved locally in /home/wang4538/DGMS-master/scripts/wandb/run-20250415_222938-bffyn1uf
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run meta-llama/Llama-3.2-1B_K16_KL_SPAS0.75_temp0.001_LR5e-5_PRTEMP0.01_WD5e-7_SIGMA3
+wandb: ⭐️ View project at https://wandb.ai/rajdeeph-purdue-university/SQS_GLUE
+wandb: 🚀 View run at https://wandb.ai/rajdeeph-purdue-university/SQS_GLUE/runs/bffyn1uf
+Traceback (most recent call last):
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 599, in <module>
+    main(args)
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 303, in main
+    InitModel(model, args.sigma)
+  File "/home/wang4538/DGMS-master/scripts/../glue_training.py", line 139, in InitModel
+    m.init_mask_params(sigma)
+  File "/home/wang4538/DGMS-master/QuantAttention.py", line 764, in init_mask_params
+    self.q_proj.sub_distribution = gmm_approximation(self.k_level, self.q_proj.weight, self.temperature, 32, init_method, sigma)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/DGMS-master/modeling/DGMS/GMM.py", line 250, in gmm_approximation
+    return GaussianMixtureModel(num_components, init_weights, temperature, B, init_method, sigma)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wang4538/DGMS-master/modeling/DGMS/GMM.py", line 43, in __init__
+    self.params_initialization(init_weights, init_method)
+  File "/home/wang4538/DGMS-master/modeling/DGMS/GMM.py", line 65, in params_initialization
+    self.pi_k, self.mu, self.sigma = \
+    ^^^^^^^^^
+  File "/home/wang4538/miniconda3/envs/LLM/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1729, in __setattr__
+    raise TypeError(f"cannot assign '{torch.typename(value)}' as parameter '{name}' "
+TypeError: cannot assign 'torch.cuda.FloatTensor' as parameter 'pi_k' (torch.nn.Parameter or None expected)

@@ -188,8 +188,6 @@ def cluster_weights_sparsity(weights, n_clusters, iter_limit=100):
 
     # flat_weight = flat_weight.to(torch.float16).to(DEVICE)
     region_saliency = region_saliency.view(-1, 1)
-    print("Region saliency {}".format(region_saliency))
-
     # # print("Unique cluster idx {}".format(torch.unique(_cluster_idx)))
     # # print("Flat weight {}".format(flat_weight))
     # # print("Region saliency {}".format(region_saliency))

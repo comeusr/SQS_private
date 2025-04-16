@@ -403,16 +403,12 @@ def model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_
 
             curr_step = len(train_dataloader)*epoch+step
             
-            time_start = time.time()
             if not normal:
                 pruner.prune(curr_step)
                 pruner.log_sparsity()
-            time_end = time.time()
 
             
-            time_start = time.time()
             outputs = model(**batch)
-            time_end = time.time()
 
             loss = outputs.loss
 
@@ -420,11 +416,7 @@ def model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_
 
             optimizer.zero_grad()
 
-            time_start = time.time()
             loss.backward(loss, retain_graph=True)
-            time_end = time.time()
-
-            print("-"*50+"Step {} Backward Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
             for name, param in model.named_parameters():
                 if param.grad is not None:
