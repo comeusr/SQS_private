@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim import AdamW, RMSprop, SGD
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torchmetrics.classification import MulticlassAccuracy
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -63,23 +63,6 @@ def setup(rank, world_size):
     dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
     # Set the current GPU device.
     torch.cuda.set_device(rank)
-
-def print_module_devices(model):
-    for name, module in model.named_modules():
-        try:
-            # Check where the first parameter is located
-            param = next(module.parameters(), None)
-            if param is not None:
-                print(f"{name}: {param.device}")
-            else:
-                # Try buffers if no parameters (like BatchNorm running_mean)
-                buffer = next(module.buffers(), None)
-                if buffer is not None:
-                    print(f"{name} (buffer): {buffer.device}")
-                else:
-                    print(f"{name}: No parameters or buffers")
-        except StopIteration:
-            print(f"{name}: No parameters or buffers")
 
 
 def cleanup():
@@ -219,8 +202,8 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_
     eval_dataset = processed_datasets["validation_matched" if task_name == "mnli" else "validation"]
 
     g = torch.Generator().manual_seed(42)
+
     sample_data_indices = torch.randperm(len(train_dataset), generator=g)[:10000]
-    subset_dataset = train_dataset.select(sample_data_indices.tolist())
 
     # dataLoaders creation:
     if pad_to_max_length:
@@ -232,11 +215,18 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_
             use_fp16 = False
         data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=(8 if use_fp16 else None))
 
-    train_dataloader = DataLoader(subset_dataset, collate_fn=data_collator, batch_size=batch_size)
+    train_dataloader = DataLoader(train_dataset[sample_data_indices], collate_fn=data_collator, batch_size=batch_size)
     eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=eval_batch_size)
     return train_dataloader, eval_dataloader, processed_datasets
 
 def main(args):
+
+    if args.distributed:
+        rank = int(os.environ["RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+
+        setup(rank, world_size)
+    
 
     # Load the dataset
     raw_datasets = load_dataset("glue", args.task_name, trust_remote_code=True)
@@ -291,17 +281,23 @@ def main(args):
     cfg.PRUNE_END_STEP = int(len(train_dataloader)*args.prune_end)
     cfg.PRUNE_START_STEP = int(len(train_dataloader)*args.prune_start)
 
+    if args.distributed:
+        model = FSDP(model, device_ids=[rank])
+    else:
+        model.to(device)
     
     if not args.normal:
         for name, module in tuple(model.named_modules()):
             if name:
                 recursive_setattr(model, name, replace_attn_layer(module, config, args.model_name, device))
         print("Initializing Model Parameters.")
-
-    model.to("cuda")
-    if not args.debug:
         InitModel(model, args.sigma)
     
+    print(model)
+
+    for module in model.modules():
+        module.to(device)
+
     # for name, param in model.named_parameters():
     #     print(name, param.device)
 
@@ -387,19 +383,22 @@ def main(args):
 
     # model_memory_summary(model)
 
-    model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_scheduler, 
+    model_train(rank, world_size, train_dataloader, eval_dataloader, model, pruner, optimizer, lr_scheduler, 
                 num_training_steps, args.duration, args.normal, cfg, device, num_labels)
 
-def model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_scheduler,
+def model_train(rank, world_size, train_dataloader, eval_dataloader, model, pruner, optimizer, lr_scheduler,
                 num_training_steps,duration, normal, cfg, device, num_labels):
     progress_bar = tqdm(range(num_training_steps))
+
+    print(f"Running DDP training on rank {rank}.")
+    setup(rank, world_size)
+
 
 
     for epoch in range(duration):
         model.train()
         cfg.IS_TRAIN = True
         for step, batch in enumerate(train_dataloader):
-            batch = {k: v.to(model.device) for k, v in batch.items() if torch.is_tensor(v)}
 
             curr_step = len(train_dataloader)*epoch+step
             
@@ -408,11 +407,12 @@ def model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_
                 pruner.prune(curr_step)
                 pruner.log_sparsity()
             time_end = time.time()
+            print("-"*50+"Step {} Pruning Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
-            
             time_start = time.time()
             outputs = model(**batch)
             time_end = time.time()
+            print("-"*50+"Step {} Forward Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
             loss = outputs.loss
 
@@ -442,30 +442,47 @@ def model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_
                         print("-"*50+"NaN Grad Found"+"-"*50)
                         print(f"{name} grad: {param.grad}")
             
+            time_start = time.time()
             if not normal:
                 pruner.apply_non_prune_gradient(curr_step)
+            time_end = time.time()
+            print("-"*50+"Step {} Pruner Apply Gradient Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
+            time_start = time.time()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            time_end = time.time()
+            print("-"*50+"Step {} Clip Grad Norm Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
             # if step  % 10 == 0:
             #     for name, param in model.named_parameters():
             #         if param.requires_grad:
             #             print(name+".grad", np.linalg.norm(param.grad.detach().cpu().numpy()))
 
+            time_start = time.time()
             optimizer.step()
+            time_end = time.time()
+            print("-"*50+"Step {} Optimizer Step Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
+            time_start = time.time()
             lr_scheduler.step()
+            time_end = time.time()
+            print("-"*50+"Step {} Lr Scheduler Step Time taken {:.4f}".format(step, time_end-time_start)+"-"*50)
 
             progress_bar.update(1)
 
-            if step % 10 == 0:
-                print("-"*50+"Evaluating Model"+"-"*50)
-                accuracy = evaluate(model, eval_dataloader, device, num_labels)
-                wandb.log({'Eval Acc': accuracy}, commit=False)
+            if rank == 0:
+                if step % 10 == 0:
+                    print("-"*50+"Evaluating Model"+"-"*50)
+                    accuracy = evaluate(model, eval_dataloader, device, num_labels)
+                    wandb.log({'Eval Acc': accuracy}, commit=False)
 
         # if pruner.cur_sparsity == args.final_sparsity:
-        check_point_path = args.save_folder+"epoch"+str(epoch)+"ddp_model.pth"       
-        torch.save(model.state_dict(), check_point_path)
+        check_point_path = args.save_folder+"epoch"+str(epoch)+"ddp_model.pth"
+        if args.distributed:
+            if rank == 0:
+                torch.save(model.module.state_dict(), check_point_path)
+        else:
+            torch.save(model.state_dict(), args.save_folder+"epoch"+str(epoch)+"model.pth")
           
 
 def evaluate(model, eval_dataloader, device, num_labels):
@@ -475,8 +492,6 @@ def evaluate(model, eval_dataloader, device, num_labels):
 
     with torch.no_grad():
         for batch in eval_dataloader:
-            batch = {k: v.to(model.device) for k, v in batch.items() if torch.is_tensor(v)}
-            
             outputs = model(**batch)
             logits = outputs.logits
             predictions = torch.argmax(logits, dim=-1)

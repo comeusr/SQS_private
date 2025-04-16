@@ -42,7 +42,7 @@ class GaussianMixtureModel(nn.Module):
         print("Init_method", init_method)
         self.params_initialization(init_weights, init_method)
         self.prune = cfg.PRUNE
-        self.mask = (init_weights.abs()< 0.0).to(DEVICE)
+        self.mask = (init_weights.abs()< 0.0)
         
         # print('GMM weight dim {}'.format(init_weights.shape))
         # print('Init Mask dim {}'.format(self.mask.shape))
@@ -74,12 +74,12 @@ class GaussianMixtureModel(nn.Module):
                 initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
             elif method == 'empirical':
                 initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
-                sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01).to(DEVICE), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01).to(DEVICE)
-            self.mu = nn.Parameter(data=torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE)))
-            self.pi_k = nn.Parameter(data=torch.mul(self.pi_k.to(DEVICE), pi_init)).to(DEVICE).float()
-            self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=DEVICE)).to(DEVICE).float()
+                sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01)
+            self.mu = nn.Parameter(data=torch.mul(self.mu, initial_region_saliency.flatten()))
+            self.pi_k = nn.Parameter(data=torch.mul(self.pi_k, pi_init)).float()
+            self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=DEVICE)).float()
             self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=DEVICE)).float()
-            self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).to(DEVICE).float()
+            self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).float()
             self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=DEVICE), requires_grad=False)
         else:
             """ Intialization of GMM + Pruning parameters using k-means"""
@@ -90,7 +90,7 @@ class GaussianMixtureModel(nn.Module):
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
             elif method == 'empirical':
                 initial_region_saliency, pi_init, sigma_init = cluster_weights_sparsity(init_weights, self.num_components)
-                sigma_init = torch.ones_like(sigma_init).mul(0.01).to(DEVICE)
+                sigma_init = torch.ones_like(sigma_init).mul(0.01)
                 
             if sigma_init.isnan().any() or sigma_init.eq(0.0).any():
                 print('-'*50+"Sigma init is nan or zero"+"-"*50)
@@ -108,10 +108,10 @@ class GaussianMixtureModel(nn.Module):
                 sigma_init[torch.isnan(sigma_init)] = smallest_valid
                 sigma_init[~torch.isfinite(sigma_init)] = largest_valid
                 print('-'*50+"New Sigma init {}".format(sigma_init)+"-"*50)
-           
-            self.mu.data = torch.mul(self.mu.to(DEVICE), initial_region_saliency.flatten().to(DEVICE))
-            self.pi_k.data = torch.mul(self.pi_k.to(DEVICE), pi_init).to(DEVICE).float()
-            self.sigma.data = torch.mul(self.sigma, sigma_init).to(DEVICE).float()
+
+            self.mu.data = torch.mul(self.mu, initial_region_saliency.flatten())
+            self.pi_k.data = torch.mul(self.pi_k, pi_init).float()
+            self.sigma.data = torch.mul(self.sigma, sigma_init).float()
             # print("Initial Self Sigma contains zero {}".format(self.sigma.eq(0.0).any()))
             self.temperature = torch.tensor([self.temperature], device=DEVICE)
             self.pruning_parameter.data = 5*cfg.PRUNE_SCALE*torch.ones_like(init_weights, device=DEVICE)
@@ -120,12 +120,12 @@ class GaussianMixtureModel(nn.Module):
         
         if not cfg.PRUNE:
             pi_tmp = torch.cat([self.pi_zero, self.pi_k], dim=-1).abs()
-            res = torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
+            res = torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1))
             # print('Pi shape{}'.format(res.shape))
-            return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
+            return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1))
         else:
             pi_tmp = self.pi_k.abs()
-            return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1)).to(DEVICE)
+            return torch.div(pi_tmp, pi_tmp.sum(dim=-1).unsqueeze(-1))
 
     def Normal_pdf(self, x, _pi, mu, sigma):
         """ Standard Normal Distribution PDF. """
@@ -154,17 +154,17 @@ class GaussianMixtureModel(nn.Module):
     def GMM_region_responsibility(self, weights):
         if not cfg.PRUNE:
             """" Region responsibility of GMM. """
-            pi_normalized = self.gaussian_mixing_regularization().to(DEVICE)
+            pi_normalized = self.gaussian_mixing_regularization()
             responsibility = torch.zeros([self.num_components, weights.size(0)], device=DEVICE)
-            responsibility[0] = self.Normal_pdf(weights.to(DEVICE), pi_normalized[0], 0.0, self.sigma_zero.to(DEVICE))
+            responsibility[0] = self.Normal_pdf(weights, pi_normalized[0], 0.0, self.sigma_zero)
             for k in range(self.num_components-1):
-                responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k].to(DEVICE), self.sigma[k].to(DEVICE))
+                responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k], self.sigma[k])
             responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
             return F.softmax(responsibility / self.temperature, dim=0)
         else:
             """" Region responsibility of GMM. """
 
-            pi_normalized = self.gaussian_mixing_regularization().to(DEVICE)
+            pi_normalized = self.gaussian_mixing_regularization()
             O = get_distribution(self.nums, self.mu, self.num_components, pi_normalized, self.sigma, DEVICE)
 
             O = torch.div(O, O.sum(dim=0) + cfg.EPS)

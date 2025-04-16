@@ -855,7 +855,7 @@ class CustomizedLlamaAttention(LlamaAttention):
 
 
 class CustomizedLLamaMLP(LlamaMLP):
-    def __init__(self, config, blocks=4):
+    def __init__(self, config, blocks=4, sigma=None):
         super().__init__(config)
 
         self.is_normal = cfg.IS_NORMAL
@@ -915,8 +915,8 @@ class CustomizedLLamaMLP(LlamaMLP):
                 self.down_proj.sub_distribution_list.append(nn.Identity())
             else:
                 idx = block_idx-1
-                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[self.first_n+idx*self.step_size:self.first_n+(idx+1)*self.step_size].contiguous(), self.temperature, 20, init_method, sigma))
-                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[self.first_n+idx*self.step_size:self.first_n+(idx+1)*self.step_size].contiguous(), self.temperature, 20, init_method, sigma))
+                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[self.first_n+idx*self.step_size:self.first_n+(idx+1)*self.step_size].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.up_proj.weight.device))
+                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[self.first_n+idx*self.step_size:self.first_n+(idx+1)*self.step_size].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.down_proj.weight.device))
 
         self.up_proj.sub_distribution_list = nn.ModuleList(self.up_proj.sub_distribution_list)
         self.down_proj.sub_distribution_list = nn.ModuleList(self.down_proj.sub_distribution_list)
