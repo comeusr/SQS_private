@@ -34,7 +34,7 @@ class GaussianMixtureModel(nn.Module):
         self.pi_k, self.mu, self.sigma = \
                     nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
                     nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
-                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True)
+                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=False)
 
         self.temperature = torch.tensor([self.temperature], device=DEVICE)
         self.pruning_parameter = nn.Parameter(data=torch.ones_like(init_weights, device=DEVICE))

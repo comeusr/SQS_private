@@ -868,8 +868,10 @@ class CustomizedLLamaMLP(LlamaMLP):
         self.sorted_down_indices = None
         self.up_weight_num = self.up_proj.weight.numel()
         self.down_weight_num = self.down_proj.weight.numel()
-        self.first_n=64
-        self.last_n=64
+        self.up_first_n=64
+        self.up_last_n=64
+        self.down_first_n=64
+        self.down_last_n=64
     
     def reconstruct_weight(self, weights: List[torch.Tensor], inverse_sorted_indices, type='up'):
         # TODO: Restore the up_proj_weight given up_weight and self.sorted_up_indices
@@ -881,9 +883,34 @@ class CustomizedLLamaMLP(LlamaMLP):
             return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.up_proj_size)
         else:
             return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.down_proj_size)
-
         
     
+    def get_outlier_indices(self, scale=5):
+        
+        # Before Call this function, self.up_proj.weight and self.down_proj.weight need to be flattened and sorted
+        
+        fisrt_quantile_index = (self.up_weight_num-1)//4
+        third_quantile_index = (self.up_weight_num-1)*3//4
+
+        up_iqr = self.up_proj.weight.data[third_quantile_index]-self.up_proj.weight.data[fisrt_quantile_index]
+        down_iqr = self.down_proj.weight.data[third_quantile_index]-self.down_proj.weight.data[fisrt_quantile_index]
+
+        up_low_threshold = self.up_proj.weight.data[fisrt_quantile_index]-scale*up_iqr
+        up_high_threshold = self.up_proj.weight.data[third_quantile_index]+scale*up_iqr
+
+        down_low_threshold = self.down_proj.weight.data[fisrt_quantile_index]-scale*down_iqr
+        down_high_threshold = self.down_proj.weight.data[third_quantile_index]+scale*down_iqr
+
+
+        self.up_first_n = torch.searchsorted(self.up_proj.weight.data, up_low_threshold, right=True).item()
+        self.up_last_n = self.up_weight_num - torch.searchsorted(self.up_proj.weight.data, up_high_threshold, right=True).item()
+
+        self.down_first_n = torch.searchsorted(self.down_proj.weight.data, down_low_threshold, right=True).item()
+        self.down_last_n = self.down_weight_num - torch.searchsorted(self.down_proj.weight.data, down_high_threshold, right=True).item()
+
+        return
+
+        
     def init_mask_params(self, sigma):
         init_method = 'empirical' if cfg.IS_EMP else 'k-means'
 
@@ -892,6 +919,8 @@ class CustomizedLLamaMLP(LlamaMLP):
 
         self.up_proj.weight.data, sorted_up_indices = torch.sort(up_flat_weight)
         self.down_proj.weight.data, sorted_down_indices = torch.sort(down_flat_weight)
+
+        self.get_outlier_indices()
 
         self.up_argsort_indices = torch.argsort(sorted_up_indices).cpu()
         self.down_argsort_indices = torch.argsort(sorted_down_indices).cpu()
@@ -904,19 +933,34 @@ class CustomizedLLamaMLP(LlamaMLP):
         self.up_proj.sub_distribution_list = []
         self.down_proj.sub_distribution_list = []
 
-        self.step_size = (self.up_proj.weight.numel()-self.first_n-self.last_n)//(self.blocks-2)
+        self.up_step_size = (self.up_proj.weight.numel()-self.up_first_n-self.up_last_n)//(self.blocks-2)
+        self.down_step_size = (self.down_proj.weight.numel()-self.down_first_n-self.down_last_n)//(self.blocks-2)
 
         for block_idx in range(self.blocks):
 
             # print("-"*50+"up_mask shape: ", up_mask.shape, "-"*50)
             # print("-"*50+"up selectedweight shape {} ".format(self.up_proj.weight[up_mask].shape), "-"*50)
-            if block_idx == 0 or block_idx == self.blocks-1:
-                self.up_proj.sub_distribution_list.append(nn.Identity())
-                self.down_proj.sub_distribution_list.append(nn.Identity())
+            if block_idx == 0:
+                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[0:self.up_first_n].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.up_proj.weight.device))
+                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[0:self.down_first_n].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.down_proj.weight.device))
+            elif block_idx == self.blocks-1:
+                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[self.up_weight_num-self.up_last_n:self.up_weight_num].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.up_proj.weight.device))
+                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[self.down_weight_num-self.down_last_n:self.down_weight_num].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.down_proj.weight.device))
             else:
-                idx = block_idx-1
-                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[self.first_n+idx*self.step_size:self.first_n+(idx+1)*self.step_size].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.up_proj.weight.device))
-                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[self.first_n+idx*self.step_size:self.first_n+(idx+1)*self.step_size].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.down_proj.weight.device))
+                if block_idx == self.blocks-2:
+                    up_start = self.up_first_n+(block_idx-1)*self.up_step_size
+                    up_end =  self.up_weight_num-self.up_last_n
+                    down_start = self.down_first_n+(block_idx-1)*self.down_step_size
+                    down_end = self.down_weight_num-self.down_last_n
+                else:
+                    up_start = self.up_first_n+(block_idx-1)*self.up_step_size
+                    up_end = up_start+self.up_step_size
+                    down_start = self.down_first_n+(block_idx-1)*self.down_step_size
+                    down_end = down_start+self.down_step_size
+
+                
+                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[up_start:up_end].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.up_proj.weight.device))
+                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[down_start:down_end].contiguous(), self.temperature, 20, init_method, sigma).to(device=self.down_proj.weight.device))
 
         self.up_proj.sub_distribution_list = nn.ModuleList(self.up_proj.sub_distribution_list)
         self.down_proj.sub_distribution_list = nn.ModuleList(self.down_proj.sub_distribution_list)
@@ -931,15 +975,40 @@ class CustomizedLLamaMLP(LlamaMLP):
             for idx in range(self.blocks):
 
                 if idx == 0:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[:self.first_n]))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[:self.first_n]))
+                    identity=False
+                    up_start = 0
+                    up_end = self.up_first_n
+                    down_start = 0
+                    down_end = self.down_first_n
+                    
                 elif idx == self.blocks-1:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[-self.last_n:]))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[-self.last_n:]))
+                    identity=False
+                    up_start = self.up_weight_num-self.up_last_n
+                    up_end = self.up_weight_num
+                    down_start = self.down_weight_num-self.down_last_n
+                    down_end = self.down_weight_num
+
+                    
+                elif idx == self.blocks-2:
+                    identity=False
+                    up_start = self.up_first_n+(idx-1)*self.up_step_size
+                    up_end =  self.up_weight_num-self.up_last_n
+                    down_start = self.down_first_n+(idx-1)*self.down_step_size
+                    down_end = self.down_weight_num-self.down_last_n
+
                 else:
-                    temp_idx = idx-1
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[self.first_n+temp_idx*self.step_size:self.first_n+(temp_idx+1)*self.step_size].contiguous(), train=True))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[self.first_n+temp_idx*self.step_size:self.first_n+(temp_idx+1)*self.step_size].contiguous(), train=True))
+                    identity=False
+                    up_start = self.up_first_n+(idx-1)*self.up_step_size
+                    up_end = up_start+self.up_step_size
+                    down_start = self.down_first_n+(idx-1)*self.down_step_size
+                    down_end = down_start+self.down_step_size
+                
+                if identity:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_start:up_end].contiguous()))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_start:down_end].contiguous()))
+                else:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_start:up_end].contiguous(), train=True))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_start:down_end].contiguous(), train=True))
 
             up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
             down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
@@ -955,15 +1024,40 @@ class CustomizedLLamaMLP(LlamaMLP):
             for idx in range(self.blocks):
 
                 if idx == 0:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[:self.first_n]))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[:self.first_n]))
+                    identity=False
+                    up_start = 0
+                    up_end = self.up_first_n
+                    down_start = 0
+                    down_end = self.down_first_n
+                    
                 elif idx == self.blocks-1:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[-self.last_n:]))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[-self.last_n:]))
+                    identity=False
+                    up_start = self.up_weight_num-self.up_last_n
+                    up_end = self.up_weight_num
+                    down_start = self.down_weight_num-self.down_last_n
+                    down_end = self.down_weight_num
+
+                    
+                elif idx == self.blocks-2:
+                    identity=False
+                    up_start = self.up_first_n+(idx-1)*self.up_step_size
+                    up_end =  self.up_weight_num-self.up_last_n
+                    down_start = self.down_first_n+(idx-1)*self.down_step_size
+                    down_end = self.down_weight_num-self.down_last_n
+
                 else:
-                    temp_idx = idx-1
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[self.first_n+temp_idx*self.step_size:self.first_n+(temp_idx+1)*self.step_size].contiguous(), train=False))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[self.first_n+temp_idx*self.step_size:self.first_n+(temp_idx+1)*self.step_size].contiguous(), train=False))
+                    identity=False
+                    up_start = self.up_first_n+(idx-1)*self.up_step_size
+                    up_end = up_start+self.up_step_size
+                    down_start = self.down_first_n+(idx-1)*self.down_step_size
+                    down_end = down_start+self.down_step_size
+
+                if identity:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_start:up_end].contiguous()))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_start:down_end].contiguous()))
+                else:
+                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_start:up_end].contiguous(), train=False))
+                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_start:down_end].contiguous(), train=False))
 
             up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
             down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')

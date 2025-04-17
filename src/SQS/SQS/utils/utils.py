@@ -44,6 +44,7 @@ def Normal_pdf(x, _pi, mu, sigma, DEVICE):
         pow2 = torch.pow(x - mu, 2)
         # pow2 = F.normalize(torch.pow(x - mu, 2), dim=-1)
         sigma = sigma.to(torch.float32)
+        
         pdf = torch.mul(torch.reciprocal(torch.sqrt(torch.mul( \
                 torch.tensor([2 * math.pi], device=DEVICE), (sigma**2)))), \
                     torch.exp(-torch.div(pow2, 2 * sigma**2))).mul(_pi)
