@@ -30,7 +30,8 @@ class GaussianMixtureModel(nn.Module):
 
         # print("Initializing GMM Parameters.")
         shape = init_weights.shape
-        self.mu_zero = nn.Parameter(data=torch.tensor([0.0], device=DEVICE).float(), requires_grad=False)
+        self.mu_zero = nn.Parameter(data=torch.tensor([0.0], device=DEVICE).float(), requires_grad=(cfg.METHOD == "DGMS"))
+            
         self.pi_k, self.mu, self.sigma = \
                     nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
                     nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
@@ -42,6 +43,7 @@ class GaussianMixtureModel(nn.Module):
         print("Init_method", init_method)
         self.params_initialization(init_weights, init_method)
         self.prune = cfg.PRUNE
+        self.method = cfg.METHOD
         self.mask = (init_weights.abs()< 0.0)
         
         # print('GMM weight dim {}'.format(init_weights.shape))
@@ -76,10 +78,10 @@ class GaussianMixtureModel(nn.Module):
                 sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01)
             self.mu = nn.Parameter(data=torch.mul(self.mu, initial_region_saliency.flatten()))
             self.pi_k = nn.Parameter(data=torch.mul(self.pi_k, pi_init)).float()
-            self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=DEVICE)).float()
-            self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=DEVICE)).float()
+            self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=init_weights.device)).float()
+            self.sigma_zero = nn.Parameter(data=torch.tensor([_sigma_zero], device=init_weights.device)).float()
             self.sigma = nn.Parameter(data=torch.mul(self.sigma, sigma_init)).float()
-            self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=DEVICE), requires_grad=False)
+            self.temperature = nn.Parameter(data=torch.tensor([self.temperature], device=init_weights.device), requires_grad=False)
         else:
             """ Intialization of GMM + Pruning parameters using k-means"""
             print("Method", method)
@@ -151,39 +153,27 @@ class GaussianMixtureModel(nn.Module):
 
 
     def GMM_region_responsibility(self, weights):
-        if not cfg.PRUNE:
-            """" Region responsibility of GMM. """
-            pi_normalized = self.gaussian_mixing_regularization()
-            responsibility = torch.zeros([self.num_components, weights.size(0)], device=DEVICE)
-            responsibility[0] = self.Normal_pdf(weights, pi_normalized[0], 0.0, self.sigma_zero)
-            for k in range(self.num_components-1):
-                responsibility[k+1] = self.Normal_pdf(weights, pi_normalized[k+1], self.mu[k], self.sigma[k])
-            responsibility = torch.div(responsibility, responsibility.sum(dim=0) + cfg.EPS)
-            return F.softmax(responsibility / self.temperature, dim=0)
-        else:
-            """" Region responsibility of GMM. """
+        pi_normalized = self.gaussian_mixing_regularization()
+        O = get_distribution(self.nums, self.mu, self.num_components, pi_normalized, self.sigma, self.sigma_zero, self.method, DEVICE)
+        O = torch.div(O, O.sum(dim=0) + cfg.EPS)
+        # print("responsibility {}".format(responsibility))
+        temp = F.softmax(O / self.temperature, dim=0).T
 
-            pi_normalized = self.gaussian_mixing_regularization()
-            O = get_distribution(self.nums, self.mu, self.num_components, pi_normalized, self.sigma, DEVICE)
+        # print("-"*50+"Responsibility before mask"+"-"*50)
+        
+        if temp.isnan().any():
+            print('-'*50+"Found nan in the soft weights"+"-"*50)
+            if O.isnan().any():
+                print("-"*50+"responsibility is nan"+"-"*50)
+            if pi_normalized.isnan().any():
+                print("-"*50+"pi_normalized is nan"+"-"*50)
+            if weights.isnan().any():
+                print("-"*50+"weights is nan"+"-"*50)
+            if self.mu.isnan().any():
+                print('-'*50+"Mu is nan"+"-"*50)
 
-            O = torch.div(O, O.sum(dim=0) + cfg.EPS)
-            # print("responsibility {}".format(responsibility))
-            temp = F.softmax(O / self.temperature, dim=0).T
+        return temp
 
-            # print("-"*50+"Responsibility before mask"+"-"*50)
-            
-            if temp.isnan().any():
-                print('-'*50+"Found nan in the soft weights"+"-"*50)
-                if responsibility.isnan().any():
-                    print("-"*50+"responsibility is nan"+"-"*50)
-                if pi_normalized.isnan().any():
-                    print("-"*50+"pi_normalized is nan"+"-"*50)
-                if weights.isnan().any():
-                    print("-"*50+"weights is nan"+"-"*50)
-                if self.mu.isnan().any():
-                    print('-'*50+"Mu is nan"+"-"*50)
-
-            return temp
 
 
     def forward(self, weights, train=True):
@@ -192,15 +182,20 @@ class GaussianMixtureModel(nn.Module):
                 # soft mask generalized pruning during training
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
                 # print("Printing the region_belong shape {}".format(self.region_belonging.shape))
-                Sweight = torch.mul(self.region_belonging[0], 0.) \
-                        + torch.mul(self.region_belonging[1:], self.mu.unsqueeze(1)).sum(dim=0)
+                # Sweight = torch.mul(self.region_belonging[0], 0.) \
+                #         + torch.mul(self.region_belonging[1:], self.mu.unsqueeze(1)).sum(dim=0)
+                
+                Sweight = reconstruct(weights.shape, self.region_belonging[:,1:]@self.mu.unsqueeze(1), self.bin_indices, DEVICE)
+
                 return Sweight.view(weights.size())
             else:
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
                 # print("Printing the region_belong shape {}".format(self.region_belonging.shape))
                 max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
                 mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
-                Pweight = torch.mul(mask_w[1:], self.mu.unsqueeze(1)).sum(dim=0)
+                # Pweight = torch.mul(mask_w[1:], self.mu.unsqueeze(1)).sum(dim=0)
+
+                Pweight = reconstruct(weights.shape, mask_w[:,1:]@self.mu.unsqueeze(1), self.bin_indices, DEVICE)
                 return Pweight.view(weights.size())
         else:
             if train:

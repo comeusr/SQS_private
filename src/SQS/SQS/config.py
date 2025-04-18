@@ -50,7 +50,7 @@ model_config={
         "attn_implementation": "eager",
     },
     'meta-llama/Llama-3.2-1B':{
-        "from_pretrained": '/scratch/gilbreth/wang4538/DGMS/Run/GLUE/normal_meta-llama/Llama-3.2-1B/epoch1',
+        "from_pretrained": '/home/ubuntu/SQS-H100/Data/pretrained/GLUE/sst/normal_meta-llama/Llama-3.2-1B/epoch1',
         "attn_implementation": "eager",
     }
 
@@ -109,6 +109,7 @@ DEBUG = False
 SAMPLE = False
 USE_AVERAGE = False
 PRIOR = "spike_slab"
+METHOD = "SQS"
 
 def set_status(flag):
     global IS_TRAIN
@@ -120,7 +121,7 @@ def count_layer():
 
 
 def set_config(args):
-    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS, INIT_METHOD, PRUNE, PRUNE_SCALE, PRUNE_FREQ, DEBUG, SAMPLE, USE_AVERAGE, PRIOR
+    global IS_EMP, IS_NORMAL, K_LEVEL, TAU, LAYER, LAYER_NUM, SKIPPED_LAYERS, INIT_METHOD, PRUNE, PRUNE_SCALE, PRUNE_FREQ, DEBUG, SAMPLE, USE_AVERAGE, PRIOR, METHOD
     IS_EMP = args.empirical
     IS_NORMAL = args.normal
     TAU = args.tau
@@ -128,11 +129,12 @@ def set_config(args):
     # LAYER_NUM = LAYER[args.network]
     # SKIPPED_LAYERS = [1, LAYER_NUM]
     INIT_METHOD = args.init_method
-    PRUNE = args.prune
+    PRUNE = (args.method == "SQS") 
     PRUNE_SCALE = args.prune_scale
     # PRUNE_FREQ = args.prune_freq
     DEBUG=args.debug
     SAMPLE=args.sample
     USE_AVERAGE=args.average
     PRIOR = args.prior
+    METHOD = args.method
     

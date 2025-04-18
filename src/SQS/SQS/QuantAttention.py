@@ -883,7 +883,8 @@ class CustomizedLLamaMLP(LlamaMLP):
             return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.up_proj_size)
         else:
             return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.down_proj_size)
-        
+
+            
     
     def get_outlier_indices(self, scale=5):
         
@@ -909,9 +910,42 @@ class CustomizedLLamaMLP(LlamaMLP):
         self.down_last_n = self.down_weight_num - torch.searchsorted(self.down_proj.weight.data, down_high_threshold, right=True).item()
 
         return
+    
+    def DGMS_INIT(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+
+        up_flat_weight = self.up_proj.weight.flatten().data
+        down_flat_weight = self.down_proj.weight.flatten().data
+
+        self.up_proj.weight.data, sorted_up_indices = torch.sort(up_flat_weight)
+        self.down_proj.weight.data, sorted_down_indices = torch.sort(down_flat_weight)
+
+        self.up_argsort_indices = torch.argsort(sorted_up_indices).cpu()
+        self.down_argsort_indices = torch.argsort(sorted_down_indices).cpu()
+
+        del up_flat_weight, sorted_up_indices
+        del down_flat_weight, sorted_down_indices
+
+        torch.cuda.empty_cache()
+
+        self.up_proj.sub_distribution_list = []
+        self.down_proj.sub_distribution_list = []
+
+        self.up_step_size = self.up_proj.weight.numel()//self.blocks
+        self.down_step_size = self.down_proj.weight.numel()//self.blocks
+
+        for block_idx in range(self.blocks):
+            start = block_idx*self.up_step_size
+            end = start+self.up_step_size
+
+            self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[start:end].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.up_proj.weight.device))
+            self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[start:end].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.down_proj.weight.device))
+
+        self.up_proj.sub_distribution_list = nn.ModuleList(self.up_proj.sub_distribution_list)
+        self.down_proj.sub_distribution_list = nn.ModuleList(self.down_proj.sub_distribution_list)
 
         
-    def init_mask_params(self, sigma):
+    def SQS_INIT(self, sigma):
         init_method = 'empirical' if cfg.IS_EMP else 'k-means'
 
         up_flat_weight = self.up_proj.weight.flatten().data
@@ -966,7 +1000,41 @@ class CustomizedLLamaMLP(LlamaMLP):
         self.down_proj.sub_distribution_list = nn.ModuleList(self.down_proj.sub_distribution_list)
 
 
-    def QuantizedWeights(self):
+    def DGMS_QuantizedWeights(self):
+        if cfg.IS_TRAIN:
+            up_weights = []
+            down_weights = []
+
+            for idx in range(self.blocks):
+                start = idx*self.up_step_size
+                end = start+self.up_step_size
+
+                up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[start:end].contiguous(), train=True))
+                down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[start:end].contiguous(), train=True))
+
+            up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
+            down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
+
+            return up_weights, down_weights
+            
+        else:
+            up_weights = []
+            down_weights = []
+
+            for idx in range(self.blocks):
+                start = idx*self.up_step_size
+                end = start+self.up_step_size
+
+                up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[start:end].contiguous(), train=False))
+                down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[start:end].contiguous(), train=False))
+
+            up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
+            down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
+
+            return up_weights, down_weights
+            
+
+    def SQS_QuantizedWeights(self):
         if cfg.IS_TRAIN:
             # Adaptive quantization
             up_weights = []
@@ -1079,6 +1147,9 @@ class CustomizedLLamaMLP(LlamaMLP):
             return super().forward(x)
         else:
             # print("-"*50+"CustomizedMLP Layer Forward"+"-"*50)
-            up_weights, down_weights = self.QuantizedWeights()
+            if cfg.METHOD == "SQS":
+                up_weights, down_weights = self.SQS_QuantizedWeights()
+            else:
+                up_weights, down_weights = self.DGMS_QuantizedWeights()
             return self.softforward(up_weights, down_weights, x)
 

@@ -65,12 +65,22 @@ def Normal_pdf(x, _pi, mu, sigma, DEVICE):
 
 
 
-def get_distribution(nums: torch.tensor, Pm: torch.tensor, K: int, pi_normalized, sigma, DEVICE):
-    B = len(nums)
-    responsibility = torch.zeros([K, B], device=DEVICE)
+def get_distribution(nums: torch.tensor, Pm: torch.tensor, K: int, pi_normalized, sigma, sigma_zero, method, DEVICE):
+    
 
-    for k in range(K):
-        responsibility[k] = Normal_pdf(nums, pi_normalized[k], Pm[k], sigma[k], DEVICE)
+    if method == "SQS":
+        B = len(nums)
+        responsibility = torch.zeros([K, B], device=DEVICE)
+
+        for k in range(K):
+            responsibility[k] = Normal_pdf(nums, pi_normalized[k], Pm[k], sigma[k], DEVICE)
+    else:
+        B = len(nums)
+        responsibility = torch.zeros([K, B], device=DEVICE)
+
+        responsibility[0] = Normal_pdf(nums, pi_normalized[0], 0.0, sigma_zero, DEVICE)
+        for k in range(K-1):
+            responsibility[k+1] = Normal_pdf(nums, pi_normalized[k], Pm[k], sigma[k], DEVICE)
 
     return responsibility
 

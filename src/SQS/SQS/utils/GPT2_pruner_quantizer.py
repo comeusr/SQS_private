@@ -351,8 +351,8 @@ class GPT2_PRUNER():
         #             print(m.o_proj.sub_distribution.pruning_parameter.requires_grad)
 
     
-    def log_sparsity(self):
-        wandb.log({'Sparsity': self.cur_sparsity}, commit=False)
+    def log_sparsity(self, logger):
+        logger.info(f"Sparsity: {self.cur_sparsity}")
 
     
     # def apply(self, event, state, logger):

@@ -1,7 +1,10 @@
 import argparse
 from copy import deepcopy
 import os
-import time
+import logging
+from logging import getLogger
+import datetime
+
 
 import numpy as np
 
@@ -44,8 +47,6 @@ if torch.cuda.is_available():
     device = torch.device('cuda:0')
 else:
     device = torch.device('cpu')
-
-import wandb
 
 task_to_keys = {
     "mnli": ("premise", "hypothesis"),
@@ -112,6 +113,36 @@ def model_memory_summary(model):
         print(f"Total Parameters: {total_params}")
         print(f"Total Memory Consumption: {total_memory / (1024 ** 2):.4f} MB")
 
+def setup_logger(log_dir="./logs", log_filename=None):
+    os.makedirs(log_dir, exist_ok=True)
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"{log_filename}_{timestamp}.log"
+    
+    log_path = os.path.join(log_dir, log_filename)
+    
+    logger = getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    # File handler
+    fh = logging.FileHandler(log_path)
+    fh.setLevel(logging.INFO)
+
+    # Stream handler (console)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+
+    # Formatter
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+
+    # Add handlers
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    
+    return logger
+
 
 def recursive_setattr(obj, attr, value):
     attr = attr.split('.', 1)
@@ -140,7 +171,10 @@ def InitModel(model, sigma):
         elif isinstance(m, CustomizedLLamaMLP):
             print("Initializing Layer {}".format(count))
             print("Initializing Customized Model Parameters.")
-            m.init_mask_params(sigma) 
+            if args.method == "SQS":
+                m.SQS_INIT(sigma) 
+            elif args.method == "DGMS":
+                m.DGMS_INIT(sigma)
             count += 1 
 
 def replace_attn_layer(module, config, model_name, device):
@@ -236,6 +270,9 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_
     return train_dataloader, eval_dataloader, processed_datasets
 
 def main(args):
+
+    # Setup logger
+    logger = setup_logger(log_dir="~/SQS_H100/SQS_private/logs/{}/{}".format(args.model_name, args.task_name), log_filename=args.run_name)
 
     # Load the dataset
     raw_datasets = load_dataset("glue", args.task_name, trust_remote_code=True)
@@ -386,15 +423,16 @@ def main(args):
 
     # model_memory_summary(model)
 
-    model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_scheduler, 
+    model_train(logger, train_dataloader, eval_dataloader, model, pruner, optimizer, lr_scheduler, 
                 num_training_steps, args.duration, args.normal, cfg, device, num_labels)
 
-def model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_scheduler,
+def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimizer, lr_scheduler,
                 num_training_steps,duration, normal, cfg, device, num_labels):
     progress_bar = tqdm(range(num_training_steps))
 
 
     for epoch in range(duration):
+        logger.info(f"=== Epoch {epoch+1} ===")
         model.train()
         cfg.IS_TRAIN = True
         for step, batch in enumerate(train_dataloader):
@@ -404,14 +442,14 @@ def model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_
             
             if not normal:
                 pruner.prune(curr_step)
-                pruner.log_sparsity()
+                pruner.log_sparsity(logger)
 
             
             outputs = model(**batch)
 
             loss = outputs.loss
 
-            wandb.log({'Training Loss': loss.item()})
+            logger.info("[Train] Epoch {}, Step {}, Loss: {:.4f}".format(epoch+1, step, loss.item()))
 
             optimizer.zero_grad()
 
@@ -452,12 +490,16 @@ def model_train(train_dataloader, eval_dataloader, model, pruner, optimizer, lr_
             if step % 10 == 0:
                 print("-"*50+"Evaluating Model"+"-"*50)
                 accuracy = evaluate(model, eval_dataloader, device, num_labels)
-                wandb.log({'Eval Acc': accuracy}, commit=False)
+                logger.info("[Eval] Epoch {}, Step {}, Accuracy: {:.4f}".format(epoch, step, accuracy))
 
         # if pruner.cur_sparsity == args.final_sparsity:
-        check_point_path = args.save_folder+"epoch"+str(epoch)+"ddp_model.pth"       
-        torch.save(model.state_dict(), check_point_path)
-          
+        check_point_path = args.save_folder+"epoch"+str(epoch)
+        if not os.path.exists(check_point_path):
+            os.makedirs(check_point_path)
+        torch.save(model.state_dict(), check_point_path+"/model.pth")
+
+    Final_ACC = evaluate(model, eval_dataloader, device, num_labels)
+    logger.info(f"Final Accuracy: {Final_ACC:.4f}")
 
 def evaluate(model, eval_dataloader, device, num_labels):
     model.eval()
@@ -582,9 +624,9 @@ if __name__ == "__main__":
                         help='Choose Optimizer')
     parser.add_argument('--distributed', action='store_true', default=False,
                         help='Distributed Training or Not.')
+    parser.add_argument('--method', type=str, default="SQS",
+                        choices=["SQS", "DGMS"], help='Choose Method')
 
     args = parser.parse_args()
-    wandb.login()
 
-    wandb.init(project='SQS_GLUE', name=args.run_name)
     main(args)
