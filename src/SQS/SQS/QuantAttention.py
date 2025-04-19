@@ -766,13 +766,10 @@ class CustomizedLlamaAttention(LlamaAttention):
         self.v_proj.sub_distribution = gmm_approximation(self.k_level, self.v_proj.weight, self.temperature, 32, init_method, sigma)
         self.o_proj.sub_distribution = gmm_approximation(self.k_level, self.o_proj.weight, self.temperature, 32, init_method, sigma)
 
-    def QuantizedWeights(self):
-        if cfg.IS_TRAIN:
-            return self.q_proj.sub_distribution(weights=self.q_proj.weight, train=True), self.k_proj.sub_distribution(weights=self.k_proj.weight, train=True), self.v_proj.sub_distribution(weights=self.v_proj.weight, train=True), self.o_proj.sub_distribution(weights=self.o_proj.weight, train=True)
-        else:
-            return self.q_proj.sub_distribution(weights=self.q_proj.weight, train=False), self.k_proj.sub_distribution(weights=self.k_proj.weight, train=False), self.v_proj.sub_distribution(weights=self.v_proj.weight, train=False), self.o_proj.sub_distribution(weights=self.o_proj.weight, train=False)
+    def QuantizedWeights(self, train):
+        return self.q_proj.sub_distribution(weights=self.q_proj.weight, train=train), self.k_proj.sub_distribution(weights=self.k_proj.weight, train=train), self.v_proj.sub_distribution(weights=self.v_proj.weight, train=train), self.o_proj.sub_distribution(weights=self.o_proj.weight, train=train)
 
-    def  softforward( 
+    def softforward( 
         self,
         q_weights,
         k_weights,
@@ -844,7 +841,7 @@ class CustomizedLlamaAttention(LlamaAttention):
                 **kwargs
             )
         else:
-            q_weights, k_weights, v_weights, o_weights = self.QuantizedWeights()
+            q_weights, k_weights, v_weights, o_weights = self.QuantizedWeights(cfg.IS_TRAIN)
             return self.softforward(q_weights, 
                                     k_weights, 
                                     v_weights, 
@@ -1000,138 +997,71 @@ class CustomizedLLamaMLP(LlamaMLP):
         self.down_proj.sub_distribution_list = nn.ModuleList(self.down_proj.sub_distribution_list)
 
 
-    def DGMS_QuantizedWeights(self):
-        if cfg.IS_TRAIN:
-            up_weights = []
-            down_weights = []
+    def DGMS_QuantizedWeights(self, train=True):
+        up_weights = []
+        down_weights = []
 
-            for idx in range(self.blocks):
-                start = idx*self.up_step_size
-                end = start+self.up_step_size
+        for idx in range(self.blocks):
+            start = idx*self.up_step_size
+            end = start+self.up_step_size
 
-                up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[start:end].contiguous(), train=True))
-                down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[start:end].contiguous(), train=True))
+            up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[start:end].contiguous(), train=train))
+            down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[start:end].contiguous(), train=train))
 
-            up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
-            down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
+        up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
+        down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
 
-            return up_weights, down_weights
-            
-        else:
-            up_weights = []
-            down_weights = []
-
-            for idx in range(self.blocks):
-                start = idx*self.up_step_size
-                end = start+self.up_step_size
-
-                up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[start:end].contiguous(), train=False))
-                down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[start:end].contiguous(), train=False))
-
-            up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
-            down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
-
-            return up_weights, down_weights
+        return up_weights, down_weights
             
 
-    def SQS_QuantizedWeights(self):
-        if cfg.IS_TRAIN:
-            # Adaptive quantization
-            up_weights = []
-            down_weights = []
+    def SQS_QuantizedWeights(self, train=True):
+        # Adaptive quantization
+        up_weights = []
+        down_weights = []
 
-            for idx in range(self.blocks):
+        for idx in range(self.blocks):
 
-                if idx == 0:
-                    identity=False
-                    up_start = 0
-                    up_end = self.up_first_n
-                    down_start = 0
-                    down_end = self.down_first_n
-                    
-                elif idx == self.blocks-1:
-                    identity=False
-                    up_start = self.up_weight_num-self.up_last_n
-                    up_end = self.up_weight_num
-                    down_start = self.down_weight_num-self.down_last_n
-                    down_end = self.down_weight_num
-
-                    
-                elif idx == self.blocks-2:
-                    identity=False
-                    up_start = self.up_first_n+(idx-1)*self.up_step_size
-                    up_end =  self.up_weight_num-self.up_last_n
-                    down_start = self.down_first_n+(idx-1)*self.down_step_size
-                    down_end = self.down_weight_num-self.down_last_n
-
-                else:
-                    identity=False
-                    up_start = self.up_first_n+(idx-1)*self.up_step_size
-                    up_end = up_start+self.up_step_size
-                    down_start = self.down_first_n+(idx-1)*self.down_step_size
-                    down_end = down_start+self.down_step_size
+            if idx == 0:
+                identity=False
+                up_start = 0
+                up_end = self.up_first_n
+                down_start = 0
+                down_end = self.down_first_n
                 
-                if identity:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_start:up_end].contiguous()))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_start:down_end].contiguous()))
-                else:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_start:up_end].contiguous(), train=True))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_start:down_end].contiguous(), train=True))
+            elif idx == self.blocks-1:
+                identity=False
+                up_start = self.up_weight_num-self.up_last_n
+                up_end = self.up_weight_num
+                down_start = self.down_weight_num-self.down_last_n
+                down_end = self.down_weight_num
 
-            up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
-            down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
-            # print("-"*50+"Quantization Time taken to reconstruct weights {:.4f}".format(time_end-time_start)+"-"*50)
+                
+            elif idx == self.blocks-2:
+                identity=False
+                up_start = self.up_first_n+(idx-1)*self.up_step_size
+                up_end =  self.up_weight_num-self.up_last_n
+                down_start = self.down_first_n+(idx-1)*self.down_step_size
+                down_end = self.down_weight_num-self.down_last_n
 
-            return up_weights, down_weights
+            else:
+                identity=False
+                up_start = self.up_first_n+(idx-1)*self.up_step_size
+                up_end = up_start+self.up_step_size
+                down_start = self.down_first_n+(idx-1)*self.down_step_size
+                down_end = down_start+self.down_step_size
             
-        else:
-            up_weights = []
-            down_weights = []
-            
+            if identity:
+                up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_start:up_end].contiguous()))
+                down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_start:down_end].contiguous()))
+            else:
+                up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_start:up_end].contiguous(), train=train))
+                down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_start:down_end].contiguous(), train=train))
 
-            for idx in range(self.blocks):
+        up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
+        down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
+        # print("-"*50+"Quantization Time taken to reconstruct weights {:.4f}".format(time_end-time_start)+"-"*50)
 
-                if idx == 0:
-                    identity=False
-                    up_start = 0
-                    up_end = self.up_first_n
-                    down_start = 0
-                    down_end = self.down_first_n
-                    
-                elif idx == self.blocks-1:
-                    identity=False
-                    up_start = self.up_weight_num-self.up_last_n
-                    up_end = self.up_weight_num
-                    down_start = self.down_weight_num-self.down_last_n
-                    down_end = self.down_weight_num
-
-                    
-                elif idx == self.blocks-2:
-                    identity=False
-                    up_start = self.up_first_n+(idx-1)*self.up_step_size
-                    up_end =  self.up_weight_num-self.up_last_n
-                    down_start = self.down_first_n+(idx-1)*self.down_step_size
-                    down_end = self.down_weight_num-self.down_last_n
-
-                else:
-                    identity=False
-                    up_start = self.up_first_n+(idx-1)*self.up_step_size
-                    up_end = up_start+self.up_step_size
-                    down_start = self.down_first_n+(idx-1)*self.down_step_size
-                    down_end = down_start+self.down_step_size
-
-                if identity:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_start:up_end].contiguous()))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_start:down_end].contiguous()))
-                else:
-                    up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_start:up_end].contiguous(), train=False))
-                    down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_start:down_end].contiguous(), train=False))
-
-            up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
-            down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
-            # print("-"*50+"Quantization Time taken to reconstruct weights {:.4f}".format(time_end-time_start)+"-"*50)
-
-            return up_weights, down_weights
+        return up_weights, down_weights
     
     def softforward(self,
         up_weights,
@@ -1148,8 +1078,8 @@ class CustomizedLLamaMLP(LlamaMLP):
         else:
             # print("-"*50+"CustomizedMLP Layer Forward"+"-"*50)
             if cfg.METHOD == "SQS":
-                up_weights, down_weights = self.SQS_QuantizedWeights()
+                up_weights, down_weights = self.SQS_QuantizedWeights(cfg.IS_TRAIN)
             else:
-                up_weights, down_weights = self.DGMS_QuantizedWeights()
+                up_weights, down_weights = self.DGMS_QuantizedWeights(cfg.IS_TRAIN)
             return self.softforward(up_weights, down_weights, x)
 

@@ -3,6 +3,7 @@
 .out/
 wandb/
 .scripts/wandb/
+logs/
 
 *.pyc
 __pycache__/

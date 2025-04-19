@@ -23,6 +23,10 @@ from tqdm.auto import tqdm
 
 import SQS.config as cfg
 from SQS.config import model_config
+from SQS.QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention, CustomizedLLamaMLP
+from SQS.utils.GPT2_pruner_quantizer import GPT2_PRUNER
+from SQS.utils.sparsity import check_total_zero, check_total_weights
+from SQS.QuantAttention import CustomizedLlamaAttention, CustomizedLLamaMLP
 
 import bitsandbytes as bnb
 
@@ -38,8 +42,6 @@ from transformers.models.gpt2.modeling_gpt2 import GPT2Attention
 from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention
 from transformers.models.llama.modeling_llama import LlamaAttention, LlamaMLP
 
-from SQS.QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention, CustomizedLLamaMLP
-from SQS.utils.GPT2_pruner_quantizer import GPT2_PRUNER
 
 # from utils import *
 
@@ -112,6 +114,48 @@ def model_memory_summary(model):
         print("=" * 100)
         print(f"Total Parameters: {total_params}")
         print(f"Total Memory Consumption: {total_memory / (1024 ** 2):.4f} MB")
+
+def check_sparsity_per_layer(model, logger):
+        
+    total_sparsity_num = 0
+    total_weight_num = 0
+    skipped_weight_num = 0
+    for name, m in model.named_modules():
+        if isinstance(m, CustomizedLlamaAttention):
+            q_weights, k_weights, v_weights, o_weights = m.QuantizedWeights(train=False)
+            weights = [q_weights, k_weights, v_weights, o_weights]
+
+            for weight in weights:
+                total_sparsity_num += check_total_zero(weight)
+                total_weight_num += check_total_weights(weight)
+
+            del q_weights, k_weights, v_weights, o_weights, weights
+            torch.cuda.empty_cache()
+
+        elif isinstance(m, CustomizedLLamaMLP):
+            if cfg.METHOD == "SQS":
+                up_weights, down_weights = m.SQS_QuantizedWeights()
+            elif cfg.METHOD == "DGMS":
+                up_weights, down_weights = m.DGMS_QuantizedWeights()
+            
+            total_sparsity_num += check_total_zero(up_weights)
+            total_weight_num += check_total_weights(up_weights)
+
+            total_sparsity_num += check_total_zero(down_weights)
+            total_weight_num += check_total_weights(down_weights)
+
+            del up_weights, down_weights
+            torch.cuda.empty_cache()
+    
+    total_sparse_ratio = total_sparsity_num / total_weight_num
+    nz_parameters_num = total_weight_num-total_sparsity_num
+    logger.info(f"Total sparsity is {total_sparsity_num} / {total_weight_num}:\t {total_sparse_ratio:.4f}")
+    nz_ratio = 1 - total_sparse_ratio
+    logger.info(f"NZ ratio is :\t {nz_ratio:.4f}")
+    model_params = (skipped_weight_num+nz_parameters_num) / 1e6
+    logger.info(f"NZ parameters size: {model_params:.2f}M")
+    return total_sparse_ratio, model_params
+
 
 def setup_logger(log_dir="./logs", log_filename=None):
     os.makedirs(log_dir, exist_ok=True)
@@ -252,7 +296,7 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_
     eval_dataset = processed_datasets["validation_matched" if task_name == "mnli" else "validation"]
 
     g = torch.Generator().manual_seed(42)
-    sample_data_indices = torch.randperm(len(train_dataset), generator=g)[:10000]
+    sample_data_indices = torch.randperm(len(train_dataset), generator=g)[:128]
     subset_dataset = train_dataset.select(sample_data_indices.tolist())
 
     # dataLoaders creation:
@@ -272,7 +316,7 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_
 def main(args):
 
     # Setup logger
-    logger = setup_logger(log_dir="~/SQS_H100/SQS_private/logs/{}/{}".format(args.model_name, args.task_name), log_filename=args.run_name)
+    logger = setup_logger(log_dir="/home/ubuntu/SQS-H100/SQS_private/logs/{}/{}".format(args.model_name, args.task_name), log_filename=args.run_name)
 
     # Load the dataset
     raw_datasets = load_dataset("glue", args.task_name, trust_remote_code=True)
@@ -491,6 +535,7 @@ def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimiz
                 print("-"*50+"Evaluating Model"+"-"*50)
                 accuracy = evaluate(model, eval_dataloader, device, num_labels)
                 logger.info("[Eval] Epoch {}, Step {}, Accuracy: {:.4f}".format(epoch, step, accuracy))
+                sparsity_ratio, model_params = check_sparsity_per_layer(model, logger)
 
         # if pruner.cur_sparsity == args.final_sparsity:
         check_point_path = args.save_folder+"epoch"+str(epoch)

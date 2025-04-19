@@ -30,22 +30,22 @@ class GaussianMixtureModel(nn.Module):
 
         # print("Initializing GMM Parameters.")
         shape = init_weights.shape
-        self.mu_zero = nn.Parameter(data=torch.tensor([0.0], device=DEVICE).float(), requires_grad=(cfg.METHOD == "DGMS"))
-            
+        self.mu_zero = torch.tensor([0.0], device=init_weights.device).float()
+        self.sigma_zero =nn.Parameter(data=torch.tensor([0.0], device=init_weights.device).float(), requires_grad=(cfg.METHOD == "DGMS"))
+
         self.pi_k, self.mu, self.sigma = \
                     nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
                     nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=True), \
-                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=False)
+                    nn.Parameter(data=torch.ones(self.num_components, device=DEVICE), requires_grad=(cfg.METHOD == "DGMS"))
 
         self.temperature = torch.tensor([self.temperature], device=DEVICE)
-        self.pruning_parameter = nn.Parameter(data=torch.ones_like(init_weights, device=DEVICE))
+        self.pruning_parameter = nn.Parameter(data=torch.ones_like(init_weights, device=DEVICE), requires_grad=(cfg.METHOD == "SQS"))
 
         print("Init_method", init_method)
         self.params_initialization(init_weights, init_method)
         self.prune = cfg.PRUNE
         self.method = cfg.METHOD
         self.mask = (init_weights.abs()< 0.0)
-        
         # print('GMM weight dim {}'.format(init_weights.shape))
         # print('Init Mask dim {}'.format(self.mask.shape))
         if cfg.PRUNE:
@@ -177,7 +177,7 @@ class GaussianMixtureModel(nn.Module):
 
 
     def forward(self, weights, train=True):
-        if not cfg.PRUNE:
+        if cfg.METHOD == "DGMS":
             if train:
                 # soft mask generalized pruning during training
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
@@ -185,7 +185,8 @@ class GaussianMixtureModel(nn.Module):
                 # Sweight = torch.mul(self.region_belonging[0], 0.) \
                 #         + torch.mul(self.region_belonging[1:], self.mu.unsqueeze(1)).sum(dim=0)
                 
-                Sweight = reconstruct(weights.shape, self.region_belonging[:,1:]@self.mu.unsqueeze(1), self.bin_indices, DEVICE)
+                Sweight = reconstruct(weights.shape, torch.mul(self.region_belonging[:,0], 0.), self.bin_indices, DEVICE)+\
+                    reconstruct(weights.shape, self.region_belonging[:,1:]@self.mu.unsqueeze(1), self.bin_indices, DEVICE)
 
                 return Sweight.view(weights.size())
             else:
@@ -202,9 +203,6 @@ class GaussianMixtureModel(nn.Module):
                 region_belonging = self.GMM_region_responsibility(weights.flatten())
                 # print("Printing the region_belong shape {}".format(region_belonging.shape))
 
-                def memory_in_mb(tensor):
-                    return tensor.element_size() * tensor.numel() / (1024*1024)
-                                                
                 if cfg.PRIOR == 'spike_slab':
                     Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
                     # Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)
@@ -232,7 +230,7 @@ class GaussianMixtureModel(nn.Module):
                 mask_w = torch.zeros_like(region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 # print("Region belonging shape", region_belonging.shape)
                 # print("Mu shape", self.mu.shape)
-                Pweight = reconstruct(weights.size(),region_belonging@self.mu, self.bin_indices, DEVICE)
+                Pweight = reconstruct(weights.size(), mask_w@self.mu, self.bin_indices, DEVICE)
                 
                 # print('Pweight before mask {}'.format(Pweight))
                 # print("Pweight shape", Pweight.shape)
