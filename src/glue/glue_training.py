@@ -4,7 +4,7 @@ import os
 import logging
 from logging import getLogger
 import datetime
-
+import re
 
 import numpy as np
 
@@ -26,7 +26,7 @@ from SQS.config import model_config
 from SQS.QuantAttention import CustomizGPT2Attention, CustomizedQwen2Attention, CustomizedLlamaAttention, CustomizedLLamaMLP
 from SQS.utils.GPT2_pruner_quantizer import GPT2_PRUNER
 from SQS.utils.sparsity import check_total_zero, check_total_weights
-from SQS.QuantAttention import CustomizedLlamaAttention, CustomizedLLamaMLP
+from SQS.QuantAttention import CustomizedLlamaAttention, CustomizedLLamaMLP, CustomizedQwen2MLP
 
 import bitsandbytes as bnb
 
@@ -39,7 +39,7 @@ from transformers.trainer_pt_utils import get_parameter_names
 from transformers import TrainingArguments
 
 from transformers.models.gpt2.modeling_gpt2 import GPT2Attention
-from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention
+from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention, Qwen2MLP
 from transformers.models.llama.modeling_llama import LlamaAttention, LlamaMLP
 
 
@@ -56,6 +56,26 @@ task_to_keys = {
     "qqp":  ("question1", "question2"),
     "sst2": ("sentence", None),
 }
+
+def get_pruning_params(model):
+    parameters = []
+    for name, param in model.named_parameters():
+        if param.requires_grad and re.search('pruning', name):
+            print("Adding {} to pruning parameters".format(name))
+            parameters.append(param)
+    
+    return parameters
+
+
+def get_non_pruning_params(model):
+    parameters = []
+    for name, param in model.named_parameters():
+        if param.requires_grad and not re.search('pruning', name):
+            print("Adding {} to non-pruning parameters".format(name))
+            parameters.append(param)
+    
+    return parameters
+
 
 def setup(rank, world_size):
     # Set up environment variables for distributed training.
@@ -121,28 +141,37 @@ def check_sparsity_per_layer(model, logger):
     total_weight_num = 0
     skipped_weight_num = 0
     for name, m in model.named_modules():
-        if isinstance(m, CustomizedLlamaAttention):
+        if isinstance(m, (CustomizedLlamaAttention, CustomizedQwen2Attention)):
             q_weights, k_weights, v_weights, o_weights = m.QuantizedWeights(train=False)
             weights = [q_weights, k_weights, v_weights, o_weights]
 
             for weight in weights:
+                zero_num = check_total_zero(weight)
+                total_num = check_total_weights(weight)
                 total_sparsity_num += check_total_zero(weight)
                 total_weight_num += check_total_weights(weight)
+
 
             del q_weights, k_weights, v_weights, o_weights, weights
             torch.cuda.empty_cache()
 
-        elif isinstance(m, CustomizedLLamaMLP):
+        elif isinstance(m, (CustomizedLLamaMLP, CustomizedQwen2MLP)):
             if cfg.METHOD == "SQS":
-                up_weights, down_weights = m.SQS_QuantizedWeights()
+                up_weights, down_weights = m.SQS_QuantizedWeights(train=False)
             elif cfg.METHOD == "DGMS":
-                up_weights, down_weights = m.DGMS_QuantizedWeights()
-            
-            total_sparsity_num += check_total_zero(up_weights)
-            total_weight_num += check_total_weights(up_weights)
+                up_weights, down_weights = m.DGMS_QuantizedWeights(train=False)
 
-            total_sparsity_num += check_total_zero(down_weights)
-            total_weight_num += check_total_weights(down_weights)
+            zero_num = check_total_zero(up_weights)
+            total_num = check_total_weights(up_weights)
+
+            total_sparsity_num += zero_num
+            total_weight_num += total_num
+
+            zero_num = check_total_zero(down_weights)   
+            total_num = check_total_weights(down_weights)
+
+            total_sparsity_num += zero_num
+            total_weight_num += total_num
 
             del up_weights, down_weights
             torch.cuda.empty_cache()
@@ -207,12 +236,20 @@ def InitModel(model, sigma):
             print("Initializing Customized Model Parameters.")
             m.init_mask_params(sigma) 
             count += 1 
+        elif isinstance(m, CustomizedQwen2MLP):
+            print("Initializing Layer {}".format(count))
+            print("Initializing Customized Model Parameters.")
+            if args.method == "SQS":
+                m.SQS_INIT(sigma) 
+            elif args.method == "DGMS":
+                m.DGMS_INIT(sigma)
+            count += 1 
         elif isinstance(m, CustomizedLlamaAttention):
             print("Initializing Layer {}".format(count))
             print("Initializing Customized Model Parameters.")
             m.init_mask_params(sigma) 
             count += 1 
-        elif isinstance(m, CustomizedLLamaMLP):
+        elif isinstance(m, (CustomizedLLamaMLP, CustomizedQwen2MLP)):
             print("Initializing Layer {}".format(count))
             print("Initializing Customized Model Parameters.")
             if args.method == "SQS":
@@ -231,12 +268,18 @@ def replace_attn_layer(module, config, model_name, device):
             return new_module
         else:
             return module
-    elif model_name == "Qwen_1.5b" or model_name == "Qwen_0.5b":
+    elif model_name == "Qwen/Qwen2.5-1.5B" or model_name == "Qwen/Qwen2.5-0.5B":
         if isinstance(module, Qwen2Attention):
-            # target_state_dict   = deepcopy(module.state_dict())
+            target_state_dict   = deepcopy(module.state_dict())
             new_module = CustomizedQwen2Attention(config, layer_idx=module.layer_idx).to(device)
             new_module.load_state_dict(module.state_dict())
             print("Replace with Customize Qwen Flash Attention Layer.")
+            return new_module
+        elif isinstance(module, Qwen2MLP):
+            target_state_dict   = deepcopy(module.state_dict())
+            new_module = CustomizedQwen2MLP(config).to(device)
+            new_module.load_state_dict(target_state_dict)
+            print("Replace with Customize Qwen MLP Layer.")
             return new_module
         else:
             return module
@@ -296,7 +339,7 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_
     eval_dataset = processed_datasets["validation_matched" if task_name == "mnli" else "validation"]
 
     g = torch.Generator().manual_seed(42)
-    sample_data_indices = torch.randperm(len(train_dataset), generator=g)[:128]
+    sample_data_indices = torch.randperm(len(train_dataset), generator=g)[:200]
     subset_dataset = train_dataset.select(sample_data_indices.tolist())
 
     # dataLoaders creation:
@@ -316,7 +359,7 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_
 def main(args):
 
     # Setup logger
-    logger = setup_logger(log_dir="/home/ubuntu/SQS-H100/SQS_private/logs/{}/{}".format(args.model_name, args.task_name), log_filename=args.run_name)
+    logger = setup_logger(log_dir="{}/logs/{}/{}".format(args.base_dir, args.model_name, args.task_name), log_filename=args.run_name)
 
     # Load the dataset
     raw_datasets = load_dataset("glue", args.task_name, trust_remote_code=True)
@@ -427,24 +470,32 @@ def main(args):
         )
     elif args.optimizer == "sgd":
         print("SGD optimizer")
+
+        if cfg.IS_NORMAL:
+            optimizer = SGD(
+                model.parameters(),
+                lr=args.lr,
+                weight_decay=args.weight_decay
+            )
         
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in model.named_parameters() if "mu" in name],
-                "lr": args.lr,
-                "weight_decay": args.weight_decay,
-            },
-            {
-                "params": [p for n, p in model.named_parameters() if "mu" not in name],
-                "lr": args.lr,
-                "weight_decay": 0.0,
-            },
-        ]
-        optimizer = SGD(
-            model.parameters(),
-            lr=args.lr,
-            weight_decay=args.weight_decay
-        )
+        else:
+            optimizer_grouped_parameters = [
+                {
+                    "params": get_non_pruning_params(model),
+                    "lr": args.lr,
+                    "weight_decay": args.weight_decay,
+                },
+                {
+                    "params": get_pruning_params(model),
+                    "lr": args.prune_lr,
+                    "weight_decay": 0.0,
+                },
+            ]
+            optimizer = SGD(
+                optimizer_grouped_parameters,
+                lr=args.lr,
+                weight_decay=args.weight_decay
+            )
 
     for state in optimizer.state.values():
         for k, v in state.items():
@@ -518,7 +569,7 @@ def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimiz
             if not normal:
                 pruner.apply_non_prune_gradient(curr_step)
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)
 
             # if step  % 10 == 0:
             #     for name, param in model.named_parameters():
@@ -535,13 +586,17 @@ def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimiz
                 print("-"*50+"Evaluating Model"+"-"*50)
                 accuracy = evaluate(model, eval_dataloader, device, num_labels)
                 logger.info("[Eval] Epoch {}, Step {}, Accuracy: {:.4f}".format(epoch, step, accuracy))
-                sparsity_ratio, model_params = check_sparsity_per_layer(model, logger)
+                if not cfg.IS_NORMAL:
+                    sparsity_ratio, model_params = check_sparsity_per_layer(model, logger)
 
         # if pruner.cur_sparsity == args.final_sparsity:
-        check_point_path = args.save_folder+"epoch"+str(epoch)
-        if not os.path.exists(check_point_path):
-            os.makedirs(check_point_path)
-        torch.save(model.state_dict(), check_point_path+"/model.pth")
+        check_point_path = args.save_folder+"/epoch"+str(epoch)
+        if cfg.IS_NORMAL:
+            model.save_pretrained(check_point_path)
+        else:
+            if not os.path.exists(check_point_path):
+                os.makedirs(check_point_path)
+            torch.save(model.state_dict(), check_point_path+"/model.pth")
 
     Final_ACC = evaluate(model, eval_dataloader, device, num_labels)
     logger.info(f"Final Accuracy: {Final_ACC:.4f}")
@@ -628,6 +683,8 @@ if __name__ == "__main__":
                         help='Evaluation Batch Size')
     parser.add_argument('--lr', type=float, default=2e-5,
                         help="Initial Learning rate.")
+    parser.add_argument('--prune_lr', type=float, default=0.05,
+                        help="Initial Pruning Learning rate.")
     parser.add_argument('--weight_decay', type=float, default=5e-4,
                         metavar='M', help='w-decay (default: 5e-4)')
     parser.add_argument('--duration', type=int, default=20,
@@ -670,7 +727,9 @@ if __name__ == "__main__":
     parser.add_argument('--distributed', action='store_true', default=False,
                         help='Distributed Training or Not.')
     parser.add_argument('--method', type=str, default="SQS",
-                        choices=["SQS", "DGMS"], help='Choose Method')
+                        choices=["SQS", "DGMS", "Normal"], help='Choose Method')
+    parser.add_argument('--base_dir', type=str, default="SQS-H100",
+                        help='Base Directory')
 
     args = parser.parse_args()
 

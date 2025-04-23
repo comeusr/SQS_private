@@ -58,14 +58,3 @@ def Normal_pdf(x, _pi, mu, sigma, DEVICE):
             print("Sigma Squared {}".format(sigma**2))
 
         return pdf
-
-
-
-def get_distribution(nums: torch.tensor, Pm: torch.tensor, K: int, pi_normalized, sigma, DEVICE):
-    B = len(nums)
-    responsibility = torch.zeros([K, B], device=DEVICE)
-
-    for k in range(K):
-        responsibility[k] = Normal_pdf(nums, pi_normalized[k], Pm[k], sigma[k], DEVICE)
-
-    return responsibility

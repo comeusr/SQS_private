@@ -9,10 +9,22 @@ def interval_mapping(M: torch.tensor, B:int, DEVICE):
     bin_indices = torch.bucketize(Mvect, quantiles, right=False)  # Adjust to 0-based index
     M.to(DEVICE)
 
-    means = torch.zeros(B, dtype=torch.float32)
-    for i in range(B):
-        means[i] = Mvect[bin_indices == i].mean()
+    sum_per_bin   = torch.zeros(B, device=Mvect.device).scatter_add_(0, bin_indices, Mvect)
+    count_per_bin = torch.zeros(B, device=Mvect.device).scatter_add_(0, bin_indices,
+                                                                 torch.ones_like(Mvect))
+    # --- keep only the non-empty bins -------------------
+    means = torch.zeros(B, device=Mvect.device)
+    valid = count_per_bin != 0
+    means[valid] = sum_per_bin[valid] / count_per_bin[valid]  
 
+    if B != len(valid):
+        print("-"*50+"Interval Mapping B {}".format(B)+"-"*50)
+        print("-"*50+"Interval Mapping len valid {}".format(len(valid))+"-"*50)
+        print("-"*50+"Interval Mapping means shape{}".format(means.shape)+"-"*50)
+
+    has_nan = torch.isnan(means).any()
+    if has_nan:
+        print("-"*50+"Interval Mapping found nan in means {}".format(means)+"-"*50)
 
     return bin_indices.cpu(), means.to(DEVICE)
 
@@ -48,6 +60,7 @@ def reconstruct(dims, Ws, bin_indices, device):
 
     # Ws: B x 1
     # bin_indices: N x 1
+
     N = dims[0]*dims[1] if len(dims) == 2 else dims[0]
 
     unique_bin_indices = torch.unique(bin_indices)

@@ -40,12 +40,12 @@ model_config={
         "from_pretrained": "openai-community/gpt2",
         "attn_implementation": "flash_attention_2",
     },
-    "Qwen/Qwen2-1.5B":{
-        "from_pretrained": "Qwen/Qwen2-1.5B",
+    "Qwen/Qwen2.5-1.5B":{
+        "from_pretrained": "/home/ubuntu/SQS-H100/SQS_private/Data/pretrained/GLUE/sst2/Qwen/Qwen2.5-1.5B/epoch2",
         "attn_implementation": "eager",
 
     },
-    "Qwen/Qwen2-0.5B":{
+    "Qwen/Qwen2.5-0.5B":{
         "from_pretrained": "/scratch/gilbreth/wang4538/DGMS/Run/GLUE/normal_sst2_Qwen_0.5b/normal_epoch0",
         "attn_implementation": "eager",
     },

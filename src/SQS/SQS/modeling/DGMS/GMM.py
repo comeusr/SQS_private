@@ -60,6 +60,9 @@ class GaussianMixtureModel(nn.Module):
         end_time = time.time()
         print("Grouping completed in {} seconds".format(end_time - start_time))
 
+        if self.nums.isnan().any():
+            print("GMM found nan in self.nums after interval mapping {}".format(self.nums))
+
     def params_initialization(self, init_weights, method='k-means'):
         if not cfg.PRUNE:
             """ Initialization of GMM parameters using k-means algorithm. """
@@ -143,25 +146,27 @@ class GaussianMixtureModel(nn.Module):
             temp_2 = torch.log(torch.sqrt(2*math.pi*sigma**2))
             # print("X-mu Squared {}".format(torch.pow(x - mu, 2)))
             # print("Sigma Squared {}".format(sigma**2))
-            
-            print("Pow 2 {}".format(pow2))
-            print("Sigma {}".format(sigma))
-            print("Sigam Dtype {}".format(sigma.dtype))
-            print("Sigma Squared {}".format(sigma**2))
+            print("GMM Mu {}".format(mu))
+            print("GMM Mu Dtype {}".format(mu.dtype))
+            print("GMM Pow 2 {}".format(pow2))
+            print("GMM Sigma {}".format(sigma))
+            print("GMM Sigam Dtype {}".format(sigma.dtype))
+            print("GMM Sigma Squared {}".format(sigma**2))
 
         return pdf
 
 
     def GMM_region_responsibility(self, weights):
         pi_normalized = self.gaussian_mixing_regularization()
+
         O = get_distribution(self.nums, self.mu, self.num_components, pi_normalized, self.sigma, self.sigma_zero, self.method, DEVICE)
         O = torch.div(O, O.sum(dim=0) + cfg.EPS)
-        # print("responsibility {}".format(responsibility))
+
         temp = F.softmax(O / self.temperature, dim=0).T
 
-        # print("-"*50+"Responsibility before mask"+"-"*50)
         
         if temp.isnan().any():
+            print("-"*50+"GMM self.nums {}".format(self.nums)+"-"*50)
             print('-'*50+"Found nan in the soft weights"+"-"*50)
             if O.isnan().any():
                 print("-"*50+"responsibility is nan"+"-"*50)
@@ -181,7 +186,6 @@ class GaussianMixtureModel(nn.Module):
             if train:
                 # soft mask generalized pruning during training
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-                # print("Printing the region_belong shape {}".format(self.region_belonging.shape))
                 # Sweight = torch.mul(self.region_belonging[0], 0.) \
                 #         + torch.mul(self.region_belonging[1:], self.mu.unsqueeze(1)).sum(dim=0)
                 
@@ -191,7 +195,6 @@ class GaussianMixtureModel(nn.Module):
                 return Sweight.view(weights.size())
             else:
                 self.region_belonging = self.GMM_region_responsibility(weights.flatten())
-                # print("Printing the region_belong shape {}".format(self.region_belonging.shape))
                 max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
                 mask_w = torch.zeros_like(self.region_belonging).scatter_(dim=0, index=max_index, value=1.)
                 # Pweight = torch.mul(mask_w[1:], self.mu.unsqueeze(1)).sum(dim=0)
@@ -201,19 +204,15 @@ class GaussianMixtureModel(nn.Module):
         else:
             if train:
                 region_belonging = self.GMM_region_responsibility(weights.flatten())
-                # print("Printing the region_belong shape {}".format(region_belonging.shape))
 
                 if cfg.PRIOR == 'spike_slab':
                     Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
                     # Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)
-                    # print("-"*50+"Debug Mode Pruning Parameter disabled"+"-"*50)
                 else:
                     Sweight = torch.mul(region_belonging, self.mu.unsqueeze(1)).sum(dim=0)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE) \
                             + (1-F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE))*torch.randn_like(weights.flatten())
 
-                # print("-"*50+"Sweight before delete"+"-"*50)
                 torch.cuda.empty_cache()
-                # print("-"*50+"Sweight after delete"+"-"*50)
 
                 return Sweight.view(weights.size())
             else:
@@ -223,11 +222,14 @@ class GaussianMixtureModel(nn.Module):
            
                 if cfg.SAMPLE:
                     # max_index = torch.argmax(self.region_belonging, dim=0).unsqueeze(0)
-                    max_index = region_belonging.transpose(0, 1).multinomial(num_samples=1).transpose(0, 1)
+                    max_index = region_belonging.multinomial(num_samples=1)
                 else:
-                    max_index = torch.argmax(region_belonging, dim=0).unsqueeze(0)
+                    max_index = torch.argmax(region_belonging, dim=1).unsqueeze(1)
                 # print("Print the max_index shape {}".format(max_index.shape))
-                mask_w = torch.zeros_like(region_belonging).scatter_(dim=0, index=max_index, value=1.)
+
+                
+                mask_w = torch.zeros_like(region_belonging).scatter_(dim=1, index=max_index, value=1.)
+
                 # print("Region belonging shape", region_belonging.shape)
                 # print("Mu shape", self.mu.shape)
                 Pweight = reconstruct(weights.size(), mask_w@self.mu, self.bin_indices, DEVICE)
@@ -236,7 +238,17 @@ class GaussianMixtureModel(nn.Module):
                 # print("Pweight shape", Pweight.shape)
                 Pweight = Pweight.view(weights.size())
 
+                true_count = self.mask.sum().item()           # number of True elements
+                total      = self.mask.numel()                # M * N
+                prop_true  = true_count / total          # a float in [0,1]
+                # print(f"GMM Mask: {true_count}/{total} = {prop_true:.2%} True")
+
                 Pweight.detach().masked_fill_(self.mask, 0.0)
+
+                zero_count = (Pweight == 0.0).sum().item()
+                zero_prop  = zero_count / Pweight.numel()
+                # print(f"GMM Pweight: {zero_count}/{Pweight.numel()} = {zero_prop:.2%} zeros")  
+                 
                 return Pweight
 
 def gmm_approximation(num_components, init_weights, temperature=0.5, B=11, init_method='k-means', sigma=3) -> GaussianMixtureModel:

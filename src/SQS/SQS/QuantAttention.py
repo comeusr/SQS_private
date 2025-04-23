@@ -15,7 +15,7 @@ from transformers.models.bert.modeling_bert import load_tf_weights_in_bert, \
     BertSelfAttention, BertSelfOutput
 from transformers.models.gpt2.modeling_gpt2 import GPT2Attention, GPT2Attention
 from transformers.models.opt.modeling_opt import OptFlashAttention2
-from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention, apply_rotary_pos_emb, repeat_kv, Qwen2RotaryEmbedding, eager_attention_forward
+from transformers.models.qwen2.modeling_qwen2 import Qwen2Attention, Qwen2MLP,apply_rotary_pos_emb, repeat_kv, Qwen2RotaryEmbedding, eager_attention_forward
 from transformers.models.llama.modeling_llama import LlamaAttention, LlamaMLP
 from transformers.modeling_flash_attention_utils import _flash_attention_forward
 from transformers.utils import logging
@@ -592,10 +592,10 @@ class CustomizedQwen2Attention(Qwen2Attention):
             print("Original q_proj weight is nan")
         if torch.isnan(self.o_proj.weight).any():
             print("Original o_proj weight is nan")
-        self.k_proj.sub_distribution = gmm_approximation(self.k_level, self.k_proj.weight, self.temperature, init_method, sigma)    
-        self.v_proj.sub_distribution = gmm_approximation(self.k_level, self.v_proj.weight, self.temperature, init_method, sigma)    
-        self.q_proj.sub_distribution = gmm_approximation(self.k_level, self.q_proj.weight, self.temperature, init_method, sigma)    
-        self.o_proj.sub_distribution = gmm_approximation(self.k_level, self.o_proj.weight, self.temperature, init_method, sigma)    
+        self.q_proj.sub_distribution = gmm_approximation(self.k_level, self.q_proj.weight, self.temperature, 32, init_method, sigma)
+        self.k_proj.sub_distribution = gmm_approximation(self.k_level, self.k_proj.weight, self.temperature, 32, init_method, sigma)
+        self.v_proj.sub_distribution = gmm_approximation(self.k_level, self.v_proj.weight, self.temperature, 32, init_method, sigma)
+        self.o_proj.sub_distribution = gmm_approximation(self.k_level, self.o_proj.weight, self.temperature, 32, init_method, sigma)  
     
     def get_Sweight(self):
         with torch.no_grad():
@@ -604,38 +604,11 @@ class CustomizedQwen2Attention(Qwen2Attention):
                     self.q_proj.sub_distribution(weights=self.q_proj.weight, train=True),
                     self.o_proj.sub_distribution(weights=self.o_proj.weight, train=True))
     
-    def QuantizedWeights(self):
-        if cfg.IS_TRAIN:
-
-            # print("-"*50+"In Training Fetch Quantized Weights"+"-"*50)
-            if torch.isnan(self.k_proj.weight).any():
-                print("Original k_proj weight is nan")
-            if torch.isnan(self.v_proj.weight).any():
-                print("Original v_proj weight is nan")
-            if torch.isnan(self.q_proj.weight).any():
-                print("Original q_proj weight is nan")
-            if torch.isnan(self.o_proj.weight).any():
-                print("Original o_proj weight is nan")
-            
-    
-            k_weights = self.k_proj.sub_distribution(weights=self.k_proj.weight, train=True)
-            v_weights = self.v_proj.sub_distribution(weights=self.v_proj.weight, train=True)
-            q_weights = self.q_proj.sub_distribution(weights=self.q_proj.weight, train=True)
-            o_weights = self.o_proj.sub_distribution(weights=self.o_proj.weight, train=True)
-        else:
-            if torch.isnan(self.k_proj.weight).any():
-                print("Original k_proj weight is nan")
-            if torch.isnan(self.v_proj.weight).any():
-                print("Originalv_proj weight is nan")
-            if torch.isnan(self.q_proj.weight).any():
-                print("Original q_proj weight is nan")
-            if torch.isnan(self.o_proj.weight).any():
-                print("Original o_proj weight is nan")
-            k_weights = self.k_proj.sub_distribution(weights=self.k_proj.weight, train=False)
-            v_weights = self.v_proj.sub_distribution(weights=self.v_proj.weight, train=False)
-            q_weights = self.q_proj.sub_distribution(weights=self.q_proj.weight, train=False)
-            o_weights = self.o_proj.sub_distribution(weights=self.o_proj.weight, train=False)
-
+    def QuantizedWeights(self, train):
+        k_weights = self.k_proj.sub_distribution(weights=self.k_proj.weight, train=train)
+        v_weights = self.v_proj.sub_distribution(weights=self.v_proj.weight, train=train)
+        q_weights = self.q_proj.sub_distribution(weights=self.q_proj.weight, train=train)
+        o_weights = self.o_proj.sub_distribution(weights=self.o_proj.weight, train=train)
         return k_weights, v_weights, q_weights, o_weights
 
     def softforward(
@@ -725,7 +698,7 @@ class CustomizedQwen2Attention(Qwen2Attention):
                 **kwargs
             )
         else:
-            k_weights, v_weights, q_weights, o_weights = self.QuantizedWeights()
+            k_weights, v_weights, q_weights, o_weights = self.QuantizedWeights(train=cfg.IS_TRAIN)
             temp = self.softforward(
                 k_weights, 
                 v_weights, 
@@ -745,8 +718,6 @@ class CustomizedQwen2Attention(Qwen2Attention):
             elif temp[0].isinf().any():
                 print("Temp is inf")
 
-            # temp[0].requires_grad = True
-            # print('-'*50+"Temp requires_grad: ", temp[0].requires_grad, "-"*50)
 
             return temp
 
@@ -852,7 +823,7 @@ class CustomizedLlamaAttention(LlamaAttention):
 
 
 class CustomizedLLamaMLP(LlamaMLP):
-    def __init__(self, config, blocks=4, sigma=None):
+    def __init__(self, config, blocks=4):
         super().__init__(config)
 
         self.is_normal = cfg.IS_NORMAL
@@ -1083,3 +1054,243 @@ class CustomizedLLamaMLP(LlamaMLP):
                 up_weights, down_weights = self.DGMS_QuantizedWeights(cfg.IS_TRAIN)
             return self.softforward(up_weights, down_weights, x)
 
+
+class CustomizedQwen2MLP(Qwen2MLP):
+
+    def __init__(self, config, blocks=4):
+        super().__init__(config)
+
+        self.is_normal = cfg.IS_NORMAL
+        self.k_level = cfg.K_LEVEL
+        self.temperature = cfg.TAU
+        self.blocks = blocks
+        self.up_proj_size = self.up_proj.weight.size()
+        self.down_proj_size = self.down_proj.weight.size()
+        self.sorted_up_indices = None
+        self.sorted_down_indices = None
+        self.up_weight_num = self.up_proj.weight.numel()
+        self.down_weight_num = self.down_proj.weight.numel()
+        self.up_first_n=64
+        self.up_last_n=64
+        self.down_first_n=64
+        self.down_last_n=64
+    
+    def reconstruct_weight(self, weights: List[torch.Tensor], inverse_sorted_indices, type='up'):
+        # TODO: Restore the up_proj_weight given up_weight and self.sorted_up_indices
+        # TODO: Restore the down_proj_weight given down_weight and self.sorted_down_indices
+
+        # print("-"*50+"inverse_sorted_indices: ", inverse_sorted_indices.device, "-"*50)
+
+        if type == 'up':
+            return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.up_proj_size)
+        else:
+            return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.down_proj_size)
+
+    
+    def get_outlier_indices(self, scale=5):
+        
+        # Before Call this function, self.up_proj.weight and self.down_proj.weight need to be flattened and sorted
+        
+        fisrt_quantile_index = (self.up_weight_num-1)//4
+        third_quantile_index = (self.up_weight_num-1)*3//4
+
+        up_iqr = self.up_proj.weight.data[third_quantile_index]-self.up_proj.weight.data[fisrt_quantile_index]
+        down_iqr = self.down_proj.weight.data[third_quantile_index]-self.down_proj.weight.data[fisrt_quantile_index]
+
+        up_low_threshold = self.up_proj.weight.data[fisrt_quantile_index]-scale*up_iqr
+        up_high_threshold = self.up_proj.weight.data[third_quantile_index]+scale*up_iqr
+
+        down_low_threshold = self.down_proj.weight.data[fisrt_quantile_index]-scale*down_iqr
+        down_high_threshold = self.down_proj.weight.data[third_quantile_index]+scale*down_iqr
+
+
+        self.up_first_n = torch.searchsorted(self.up_proj.weight.data, up_low_threshold, right=True).item()
+        self.up_last_n = self.up_weight_num - torch.searchsorted(self.up_proj.weight.data, up_high_threshold, right=True).item()
+
+        self.down_first_n = torch.searchsorted(self.down_proj.weight.data, down_low_threshold, right=True).item()
+        self.down_last_n = self.down_weight_num - torch.searchsorted(self.down_proj.weight.data, down_high_threshold, right=True).item()
+
+        return
+    
+    def DGMS_INIT(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+
+        up_flat_weight = self.up_proj.weight.flatten().data
+        down_flat_weight = self.down_proj.weight.flatten().data
+
+        self.up_proj.weight.data, sorted_up_indices = torch.sort(up_flat_weight)
+        self.down_proj.weight.data, sorted_down_indices = torch.sort(down_flat_weight)
+
+        self.up_argsort_indices = torch.argsort(sorted_up_indices).cpu()
+        self.down_argsort_indices = torch.argsort(sorted_down_indices).cpu()
+
+        del up_flat_weight, sorted_up_indices
+        del down_flat_weight, sorted_down_indices
+
+        torch.cuda.empty_cache()
+
+        self.up_proj.sub_distribution_list = []
+        self.down_proj.sub_distribution_list = []
+
+        self.up_step_size = self.up_proj.weight.numel()//self.blocks
+        self.down_step_size = self.down_proj.weight.numel()//self.blocks
+
+        for block_idx in range(self.blocks):
+            start = block_idx*self.up_step_size
+            end = start+self.up_step_size
+
+            self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[start:end].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.up_proj.weight.device))
+            self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[start:end].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.down_proj.weight.device))
+
+        self.up_proj.sub_distribution_list = nn.ModuleList(self.up_proj.sub_distribution_list)
+        self.down_proj.sub_distribution_list = nn.ModuleList(self.down_proj.sub_distribution_list)
+
+        
+    def SQS_INIT(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+
+        up_flat_weight = self.up_proj.weight.flatten().data
+        down_flat_weight = self.down_proj.weight.flatten().data
+
+        self.up_proj.weight.data, sorted_up_indices = torch.sort(up_flat_weight)
+        self.down_proj.weight.data, sorted_down_indices = torch.sort(down_flat_weight)
+
+        self.get_outlier_indices()
+        print("-"*50+"up_first_n {}".format(self.up_first_n)+"-"*50)
+        print("-"*50+"up_last_n {}".format(self.up_last_n)+"-"*50)
+        print("-"*50+"down_first_n {}".format(self.down_first_n)+"-"*50)
+        print("-"*50+"down_last_n {}".format(self.down_last_n)+"-"*50)
+
+        self.up_argsort_indices = torch.argsort(sorted_up_indices).cpu()
+        self.down_argsort_indices = torch.argsort(sorted_down_indices).cpu()
+
+        del up_flat_weight, sorted_up_indices
+        del down_flat_weight, sorted_down_indices
+
+        torch.cuda.empty_cache()
+
+        self.up_proj.sub_distribution_list = []
+        self.down_proj.sub_distribution_list = []
+
+        self.up_step_size = (self.up_proj.weight.numel()-self.up_first_n-self.up_last_n)//(self.blocks-2)
+        self.down_step_size = (self.down_proj.weight.numel()-self.down_first_n-self.down_last_n)//(self.blocks-2)
+
+        for block_idx in range(self.blocks):
+
+            # print("-"*50+"up_mask shape: ", up_mask.shape, "-"*50)
+            # print("-"*50+"up selectedweight shape {} ".format(self.up_proj.weight[up_mask].shape), "-"*50)
+            if block_idx == 0:
+                self.up_proj.sub_distribution_list.append(nn.Identity())
+                self.down_proj.sub_distribution_list.append(nn.Identity())
+                # self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[0:self.up_first_n].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.up_proj.weight.device))
+                # self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[0:self.down_first_n].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.down_proj.weight.device))
+            elif block_idx == self.blocks-1:
+                self.up_proj.sub_distribution_list.append(nn.Identity())
+                self.down_proj.sub_distribution_list.append(nn.Identity())
+                # self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[self.up_weight_num-self.up_last_n:self.up_weight_num].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.up_proj.weight.device))
+                # self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[self.down_weight_num-self.down_last_n:self.down_weight_num].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.down_proj.weight.device))
+            else:
+                if block_idx == self.blocks-2:
+                    up_start = self.up_first_n+(block_idx-1)*self.up_step_size
+                    up_end =  self.up_weight_num-self.up_last_n
+                    down_start = self.down_first_n+(block_idx-1)*self.down_step_size
+                    down_end = self.down_weight_num-self.down_last_n
+                else:
+                    up_start = self.up_first_n+(block_idx-1)*self.up_step_size
+                    up_end = up_start+self.up_step_size
+                    down_start = self.down_first_n+(block_idx-1)*self.down_step_size
+                    down_end = down_start+self.down_step_size
+
+                
+                self.up_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.up_proj.weight[up_start:up_end].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.up_proj.weight.device))
+                self.down_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.down_proj.weight[down_start:down_end].contiguous(), self.temperature, 32, init_method, sigma).to(device=self.down_proj.weight.device))
+
+        self.up_proj.sub_distribution_list = nn.ModuleList(self.up_proj.sub_distribution_list)
+        self.down_proj.sub_distribution_list = nn.ModuleList(self.down_proj.sub_distribution_list)
+
+
+    def DGMS_QuantizedWeights(self, train=True):
+        up_weights = []
+        down_weights = []
+
+        for idx in range(self.blocks):
+            start = idx*self.up_step_size
+            end = start+self.up_step_size
+
+            up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[start:end].contiguous(), train=train))
+            down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[start:end].contiguous(), train=train))
+
+        up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
+        down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
+
+        return up_weights, down_weights
+            
+
+    def SQS_QuantizedWeights(self, train=True):
+        # Adaptive quantization
+        up_weights = []
+        down_weights = []
+
+        for idx in range(self.blocks):
+
+            if idx == 0:
+                identity=True
+                up_start = 0
+                up_end = self.up_first_n
+                down_start = 0
+                down_end = self.down_first_n
+                
+            elif idx == self.blocks-1:
+                identity=True
+                up_start = self.up_weight_num-self.up_last_n
+                up_end = self.up_weight_num
+                down_start = self.down_weight_num-self.down_last_n
+                down_end = self.down_weight_num
+
+                
+            elif idx == self.blocks-2:
+                identity=False
+                up_start = self.up_first_n+(idx-1)*self.up_step_size
+                up_end =  self.up_weight_num-self.up_last_n
+                down_start = self.down_first_n+(idx-1)*self.down_step_size
+                down_end = self.down_weight_num-self.down_last_n
+
+            else:
+                identity=False
+                up_start = self.up_first_n+(idx-1)*self.up_step_size
+                up_end = up_start+self.up_step_size
+                down_start = self.down_first_n+(idx-1)*self.down_step_size
+                down_end = down_start+self.down_step_size
+            
+            if identity:
+                up_weights.append(self.up_proj.sub_distribution_list[idx](self.up_proj.weight[up_start:up_end].contiguous()))
+                down_weights.append(self.down_proj.sub_distribution_list[idx](self.down_proj.weight[down_start:down_end].contiguous()))
+            else:
+                up_weights.append(self.up_proj.sub_distribution_list[idx](weights=self.up_proj.weight[up_start:up_end].contiguous(), train=train))
+                down_weights.append(self.down_proj.sub_distribution_list[idx](weights=self.down_proj.weight[down_start:down_end].contiguous(), train=train))
+
+        up_weights = self.reconstruct_weight(up_weights, self.up_argsort_indices, type='up')
+        down_weights = self.reconstruct_weight(down_weights, self.down_argsort_indices, type='down')
+        # print("-"*50+"Quantization Time taken to reconstruct weights {:.4f}".format(time_end-time_start)+"-"*50)
+
+        return up_weights, down_weights
+    
+    def softforward(self,
+        up_weights,
+        down_weights,
+        x
+    ):
+        x = self.act_fn(self.gate_proj(x))*F.linear(x, up_weights.to(x.dtype))
+        down_proj = F.linear(x, down_weights.to(x.dtype))
+        return down_proj
+
+    def forward(self, x):
+        if self.is_normal:
+            return super().forward(x)
+        else:
+            # print("-"*50+"CustomizedMLP Layer Forward"+"-"*50)
+            if cfg.METHOD == "SQS":
+                up_weights, down_weights = self.SQS_QuantizedWeights(cfg.IS_TRAIN)
+            else:
+                up_weights, down_weights = self.DGMS_QuantizedWeights(cfg.IS_TRAIN)
+            return self.softforward(up_weights, down_weights, x)

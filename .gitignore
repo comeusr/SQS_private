@@ -4,6 +4,7 @@
 wandb/
 .scripts/wandb/
 logs/
+Data/
 
 *.pyc
 __pycache__/

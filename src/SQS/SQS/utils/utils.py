@@ -55,11 +55,15 @@ def Normal_pdf(x, _pi, mu, sigma, DEVICE):
             temp_2 = torch.log(torch.sqrt(2*math.pi*sigma**2))
             # print("X-mu Squared {}".format(torch.pow(x - mu, 2)))
             # print("Sigma Squared {}".format(sigma**2))
+            # print("Utils Mu {}".format(mu))
+            # print("Utils Mu Dtype {}".format(mu.dtype))
+            print("Utils X {}".format(x))
+            print("Utils X shape {}".format(x.shape))
             
-            print("Pow 2 {}".format(pow2))
-            print("Sigma {}".format(sigma))
-            print("Sigam Dtype {}".format(sigma.dtype))
-            print("Sigma Squared {}".format(sigma**2))
+            # print("Utils Pow 2 {}".format(pow2))
+            # print("Utils Sigma {}".format(sigma))
+            # print("Utils Sigam Dtype {}".format(sigma.dtype))
+            # print("Utils Sigma Squared {}".format(sigma**2))
 
         return pdf
 
@@ -69,11 +73,15 @@ def get_distribution(nums: torch.tensor, Pm: torch.tensor, K: int, pi_normalized
     
 
     if method == "SQS":
+        if nums.isnan().any():
+            print("Utils Found Nan in nums before Normal_pdf {}".format(nums))
         B = len(nums)
         responsibility = torch.zeros([K, B], device=DEVICE)
 
         for k in range(K):
             responsibility[k] = Normal_pdf(nums, pi_normalized[k], Pm[k], sigma[k], DEVICE)
+            if responsibility[k].isnan().any():
+                print("Utils get_distribution Responsibility {}".format(nums))
     else:
         B = len(nums)
         responsibility = torch.zeros([K, B], device=DEVICE)

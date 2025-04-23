@@ -9,3 +9,4 @@ tokenizers
 kmeans_pytorch
 scikit-learn
 bitsandbytes
+autoawq
