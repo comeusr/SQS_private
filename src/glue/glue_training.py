@@ -141,7 +141,7 @@ def check_sparsity_per_layer(model, logger):
     total_weight_num = 0
     skipped_weight_num = 0
     for name, m in model.named_modules():
-        if isinstance(m, (CustomizedLlamaAttention, CustomizedQwen2Attention)):
+        if isinstance(m, CustomizedLlamaAttention):
             q_weights, k_weights, v_weights, o_weights = m.QuantizedWeights(train=False)
             weights = [q_weights, k_weights, v_weights, o_weights]
 
@@ -151,6 +151,19 @@ def check_sparsity_per_layer(model, logger):
                 total_sparsity_num += check_total_zero(weight)
                 total_weight_num += check_total_weights(weight)
 
+
+            del q_weights, k_weights, v_weights, o_weights, weights
+            torch.cuda.empty_cache()
+        elif isinstance(m, CustomizedQwen2Attention):
+            q_weights, k_weights, v_weights, o_weights = m.SQS_QuantizedWeights(train=False)
+            weights = [q_weights, k_weights, v_weights, o_weights]
+
+            for weight in weights:
+                zero_num = check_total_zero(weight)
+                total_num = check_total_weights(weight)
+
+                total_sparsity_num += zero_num
+                total_weight_num += total_num
 
             del q_weights, k_weights, v_weights, o_weights, weights
             torch.cuda.empty_cache()
@@ -234,7 +247,10 @@ def InitModel(model, sigma):
         elif isinstance(m, CustomizedQwen2Attention):
             print("Initializing Layer {}".format(count))
             print("Initializing Customized Model Parameters.")
-            m.init_mask_params(sigma) 
+            if args.method == "SQS":
+                m.SQS_INIT(sigma) 
+            elif args.method == "DGMS":
+                m.init_mask_params(sigma)
             count += 1 
         elif isinstance(m, CustomizedQwen2MLP):
             print("Initializing Layer {}".format(count))
@@ -275,7 +291,7 @@ def replace_attn_layer(module, config, model_name, device):
             new_module.load_state_dict(module.state_dict())
             print("Replace with Customize Qwen Flash Attention Layer.")
             return new_module
-        elif isinstance(module, Qwen2MLP):
+        if isinstance(module, Qwen2MLP):
             target_state_dict   = deepcopy(module.state_dict())
             new_module = CustomizedQwen2MLP(config).to(device)
             new_module.load_state_dict(target_state_dict)
@@ -301,7 +317,7 @@ def replace_attn_layer(module, config, model_name, device):
 
 
 def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_size, raw_datasets, max_seq_length, pad_to_max_length,
-                        preprocessing_num_workers, overwrite_cache):
+                        preprocessing_num_workers, overwrite_cache, args):
     sentence1_key, sentence2_key = task_to_keys[task_name]
 
     padding = "max_length" if pad_to_max_length else False
@@ -339,7 +355,7 @@ def config_glue_dataset(task_name, precision, tokenizer, batch_size, eval_batch_
     eval_dataset = processed_datasets["validation_matched" if task_name == "mnli" else "validation"]
 
     g = torch.Generator().manual_seed(42)
-    sample_data_indices = torch.randperm(len(train_dataset), generator=g)[:200]
+    sample_data_indices = torch.randperm(len(train_dataset), generator=g)[:args.sample_data_num]
     subset_dataset = train_dataset.select(sample_data_indices.tolist())
 
     # dataLoaders creation:
@@ -406,7 +422,7 @@ def main(args):
 
 
     train_dataloader, eval_dataloader, processed_datasets = config_glue_dataset(args.task_name, args.precision, tokenizer, args.batch_size, args.eval_batch_size, raw_datasets, args.max_seq_length, args.pad_to_max_length,
-                        args.preprocessing_num_workers, args.overwrite_cache)
+                        args.preprocessing_num_workers, args.overwrite_cache, args)
 
     num_train_epochs = args.duration
     num_update_steps_per_epoch = len(train_dataloader)
@@ -525,6 +541,9 @@ def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimiz
                 num_training_steps,duration, normal, cfg, device, num_labels):
     progress_bar = tqdm(range(num_training_steps))
 
+    # Set the pruning parameter grad equal to True
+    if not normal:
+        pruner.pruning_grad_true(model)
 
     for epoch in range(duration):
         logger.info(f"=== Epoch {epoch+1} ===")
@@ -534,26 +553,19 @@ def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimiz
             batch = {k: v.to(model.device) for k, v in batch.items() if torch.is_tensor(v)}
 
             curr_step = len(train_dataloader)*epoch+step
-            
-            if not normal:
-                pruner.prune(curr_step)
-                pruner.log_sparsity(logger)
 
-            
             outputs = model(**batch)
 
             loss = outputs.loss
 
             logger.info("[Train] Epoch {}, Step {}, Loss: {:.4f}".format(epoch+1, step, loss.item()))
 
-            optimizer.zero_grad()
-
             loss.backward(loss, retain_graph=True)
 
-            for name, param in model.named_parameters():
-                if param.grad is not None:
-                    if param.grad.device != param.device:
-                        param.grad = param.grad.to(param.device)
+            # for name, param in model.named_parameters():
+            #     if param.grad is not None:
+            #         if param.grad.device != param.device:
+            #             param.grad = param.grad.to(param.device)
                     # print(name+" grad device", param.grad.device)
                     # print(name+" device", param.device)
 
@@ -569,20 +581,27 @@ def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimiz
             if not normal:
                 pruner.apply_non_prune_gradient(curr_step)
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)
+            torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=0.005)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)
 
             # if step  % 10 == 0:
             #     for name, param in model.named_parameters():
             #         if param.requires_grad:
             #             print(name+".grad", np.linalg.norm(param.grad.detach().cpu().numpy()))
 
+            if not normal:
+                pruner.prune(curr_step)
+                pruner.log_sparsity(logger)
+
             optimizer.step()
+
+            optimizer.zero_grad()
 
             lr_scheduler.step()
 
             progress_bar.update(1)
 
-            if step % 10 == 0:
+            if step % 25 == 0:
                 print("-"*50+"Evaluating Model"+"-"*50)
                 accuracy = evaluate(model, eval_dataloader, device, num_labels)
                 logger.info("[Eval] Epoch {}, Step {}, Accuracy: {:.4f}".format(epoch, step, accuracy))
@@ -730,6 +749,8 @@ if __name__ == "__main__":
                         choices=["SQS", "DGMS", "Normal"], help='Choose Method')
     parser.add_argument('--base_dir', type=str, default="SQS-H100",
                         help='Base Directory')
+    parser.add_argument('--sample_data_num', type=int, default=30000,
+                        help='Number of samples to use for training.')
 
     args = parser.parse_args()
 

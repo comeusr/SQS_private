@@ -579,8 +579,176 @@ class CustomizedQwen2Attention(Qwen2Attention):
         self.is_normal = cfg.IS_NORMAL
         self.k_level = cfg.K_LEVEL
         self.temperature = cfg.TAU
+        self.blocks=4
+        self.q_proj_size = self.q_proj.weight.size()
+        self.k_proj_size = self.k_proj.weight.size()
+        self.v_proj_size = self.v_proj.weight.size()
+        self.o_proj_size = self.o_proj.weight.size()
+        self.first_n = 64
+        self.last_n = 64
+        self.q_num = self.q_proj.weight.numel()
+        self.k_num = self.k_proj.weight.numel()
+        self.v_num = self.v_proj.weight.numel()
+        self.o_num = self.o_proj.weight.numel()
 
-        # self.rotary_emb = Qwen2RotaryEmbedding(config=self.config)
+    def reconstruct_weight(self, weights: List[torch.Tensor], inverse_sorted_indices, type='query'):
+        # TODO: Restore the up_proj_weight given up_weight and self.sorted_up_indices
+        # TODO: Restore the down_proj_weight given down_weight and self.sorted_down_indices
+
+        # print("-"*50+"inverse_sorted_indices: ", inverse_sorted_indices.device, "-"*50)
+
+        if type == 'query':
+            return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.q_proj_size)
+        elif type == 'key':
+            return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.k_proj_size)
+        elif type == 'value':
+            return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.v_proj_size)
+        else:
+            return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.o_proj_size)
+
+        
+    
+    def SQS_INIT(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+
+        # print("-"*50+"Original q_proj weights Shape {}".format(self.q_proj.weight.shape)+'-'*50)
+        q_flat_weight = self.q_proj.weight.flatten().data
+        k_flat_weight = self.k_proj.weight.flatten().data
+        v_flat_weight = self.v_proj.weight.flatten().data
+        o_flat_weight = self.o_proj.weight.flatten().data
+
+        self.q_proj.weight.data, sorted_q_proj_indices = torch.sort(q_flat_weight)
+        self.k_proj.weight.data, sorted_k_proj_indices = torch.sort(k_flat_weight)
+        self.v_proj.weight.data, sorted_v_proj_indices = torch.sort(v_flat_weight)
+        self.o_proj.weight.data, sorted_o_proj_indices = torch.sort(o_flat_weight)
+
+        self.argsorted_q_proj_indices = torch.argsort(sorted_q_proj_indices).cpu()
+        self.argsorted_k_proj_indices = torch.argsort(sorted_k_proj_indices).cpu()
+        self.argsorted_v_proj_indices = torch.argsort(sorted_v_proj_indices).cpu()
+        self.argsorted_o_proj_indices = torch.argsort(sorted_o_proj_indices).cpu()
+
+        del q_flat_weight, k_flat_weight, v_flat_weight, o_flat_weight
+        del sorted_q_proj_indices, sorted_k_proj_indices, sorted_v_proj_indices, sorted_o_proj_indices
+        torch.cuda.empty_cache()
+
+        self.q_proj.sub_distribution_list = []
+        self.k_proj.sub_distribution_list = []
+        self.v_proj.sub_distribution_list = []
+        self.o_proj.sub_distribution_list = []
+
+        self.q_step_size = (self.q_num - self.first_n - self.last_n) // (self.blocks - 2)
+        self.k_step_size = (self.k_num - self.first_n - self.last_n) // (self.blocks - 2)
+        self.v_step_size = (self.v_num - self.first_n - self.last_n) // (self.blocks - 2)
+        self.o_step_size = (self.o_num - self.first_n - self.last_n) // (self.blocks - 2)
+
+        for block_idx in range(self.blocks):
+            if block_idx == 0:
+                self.q_proj.sub_distribution_list.append(nn.Identity())
+                self.k_proj.sub_distribution_list.append(nn.Identity())
+                self.v_proj.sub_distribution_list.append(nn.Identity())
+                self.o_proj.sub_distribution_list.append(nn.Identity())
+            elif block_idx == self.blocks-1:
+                self.q_proj.sub_distribution_list.append(nn.Identity())
+                self.k_proj.sub_distribution_list.append(nn.Identity())
+                self.v_proj.sub_distribution_list.append(nn.Identity())
+                self.o_proj.sub_distribution_list.append(nn.Identity())
+            else:
+                
+                if block_idx == self.blocks-2:
+                    q_start = self.first_n+(block_idx-1)*self.q_step_size
+                    q_end = self.q_num-self.last_n
+                    k_start = self.first_n+(block_idx-1)*self.k_step_size
+                    k_end = self.k_num-self.last_n
+                    v_start = self.first_n+(block_idx-1)*self.v_step_size
+                    v_end = self.v_num-self.last_n
+                    o_start = self.first_n+(block_idx-1)*self.o_step_size
+                    o_end = self.o_num-self.last_n
+
+                else:
+                    q_start = self.first_n+(block_idx-1)*self.q_step_size
+                    q_end = q_start+self.q_step_size
+                    k_start = self.first_n+(block_idx-1)*self.k_step_size
+                    k_end = k_start+self.k_step_size
+                    v_start = self.first_n+(block_idx-1)*self.v_step_size
+                    v_end = v_start+self.v_step_size
+                    o_start = self.first_n+(block_idx-1)*self.o_step_size
+                    o_end = o_start+self.o_step_size
+
+                self.q_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.q_proj.weight[q_start:q_end].contiguous(), self.temperature, 32, init_method, sigma))
+                self.k_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.k_proj.weight[k_start:k_end].contiguous(), self.temperature, 32, init_method, sigma))
+                self.v_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.v_proj.weight[v_start:v_end].contiguous(), self.temperature, 32, init_method, sigma))
+                self.o_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.o_proj.weight[o_start:o_end].contiguous(), self.temperature, 32, init_method, sigma))
+        
+        self.q_proj.sub_distribution_list = nn.ModuleList(self.q_proj.sub_distribution_list)
+        self.k_proj.sub_distribution_list = nn.ModuleList(self.k_proj.sub_distribution_list)
+        self.v_proj.sub_distribution_list = nn.ModuleList(self.v_proj.sub_distribution_list)
+        self.o_proj.sub_distribution_list = nn.ModuleList(self.o_proj.sub_distribution_list)
+                
+        
+    def SQS_QuantizedWeights(self, train=True):
+        # Adaptive quantization
+        q_weights = []
+        k_weights = []
+        v_weights = []
+        o_weights = []
+
+        for idx in range(self.blocks):
+
+            if idx == 0:
+                identity=True
+                q_start = k_start = v_start = o_start = 0
+                q_end = k_end = v_end = o_end = self.first_n
+                
+            elif idx == self.blocks-1:
+                identity=True
+                q_start = self.q_num-self.last_n
+                q_end = self.q_num
+                k_start = self.k_num-self.last_n
+                k_end = self.k_num
+                v_start = self.v_num-self.last_n
+                v_end = self.v_num
+                o_start = self.o_num-self.last_n
+                o_end = self.o_num
+                
+            elif idx == self.blocks-2:
+                identity=False
+                q_start = self.first_n+(idx-1)*self.q_step_size
+                q_end = self.q_num-self.last_n
+                k_start = self.first_n+(idx-1)*self.k_step_size
+                k_end = self.k_num-self.last_n
+                v_start = self.first_n+(idx-1)*self.v_step_size
+                v_end = self.v_num-self.last_n
+                o_start = self.first_n+(idx-1)*self.o_step_size
+                o_end = self.o_num-self.last_n
+
+            else:
+                identity=False
+                q_start = self.first_n+(idx-1)*self.q_step_size
+                q_end = q_start+self.q_step_size
+                k_start = self.first_n+(idx-1)*self.k_step_size
+                k_end = k_start+self.k_step_size
+                v_start = self.first_n+(idx-1)*self.v_step_size
+                v_end = v_start+self.v_step_size
+                o_start = self.first_n+(idx-1)*self.o_step_size
+                o_end = o_start+self.o_step_size
+            
+            if identity:
+                q_weights.append(self.q_proj.sub_distribution_list[idx](self.q_proj.weight[q_start:q_end].contiguous()))
+                k_weights.append(self.k_proj.sub_distribution_list[idx](self.k_proj.weight[k_start:k_end].contiguous()))
+                v_weights.append(self.v_proj.sub_distribution_list[idx](self.v_proj.weight[v_start:v_end].contiguous()))
+                o_weights.append(self.o_proj.sub_distribution_list[idx](self.o_proj.weight[o_start:o_end].contiguous()))
+            else:
+                q_weights.append(self.q_proj.sub_distribution_list[idx](weights=self.q_proj.weight[q_start:q_end].contiguous(), train=train))
+                k_weights.append(self.k_proj.sub_distribution_list[idx](weights=self.k_proj.weight[k_start:k_end].contiguous(), train=train))
+                v_weights.append(self.v_proj.sub_distribution_list[idx](weights=self.v_proj.weight[v_start:v_end].contiguous(), train=train))
+                o_weights.append(self.o_proj.sub_distribution_list[idx](weights=self.o_proj.weight[o_start:o_end].contiguous(), train=train))
+
+        q_weights = self.reconstruct_weight(q_weights, self.argsorted_q_proj_indices, type='qeury')
+        k_weights = self.reconstruct_weight(k_weights, self.argsorted_k_proj_indices, type='key')
+        v_weights = self.reconstruct_weight(v_weights, self.argsorted_v_proj_indices, type='value')
+        o_weights = self.reconstruct_weight(o_weights, self.argsorted_o_proj_indices, type='output')
+        
+        return q_weights, k_weights, v_weights, o_weights
     
     def init_mask_params(self, sigma):
         init_method = 'empirical' if cfg.IS_EMP else 'k-means'
@@ -698,7 +866,7 @@ class CustomizedQwen2Attention(Qwen2Attention):
                 **kwargs
             )
         else:
-            k_weights, v_weights, q_weights, o_weights = self.QuantizedWeights(train=cfg.IS_TRAIN)
+            q_weights, k_weights, v_weights, o_weights = self.SQS_QuantizedWeights(train=cfg.IS_TRAIN)
             temp = self.softforward(
                 k_weights, 
                 v_weights, 
@@ -711,12 +879,6 @@ class CustomizedQwen2Attention(Qwen2Attention):
                 cache_position,
                 **kwargs
             )
-
-            # print('-'*50+"Temp requires_grad: ", temp[0].requires_grad, "-"*50)
-            if temp[0].isnan().any():
-                print("Temp is nan")
-            elif temp[0].isinf().any():
-                print("Temp is inf")
 
 
             return temp
@@ -1156,10 +1318,10 @@ class CustomizedQwen2MLP(Qwen2MLP):
         self.down_proj.weight.data, sorted_down_indices = torch.sort(down_flat_weight)
 
         self.get_outlier_indices()
-        print("-"*50+"up_first_n {}".format(self.up_first_n)+"-"*50)
-        print("-"*50+"up_last_n {}".format(self.up_last_n)+"-"*50)
-        print("-"*50+"down_first_n {}".format(self.down_first_n)+"-"*50)
-        print("-"*50+"down_last_n {}".format(self.down_last_n)+"-"*50)
+        # print("-"*50+"up_first_n {}".format(self.up_first_n)+"-"*50)
+        # print("-"*50+"up_last_n {}".format(self.up_last_n)+"-"*50)
+        # print("-"*50+"down_first_n {}".format(self.down_first_n)+"-"*50)
+        # print("-"*50+"down_last_n {}".format(self.down_last_n)+"-"*50)
 
         self.up_argsort_indices = torch.argsort(sorted_up_indices).cpu()
         self.down_argsort_indices = torch.argsort(sorted_down_indices).cpu()

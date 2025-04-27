@@ -46,7 +46,7 @@ model_config={
 
     },
     "Qwen/Qwen2.5-0.5B":{
-        "from_pretrained": "/scratch/gilbreth/wang4538/DGMS/Run/GLUE/normal_sst2_Qwen_0.5b/normal_epoch0",
+        "from_pretrained": "/home/ubuntu/SQS-H100/Data/pretrained/GLUE/sst/Qwen/Qwen2.5-0.5B/epoch0",
         "attn_implementation": "eager",
     },
     'meta-llama/Llama-3.2-1B':{

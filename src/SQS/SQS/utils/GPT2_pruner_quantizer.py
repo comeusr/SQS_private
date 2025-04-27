@@ -67,8 +67,24 @@ class GPT2_PRUNER():
             if isinstance(m, CustomizGPT2Attention):
                 is_dict[name+'.c_attn'] = m.c_attn.sub_distribution.pruning_parameter.data
                 is_dict[name+'.c_proj'] = m.c_proj.sub_distribution.pruning_parameter.data
-            elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
-                is_dict[name+'k_proj'] = m.k_proj.sub_distribution.pruning_parameter.data
+            elif isinstance(m, CustomizedQwen2Attention):
+                for i, sub in enumerate(m.k_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    is_dict[name+'k_proj_{}'.format(i)] = sub.sweight_cache.data
+                for i, sub in enumerate(m.q_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    is_dict[name+'q_proj_{}'.format(i)] = sub.sweight_cache.data
+                for i, sub in enumerate(m.o_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    is_dict[name+'o_proj_{}'.format(i)] = sub.sweight_cache.data
+                for i, sub in enumerate(m.v_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    is_dict[name+'v_proj_{}'.format(i)] = sub.sweight_cache.data
+            elif isinstance(m, CustomizedLlamaAttention):
                 is_dict[name+'v_proj'] = m.v_proj.sub_distribution.pruning_parameter.data
                 is_dict[name+'q_proj'] = m.q_proj.sub_distribution.pruning_parameter.data
                 is_dict[name+'o_proj'] = m.o_proj.sub_distribution.pruning_parameter.data
@@ -76,11 +92,11 @@ class GPT2_PRUNER():
                 for i, sub in enumerate(m.up_proj.sub_distribution_list):
                     if isinstance(sub, nn.Identity):
                         continue
-                    is_dict[name+'.up_proj_{}'.format(i)] = sub.pruning_parameter.data
+                    is_dict[name+'.up_proj_{}'.format(i)] = sub.sweight_cache.data
                 for i, sub in enumerate(m.down_proj.sub_distribution_list):
                     if isinstance(sub, nn.Identity):
                         continue
-                    is_dict[name+'.down_proj_{}'.format(i)] = sub.pruning_parameter.data
+                    is_dict[name+'.down_proj_{}'.format(i)] = sub.sweight_cache.data
             
 
                 # print("is_dict_{} {}".format(name, is_dict[name]))
@@ -117,8 +133,35 @@ class GPT2_PRUNER():
 
                     # projMu = projLayer.mu
                     # projMu.grad.add_(projMu, alpha=1/(projLayer.init_sigma ** 2))
-                elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
-                    print("Applying sparsisty Gradients for Attention Layers")
+                elif isinstance(m, CustomizedQwen2Attention):
+                    sp=0.01
+
+                    for i, sub in enumerate(m.k_proj.sub_distribution_list):
+                        if isinstance(sub, nn.Identity):
+                            continue
+                        projP = sub.pruning_parameter/cfg.PRUNE_SCALE
+                        sub.pruning_parameter.grad.add_(torch.log(F.sigmoid(projP)/(sp))*sigmoid_derivative(projP))
+
+                    for i, sub in enumerate(m.q_proj.sub_distribution_list):
+                        if isinstance(sub, nn.Identity):
+                            continue
+                        projP = sub.pruning_parameter/cfg.PRUNE_SCALE
+                        sub.pruning_parameter.grad.add_(torch.log(F.sigmoid(projP)/(sp))*sigmoid_derivative(projP))
+                    
+                    for i, sub in enumerate(m.o_proj.sub_distribution_list):
+                        if isinstance(sub, nn.Identity):
+                            continue
+                        projP = sub.pruning_parameter/cfg.PRUNE_SCALE
+                        sub.pruning_parameter.grad.add_(torch.log(F.sigmoid(projP)/(sp))*sigmoid_derivative(projP))
+                    
+                    for i, sub in enumerate(m.v_proj.sub_distribution_list):
+                        if isinstance(sub, nn.Identity):
+                            continue
+                        projP = sub.pruning_parameter/cfg.PRUNE_SCALE
+                        sub.pruning_parameter.grad.add_(torch.log(F.sigmoid(projP)/(sp))*sigmoid_derivative(projP))
+                        
+
+                elif isinstance(m, CustomizedLlamaAttention):
                     sp=0.01
                     k_projLayer = m.k_proj.sub_distribution
                     v_projLayer = m.v_proj.sub_distribution
@@ -143,13 +186,16 @@ class GPT2_PRUNER():
                     o_projLayer.pruning_parameter.grad.add_(torch.log(F.sigmoid(o_projP)/(sp))*sigmoid_derivative(o_projP))
 
                 elif isinstance(m, (CustomizedLLamaMLP, CustomizedQwen2MLP)):
-                    print("Applying sparsisty Gradients for MLP Layers")
                     sp=0.01
                     for i, sub in enumerate(m.up_proj.sub_distribution_list):
+                        if isinstance(sub, nn.Identity):
+                            continue
                         pruning_parameter = sub.pruning_parameter/cfg.PRUNE_SCALE
                         sub.pruning_parameter.grad.add_(torch.log(F.sigmoid(pruning_parameter)/(sp))*sigmoid_derivative(pruning_parameter))
                     
                     for i, sub in enumerate(m.down_proj.sub_distribution_list):
+                        if isinstance(sub, nn.Identity):
+                            continue 
                         pruning_parameter = sub.pruning_parameter/cfg.PRUNE_SCALE
                         sub.pruning_parameter.grad.add_(torch.log(F.sigmoid(pruning_parameter)/(sp))*sigmoid_derivative(pruning_parameter))
 
@@ -161,33 +207,37 @@ class GPT2_PRUNER():
                 m.c_attn.sub_distribution.mask = (is_dict[name+'.c_attn'] < mask_thresh)
                 m.c_proj.sub_distribution.mask = (is_dict[name+'.c_proj'] < mask_thresh)
             elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
-                print("Generating Mask for Attention Layers")
-                print("-"*30+"Mask Threshold {}".format(mask_thresh)+"-"*30)
-                m.k_proj.sub_distribution.mask = (is_dict[name+'k_proj'] < mask_thresh)
-                m.v_proj.sub_distribution.mask = (is_dict[name+'v_proj'] < mask_thresh)
-                m.q_proj.sub_distribution.mask = (is_dict[name+'q_proj'] < mask_thresh)
-                m.o_proj.sub_distribution.mask = (is_dict[name+'o_proj'] < mask_thresh)
+
+                for i, sub in enumerate(m.k_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.mask = (is_dict[name+'k_proj_{}'.format(i)] < mask_thresh)
+                for i, sub in enumerate(m.v_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.mask = (is_dict[name+'v_proj_{}'.format(i)] < mask_thresh)
+                for i, sub in enumerate(m.q_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.mask = (is_dict[name+'q_proj_{}'.format(i)] < mask_thresh)
+                for i, sub in enumerate(m.o_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.mask = (is_dict[name+'o_proj_{}'.format(i)] < mask_thresh)
                 # print("Threshold {}".format(mask_thresh))
                 # print(m.sub_distribution.mask)
             elif isinstance(m, (CustomizedLLamaMLP, CustomizedQwen2MLP)):
-                print("Generating Mask for MLP Layers")
-                print("-"*30+"Mask Threshold {}".format(mask_thresh)+"-"*30)
                 
                 for idx, sub in enumerate(m.up_proj.sub_distribution_list):
                     if isinstance(sub, nn.Identity):
                         continue
                     sub.mask = (is_dict[name+'.up_proj_{}'.format(idx)] < mask_thresh)
-                    zero_count = sub.mask.sum().item()
-                    total = sub.mask.numel()
-                    print(f"Pruner Up MLP Mask: {zero_count}/{total} = {zero_count/total:.2%} zeros")
                     
                 for idx, sub in enumerate(m.down_proj.sub_distribution_list):
                     if isinstance(sub, nn.Identity):
                         continue
                     sub.mask = (is_dict[name+'.down_proj_{}'.format(idx)] < mask_thresh)
-                    zero_count = sub.mask.sum().item()
-                    total = sub.mask.numel()
-                    print(f"Pruner Down MLP Mask: {zero_count}/{total} = {zero_count/total:.2%} zeros")
+
         return 
     
     def sparsity_scheduler(self, train_step):
@@ -257,11 +307,38 @@ class GPT2_PRUNER():
             if isinstance(m, CustomizGPT2Attention):
                 m.c_attn.sub_distribution.pruning_parameter.requires_grad=True
                 m.c_proj.sub_distribution.pruning_parameter.requires_grad=True
-            elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
+            elif isinstance(m, CustomizedQwen2Attention):
+                for i, sub in enumerate(m.k_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=True
+                for i, sub in enumerate(m.v_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=True
+                for i, sub in enumerate(m.q_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=True
+                for i, sub in enumerate(m.o_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=True
+            elif isinstance(m, CustomizedLlamaAttention):
                 m.k_proj.sub_distribution.pruning_parameter.requires_grad=True
                 m.v_proj.sub_distribution.pruning_parameter.requires_grad=True
                 m.q_proj.sub_distribution.pruning_parameter.requires_grad=True
                 m.o_proj.sub_distribution.pruning_parameter.requires_grad=True
+            elif isinstance(m, (CustomizedLLamaMLP, CustomizedQwen2MLP)):
+                for i, sub in enumerate(m.up_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=True
+                for i, sub in enumerate(m.down_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=True
+                    
 
     
     def pruning_grad_false(self, model):
@@ -269,13 +346,39 @@ class GPT2_PRUNER():
         for name, m in model.named_modules():
             if isinstance(m, CustomizGPT2Attention):
                 m.c_attn.sub_distribution.pruning_parameter.requires_grad=False
-                m.c_proj.sub_distribution.pruning_parameter.requires_grad=False
-            elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
+                m.c_proj.sub_distribution.pruning_parameter.requires_grad=True
+            elif isinstance(m, CustomizedQwen2Attention):
+                for i, sub in enumerate(m.k_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=False
+                for i, sub in enumerate(m.v_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=False
+                for i, sub in enumerate(m.q_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=False
+                for i, sub in enumerate(m.o_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=False
+            elif isinstance(m, CustomizedLlamaAttention):
                 m.k_proj.sub_distribution.pruning_parameter.requires_grad=False
                 m.v_proj.sub_distribution.pruning_parameter.requires_grad=False
                 m.q_proj.sub_distribution.pruning_parameter.requires_grad=False
                 m.o_proj.sub_distribution.pruning_parameter.requires_grad=False
-
+            elif isinstance(m, (CustomizedLLamaMLP, CustomizedQwen2MLP)):
+                for i, sub in enumerate(m.up_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=False
+                for i, sub in enumerate(m.down_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.requires_grad=False
+        
     def prune_with_mask(self, model):
         for name, m in model.named_modules():
             if isinstance(m, CustomizGPT2Attention):
@@ -283,7 +386,7 @@ class GPT2_PRUNER():
                 m.c_attn.sub_distribution.pruning_parameter.detach().masked_fill_(attnMask, -0.1)
                 projMask = m.c_proj.sub_distribution.mask
                 m.c_proj.sub_distribution.pruning_parameter.detach().masked_fill_(projMask, -0.1)
-            elif isinstance(m, (CustomizedQwen2Attention, CustomizedLlamaAttention)):
+            elif isinstance(m, CustomizedLlamaAttention):
                 k_projMask = m.k_proj.sub_distribution.mask
                 m.k_proj.sub_distribution.pruning_parameter.detach().masked_fill_(k_projMask, -0.1)
                 v_projMask = m.v_proj.sub_distribution.mask
@@ -292,6 +395,24 @@ class GPT2_PRUNER():
                 m.q_proj.sub_distribution.pruning_parameter.detach().masked_fill_(q_projMask, -0.1)
                 o_projMask = m.o_proj.sub_distribution.mask
                 m.o_proj.sub_distribution.pruning_parameter.detach().masked_fill_(o_projMask, -0.1) 
+            
+            elif isinstance(m, CustomizedQwen2Attention):
+                for i, sub in enumerate(m.k_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.detach().masked_fill_(sub.mask, -0.1)
+                for i, sub in enumerate(m.q_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.detach().masked_fill_(sub.mask, -0.1)
+                for i, sub in enumerate(m.o_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.detach().masked_fill_(sub.mask, -0.1)
+                for i, sub in enumerate(m.v_proj.sub_distribution_list):
+                    if isinstance(sub, nn.Identity):
+                        continue
+                    sub.pruning_parameter.detach().masked_fill_(sub.mask, -0.1)
             elif isinstance(m, (CustomizedLLamaMLP, CustomizedQwen2MLP)):
                 for i, sub in enumerate(m.up_proj.sub_distribution_list):
                     if isinstance(sub, nn.Identity):
@@ -340,8 +461,12 @@ class GPT2_PRUNER():
 
     def prune(self, step):
 
-        if cfg.PRUNE and (step <= cfg.PRUNE_START_STEP or step > cfg.PRUNE_END_STEP):
+        if cfg.PRUNE and (step <= cfg.PRUNE_START_STEP):
             print('-'*30+'Warming Up phase, not pruning.'+'-'*30)
+            self.pruning_grad_true(self.model)
+            self.apply_pruning_grad(self.model)
+        elif cfg.PRUNE and step > cfg.PRUNE_END_STEP:
+            print('-'*30+'Pruning phase END'+'-'*30)
             self.pruning_grad_false(self.model)
         elif cfg.PRUNE and cfg.PRUNE_START_STEP < step <= cfg.PRUNE_END_STEP:
             print('-'*30+'Pruning phase'+'-'*30)

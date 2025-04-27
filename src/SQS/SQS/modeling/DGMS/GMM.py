@@ -206,13 +206,16 @@ class GaussianMixtureModel(nn.Module):
                 region_belonging = self.GMM_region_responsibility(weights.flatten())
 
                 if cfg.PRIOR == 'spike_slab':
-                    Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
+                    temp = reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)
+                    Sweight =  temp* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
+                    self.sweight_cache = torch.abs(temp)*F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE)
                     # Sweight =  reconstruct(weights.shape, region_belonging@self.mu, self.bin_indices, DEVICE)
                 else:
                     Sweight = torch.mul(region_belonging, self.mu.unsqueeze(1)).sum(dim=0)* F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE) \
                             + (1-F.sigmoid(self.pruning_parameter.flatten()/cfg.PRUNE_SCALE))*torch.randn_like(weights.flatten())
 
                 torch.cuda.empty_cache()
+
 
                 return Sweight.view(weights.size())
             else:
