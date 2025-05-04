@@ -605,8 +605,59 @@ class CustomizedQwen2Attention(Qwen2Attention):
             return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.v_proj_size)
         else:
             return torch.cat(weights, dim=0)[inverse_sorted_indices].view(self.o_proj_size)
-
         
+    
+    def DGMS_INIT(self, sigma):
+        init_method = 'empirical' if cfg.IS_EMP else 'k-means'
+        
+        q_flat_weight = self.q_proj.weight.flatten().data
+        k_flat_weight = self.k_proj.weight.flatten().data
+        v_flat_weight = self.v_proj.weight.flatten().data
+        o_flat_weight = self.o_proj.weight.flatten().data
+
+        self.q_proj.weight.data, sorted_q_proj_indices = torch.sort(q_flat_weight)
+        self.k_proj.weight.data, sorted_k_proj_indices = torch.sort(k_flat_weight)
+        self.v_proj.weight.data, sorted_v_proj_indices = torch.sort(v_flat_weight)
+        self.o_proj.weight.data, sorted_o_proj_indices = torch.sort(o_flat_weight)
+
+        self.argsorted_q_proj_indices = torch.argsort(sorted_q_proj_indices).cpu()
+        self.argsorted_k_proj_indices = torch.argsort(sorted_k_proj_indices).cpu()
+        self.argsorted_v_proj_indices = torch.argsort(sorted_v_proj_indices).cpu()
+        self.argsorted_o_proj_indices = torch.argsort(sorted_o_proj_indices).cpu()
+
+        del q_flat_weight, k_flat_weight, v_flat_weight, o_flat_weight
+        del sorted_q_proj_indices, sorted_k_proj_indices, sorted_v_proj_indices, sorted_o_proj_indices
+        torch.cuda.empty_cache()
+
+        self.q_proj.sub_distribution_list = []
+        self.k_proj.sub_distribution_list = []
+        self.v_proj.sub_distribution_list = []
+        self.o_proj.sub_distribution_list = []
+
+        self.q_step_size = (self.q_num) // (self.blocks)
+        self.k_step_size = (self.k_num) // (self.blocks)
+        self.v_step_size = (self.v_num) // (self.blocks)
+        self.o_step_size = (self.o_num) // (self.blocks)
+
+        for block_idx in range(self.blocks):
+            q_start = block_idx*self.q_step_size
+            q_end = q_start+self.q_step_size
+            k_start = block_idx*self.k_step_size
+            k_end = k_start+self.k_step_size
+            v_start = block_idx*self.v_step_size
+            v_end = v_start+self.v_step_size
+            o_start = block_idx*self.o_step_size
+            o_end = o_start+self.o_step_size
+
+            self.q_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.q_proj.weight[q_start:q_end].contiguous(), self.temperature, 32, init_method, sigma))
+            self.k_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.k_proj.weight[k_start:k_end].contiguous(), self.temperature, 32, init_method, sigma))
+            self.v_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.v_proj.weight[v_start:v_end].contiguous(), self.temperature, 32, init_method, sigma))
+            self.o_proj.sub_distribution_list.append(gmm_approximation(self.k_level, self.o_proj.weight[o_start:o_end].contiguous(), self.temperature, 32, init_method, sigma))
+
+        self.q_proj.sub_distribution_list = nn.ModuleList(self.q_proj.sub_distribution_list)
+        self.k_proj.sub_distribution_list = nn.ModuleList(self.k_proj.sub_distribution_list)
+        self.v_proj.sub_distribution_list = nn.ModuleList(self.v_proj.sub_distribution_list)
+        self.o_proj.sub_distribution_list = nn.ModuleList(self.o_proj.sub_distribution_list)
     
     def SQS_INIT(self, sigma):
         init_method = 'empirical' if cfg.IS_EMP else 'k-means'
@@ -683,7 +734,36 @@ class CustomizedQwen2Attention(Qwen2Attention):
         self.k_proj.sub_distribution_list = nn.ModuleList(self.k_proj.sub_distribution_list)
         self.v_proj.sub_distribution_list = nn.ModuleList(self.v_proj.sub_distribution_list)
         self.o_proj.sub_distribution_list = nn.ModuleList(self.o_proj.sub_distribution_list)
-                
+
+    
+    def DGMS_QuantizedWeights(self, train=True):
+        q_weights = []
+        k_weights = []
+        v_weights = []
+        o_weights = []
+
+        for block_idx in range(self.blocks):
+            q_start = block_idx*self.q_step_size
+            q_end = q_start+self.q_step_size
+            k_start = block_idx*self.k_step_size
+            k_end = k_start+self.k_step_size
+            v_start = block_idx*self.v_step_size
+            v_end = v_start+self.v_step_size
+            o_start = block_idx*self.o_step_size
+            o_end = o_start+self.o_step_size
+
+            q_weights.append(self.q_proj.sub_distribution_list[block_idx](self.q_proj.weight[q_start:q_end].contiguous(), train))
+            k_weights.append(self.k_proj.sub_distribution_list[block_idx](self.k_proj.weight[k_start:k_end].contiguous(), train))
+            v_weights.append(self.v_proj.sub_distribution_list[block_idx](self.v_proj.weight[v_start:v_end].contiguous(), train))
+            o_weights.append(self.o_proj.sub_distribution_list[block_idx](self.o_proj.weight[o_start:o_end].contiguous(), train))
+
+        
+        q_weights = self.reconstruct_weight(q_weights, self.argsorted_q_proj_indices, type='qeury')
+        k_weights = self.reconstruct_weight(k_weights, self.argsorted_k_proj_indices, type='key')
+        v_weights = self.reconstruct_weight(v_weights, self.argsorted_v_proj_indices, type='value')
+        o_weights = self.reconstruct_weight(o_weights, self.argsorted_o_proj_indices, type='output')
+        
+        return q_weights, k_weights, v_weights, o_weights
         
     def SQS_QuantizedWeights(self, train=True):
         # Adaptive quantization
@@ -846,8 +926,6 @@ class CustomizedQwen2Attention(Qwen2Attention):
         attn_output = F.linear(attn_output, o_weights.to(attn_output.dtype))
         return attn_output, attn_weights
         
-
-    
     def forward( self,
         hidden_states: torch.Tensor,
         position_embeddings: Tuple[torch.Tensor, torch.Tensor],
@@ -866,8 +944,11 @@ class CustomizedQwen2Attention(Qwen2Attention):
                 **kwargs
             )
         else:
-            q_weights, k_weights, v_weights, o_weights = self.SQS_QuantizedWeights(train=cfg.IS_TRAIN)
-            temp = self.softforward(
+            if cfg.METHOD == "SQS":
+                q_weights, k_weights, v_weights, o_weights = self.SQS_QuantizedWeights(cfg.IS_TRAIN)
+            else:
+                q_weights, k_weights, v_weights, o_weights = self.DGMS_QuantizedWeights(cfg.IS_TRAIN)
+            return self.softforward(
                 k_weights, 
                 v_weights, 
                 q_weights, 
@@ -880,8 +961,6 @@ class CustomizedQwen2Attention(Qwen2Attention):
                 **kwargs
             )
 
-
-            return temp
 
 
 class CustomizedLlamaAttention(LlamaAttention):

@@ -155,7 +155,10 @@ def check_sparsity_per_layer(model, logger):
             del q_weights, k_weights, v_weights, o_weights, weights
             torch.cuda.empty_cache()
         elif isinstance(m, CustomizedQwen2Attention):
-            q_weights, k_weights, v_weights, o_weights = m.SQS_QuantizedWeights(train=False)
+            if cfg.METHOD == "SQS":
+                q_weights, k_weights, v_weights, o_weights = m.SQS_QuantizedWeights(train=False)
+            elif cfg.METHOD == "DGMS":
+                q_weights, k_weights, v_weights, o_weights = m.DGMS_QuantizedWeights(train=False)
             weights = [q_weights, k_weights, v_weights, o_weights]
 
             for weight in weights:
@@ -250,7 +253,7 @@ def InitModel(model, sigma):
             if args.method == "SQS":
                 m.SQS_INIT(sigma) 
             elif args.method == "DGMS":
-                m.init_mask_params(sigma)
+                m.DGMS_INIT(sigma)
             count += 1 
         elif isinstance(m, CustomizedQwen2MLP):
             print("Initializing Layer {}".format(count))
@@ -447,35 +450,26 @@ def main(args):
 
     if args.optimizer == "adam":
         print("AdamW optimizer")
+
+        optimizer_grouped_parameters = [
+                {
+                    "params": get_non_pruning_params(model),
+                    "lr": args.lr,
+                    "weight_decay": args.weight_decay,
+                },
+                {
+                    "params": get_pruning_params(model),
+                    "lr": args.prune_lr,
+                    "weight_decay": 0.0,
+                },
+            ]
+        
         optimizer = AdamW(
-            model.parameters(),
-            lr=args.lr,
-            eps=1e-8
+            optimizer_grouped_parameters,
         )
         decay_parameters = get_parameter_names(model, [nn.LayerNorm])
         decay_parameters = [name for name in decay_parameters if "bias" not in name]
 
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in model.named_parameters() if "mu" in n],
-                "weight_decay": args.weight_decay,
-            },
-            {
-                "params": [p for n, p in model.named_parameters() if 'mu' not in n],
-                "weight_decay": 0.0,
-            },
-        ]
-
-        optimizer_kwargs = {
-            "eps": 1e-8,
-        }
-        optimizer_kwargs["lr"] = args.lr
-
-        optimizer = bnb.optim.AdamW(
-            model.parameters(),
-            lr=args.lr,
-            eps=1e-8
-        )
     elif args.optimizer == "rmsprop":
         print("SGD optimizer")
         optimizer = RMSprop(
@@ -509,8 +503,6 @@ def main(args):
             ]
             optimizer = SGD(
                 optimizer_grouped_parameters,
-                lr=args.lr,
-                weight_decay=args.weight_decay
             )
 
     for state in optimizer.state.values():
@@ -570,13 +562,13 @@ def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimiz
                     # print(name+" device", param.device)
 
 
-            for name, param in model.named_parameters():
-                if param.requires_grad:
-                    if param.grad is None:
-                        print(f"{name} grad: {param.grad}")
-                    elif torch.isnan(param.grad).any():
-                        print("-"*50+"NaN Grad Found"+"-"*50)
-                        print(f"{name} grad: {param.grad}")
+            # for name, param in model.named_parameters():
+            #     if param.requires_grad:
+            #         if param.grad is None:
+            #             print(f"{name} grad: {param.grad}")
+            #         elif torch.isnan(param.grad).any():
+            #             print("-"*50+"NaN Grad Found"+"-"*50)
+            #             print(f"{name} grad: {param.grad}")
             
             if not normal:
                 pruner.apply_non_prune_gradient(curr_step)
@@ -603,8 +595,10 @@ def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimiz
 
             if step % 25 == 0:
                 print("-"*50+"Evaluating Model"+"-"*50)
-                accuracy = evaluate(model, eval_dataloader, device, num_labels)
-                logger.info("[Eval] Epoch {}, Step {}, Accuracy: {:.4f}".format(epoch, step, accuracy))
+                accuracy = evaluate(model, eval_dataloader, device, num_labels, is_train=False)
+                logger.info("[Eval] Epoch {}, Step {}, Accuracy: {:.4f}".format(epoch+1, step, accuracy))
+                train_accuracy = evaluate(model, eval_dataloader, device, num_labels, is_train=True)
+                logger.info("[Train] Epoch {}, Step {}, Accuracy: {:.4f}".format(epoch+1, step, train_accuracy))
                 if not cfg.IS_NORMAL:
                     sparsity_ratio, model_params = check_sparsity_per_layer(model, logger)
 
@@ -620,9 +614,13 @@ def model_train(logger,train_dataloader, eval_dataloader, model, pruner, optimiz
     Final_ACC = evaluate(model, eval_dataloader, device, num_labels)
     logger.info(f"Final Accuracy: {Final_ACC:.4f}")
 
-def evaluate(model, eval_dataloader, device, num_labels):
-    model.eval()
-    cfg.IS_TRAIN = False
+def evaluate(model, eval_dataloader, device, num_labels, is_train):
+
+    if not is_train:
+        model.eval()
+    
+    cfg.IS_TRAIN = is_train
+        
     metric = MulticlassAccuracy(num_classes=num_labels, average='micro').to(device)
 
     with torch.no_grad():

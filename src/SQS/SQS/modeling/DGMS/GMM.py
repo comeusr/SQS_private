@@ -79,6 +79,24 @@ class GaussianMixtureModel(nn.Module):
             elif method == 'empirical':
                 initial_region_saliency, pi_init, pi_zero_init, sigma_init, _sigma_zero = cluster_weights(init_weights, self.num_components)
                 sigma_init, _sigma_zero = torch.ones_like(sigma_init).mul(0.01), torch.ones_like(torch.tensor([_sigma_zero])).mul(0.01)
+
+            if sigma_init.isnan().any() or sigma_init.eq(0.0).any():
+                print('-'*50+"Sigma init is nan or zero"+"-"*50)
+                print('-'*50+"Old Sigma init {}".format(sigma_init)+"-"*50)
+                # Create a mask for valid elements (nonzero and non-NaN)
+                valid_mask = (sigma_init != 0) & (~torch.isnan(sigma_init)) & (torch.isfinite(sigma_init))
+
+                # Extract valid elements
+                valid_elements = sigma_init[valid_mask]
+                
+                smallest_valid = torch.min(valid_elements)
+                largest_valid = torch.max(valid_elements)
+                # Replace zeros and NaNs with the smallest valid elements
+                sigma_init[sigma_init == 0] = smallest_valid
+                sigma_init[torch.isnan(sigma_init)] = smallest_valid
+                sigma_init[~torch.isfinite(sigma_init)] = largest_valid
+                print('-'*50+"New Sigma init {}".format(sigma_init)+"-"*50)
+
             self.mu = nn.Parameter(data=torch.mul(self.mu, initial_region_saliency.flatten()))
             self.pi_k = nn.Parameter(data=torch.mul(self.pi_k, pi_init)).float()
             self.pi_zero = nn.Parameter(data=torch.tensor([pi_zero_init], device=init_weights.device)).float()
@@ -166,6 +184,7 @@ class GaussianMixtureModel(nn.Module):
 
         
         if temp.isnan().any():
+            print("-"*50+"GMM self.method {}".format(self.method)+"-"*50)
             print("-"*50+"GMM self.nums {}".format(self.nums)+"-"*50)
             print('-'*50+"Found nan in the soft weights"+"-"*50)
             if O.isnan().any():
